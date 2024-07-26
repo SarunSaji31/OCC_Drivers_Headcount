@@ -1,16 +1,154 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Enter Head Count</title>
+    <title>Enter Head Count Details</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+    <style>
+        .add-icon {
+            cursor: pointer;
+            color: green;
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+        }
+        .trip-form .remove-trip {
+            cursor: pointer;
+            color: red;
+            font-weight: bold;
+        }
+        .button-container {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+    </style>
 </head>
 <body>
-    <h1>Enter Head Count Details</h1>
-    <form method="post">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit">Submit</button>
-    </form>
+    <div class="container">
+        <h1>Enter Head Count Details</h1>
+        <form method="post">
+            {% csrf_token %}
+            {{ driver_form.as_p }}
+            <div id="trips-table-container">
+                <table class="table" id="trips-table">
+                    <thead>
+                        <tr>
+                            <th>Sl No</th>
+                            <th>Route Name</th>
+                            <th>Pick Up Time</th>
+                            <th>Drop Off Time</th>
+                            <th>Shift Time</th>
+                            <th>Head Count</th>
+                            <th>Remove</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Rows will be added here -->
+                    </tbody>
+                </table>
+            </div>
+            <div id="button-container" class="button-container">
+                <div id="add-row" class="add-icon">+</div>
+                <button type="submit" class="btn btn-success" id="submit-button">Submit</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Modal for adding trip details -->
+    <div class="modal fade" id="tripModal" tabindex="-1" role="dialog" aria-labelledby="tripModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="tripModalLabel">Add Trip Details</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="tripForm">
+                        <div class="form-group">
+                            <label for="route_name">Route Name</label>
+                            <input type="text" class="form-control" id="route_name" name="route_name">
+                        </div>
+                        <div class="form-group">
+                            <label for="pick_up_time">Pick Up Time</label>
+                            <input type="time" class="form-control" id="pick_up_time" name="pick_up_time">
+                        </div>
+                        <div class="form-group">
+                            <label for="drop_off_time">Drop Off Time</label>
+                            <input type="time" class="form-control" id="drop_off_time" name="drop_off_time">
+                        </div>
+                        <div class="form-group">
+                            <label for="shift_time">Shift Time</label>
+                            <input type="time" class="form-control" id="shift_time" name="shift_time">
+                        </div>
+                        <div class="form-group">
+                            <label for="head_count">Head Count</label>
+                            <input type="number" class="form-control" id="head_count" name="head_count">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="saveTrip">Add Trip</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            var tripCount = 0;
+
+            $('#add-row').click(function() {
+                $('#tripModal').modal('show');
+            });
+
+            $('#saveTrip').click(function() {
+                tripCount++;
+                var routeName = $('#route_name').val();
+                var pickUpTime = $('#pick_up_time').val();
+                var dropOffTime = $('#drop_off_time').val();
+                var shiftTime = $('#shift_time').val();
+                var headCount = $('#head_count').val();
+
+                var newRow = `
+                    <tr class="trip-form">
+                        <td>${tripCount}</td>
+                        <td>${routeName}</td>
+                        <td>${pickUpTime}</td>
+                        <td>${dropOffTime}</td>
+                        <td>${shiftTime}</td>
+                        <td>${headCount}</td>
+                        <td><span class="remove-trip" style="cursor: pointer; color: red;">Remove</span></td>
+                    </tr>
+                `;
+                $('#trips-table tbody').append(newRow);
+                $('#tripModal').modal('hide');
+                $('#tripForm')[0].reset();
+                $('#submit-button').show(); // Show the submit button when a trip is added
+            });
+
+            $(document).on('click', '.remove-trip', function() {
+                $(this).closest('tr').remove();
+                tripCount--;
+                updateSlNo();
+                if ($('.trip-form').length === 0) {
+                    $('#submit-button').hide(); // Hide the submit button if no trips are present
+                }
+            });
+
+            function updateSlNo() {
+                $('#trips-table tbody tr.trip-form').each(function(index) {
+                    $(this).find('td:first').text(index + 1);
+                });
+            }
+
+            // Initial call to hide the submit button
+            $('#submit-button').hide();
+        });
+    </script>
 </body>
 </html>
-
-
