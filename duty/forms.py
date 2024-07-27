@@ -36,4 +36,4 @@ class TripForm(forms.ModelForm):
             'head_count': forms.NumberInput(attrs={'class': 'form-control'}),
         }
 
-TripFormSet = inlineformset_factory(Driver, Trip, form=TripForm, extra=1, can_delete=True)
+TripFormSet = inlineformset_factory(Driver, Trip, form=TripForm, extra=1)

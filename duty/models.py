@@ -15,6 +15,6 @@ class Trip(models.Model):
     drop_off_time = models.TimeField()
     shift_time = models.TimeField()
     head_count = models.IntegerField()
-
+    
     def __str__(self):
         return self.route_name

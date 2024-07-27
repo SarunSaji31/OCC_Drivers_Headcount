@@ -1,11 +1,114 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+
 <head>
-    <title>Enter Head Count Details</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enter Head Count - OCC-EKG Project</title>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f8f9fa;
+        }
+
+        .navbar {
+            background-color: #9eb2c9;
+        }
+
+        .navbar-brand,
+        .nav-link {
+            color: white !important;
+        }
+
+        .header-section {
+            text-align: center;
+            padding: 50px;
+            background: #9eb2c9;
+            color: white;
+            position: relative;
+        }
+
+        .header-section h1 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+        }
+
+        .header-section p {
+            font-size: 1.2rem;
+            margin-bottom: 40px;
+        }
+
+        .header-section img {
+            position: absolute;
+            top: 10px;
+            left: 25px;
+            width: 250px;
+        }
+
+        .form-container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            margin-top: 20px;
+        }
+
+        .form-group label {
+            font-weight: bold;
+        }
+
+        .trip-form-container {
+            margin-top: 20px;
+            overflow-x: auto;
+        }
+
+        table th,
+        table td {
+            text-align: center;
+        }
+
+        .form-control {
+            border-radius: 0.25rem;
+        }
+
+        .btn-primary {
+            background-color: #007bff;
+            border-color: #007bff;
+            border-radius: 0.25rem;
+        }
+
+        .btn-primary:hover {
+            background-color: #0056b3;
+            border-color: #004085;
+        }
+
+        .btn-success {
+            background-color: #28a745;
+            border-color: #28a745;
+            border-radius: 0.25rem;
+        }
+
+        .btn-success:hover {
+            background-color: #218838;
+            border-color: #1e7e34;
+        }
+
+        .table thead th {
+            background-color: #343a40;
+            color: white;
+        }
+
+        .table tbody tr:hover {
+            background-color: #f1f1f1;
+        }
+
+        .table {
+            border-collapse: separate;
+            border-spacing: 0 1em;
+        }
+
         .add-icon {
             cursor: pointer;
             color: green;
@@ -13,26 +116,109 @@
             font-weight: bold;
             text-align: center;
         }
-        .trip-form .remove-trip {
+
+        .remove-trip {
             cursor: pointer;
             color: red;
             font-weight: bold;
         }
+
         .button-container {
             display: flex;
             gap: 10px;
             margin-top: 20px;
+            justify-content: center;
+        }
+
+        .footer {
+            background: #9cb3cc;
+            color: rgb(255, 255, 255);
+            text-align: center;
+            padding: 10px 0;
+        }
+
+        .footer p {
+            margin: 0;
         }
     </style>
 </head>
+
 <body>
-    <div class="container">
+    <nav class="navbar navbar-expand-lg">
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ml-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'home' %}">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#">Enter Details</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#">Reports</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#">Contact</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="header-section">
+        <img src="https://et.ae/wp-content/uploads/2020/03/Logo.svg" alt="Logo">
         <h1>Enter Head Count Details</h1>
+        <p>Manage and track driver details and trip information efficiently.</p>
+    </div>
+
+    <div class="container form-container">
+        <!-- Display Driver Form Errors -->
+        {% if driver_form_errors %}
+        <div class="alert alert-danger">
+            <strong>Driver Form Errors:</strong>
+            <ul>
+                {% for field, errors in driver_form_errors.items %}
+                <li>{{ field }}: {{ errors }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <!-- Display Trip Formset Errors -->
+        {% if trip_formset_errors %}
+        <div class="alert alert-danger">
+            <strong>Trip Formset Errors:</strong>
+            <ul>
+                {% for form in trip_formset %}
+                {% if form.errors %}
+                <li>
+                    {% for field, errors in form.errors.items %}
+                    {{ form.prefix }} - {{ field }}: {{ errors }}
+                    {% endfor %}
+                </li>
+                {% endif %}
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
         <form method="post">
             {% csrf_token %}
-            {{ driver_form.as_p }}
-            <div id="trips-table-container">
-                <table class="table" id="trips-table">
+            <div class="form-row">
+                <div class="form-group col-md-4">
+                    <label for="{{ driver_form.driver_name.id_for_label }}">Driver Name</label>
+                    {{ driver_form.driver_name }}
+                </div>
+                <div class="form-group col-md-4">
+                    <label for="{{ driver_form.staff_id.id_for_label }}">Staff ID</label>
+                    {{ driver_form.staff_id }}
+                </div>
+                <div class="form-group col-md-4">
+                    <label for="{{ driver_form.duty_card_no.id_for_label }}">Duty Card No</label>
+                    {{ driver_form.duty_card_no }}
+                </div>
+            </div>
+            <div class="trip-form-container">
+                {{ trip_formset.management_form }}
+                <table class="table table-striped table-bordered" id="trips-table">
                     <thead>
                         <tr>
                             <th>Sl No</th>
@@ -45,7 +231,17 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <!-- Rows will be added here -->
+                        {% for form in trip_formset %}
+                        <tr class="trip-form">
+                            <td>{{ forloop.counter }}</td>
+                            <td>{{ form.route_name }}</td>
+                            <td>{{ form.pick_up_time }}</td>
+                            <td>{{ form.drop_off_time }}</td>
+                            <td>{{ form.shift_time }}</td>
+                            <td>{{ form.head_count }}</td>
+                            <td><span class="remove-trip" style="cursor: pointer; color: red;">Remove</span></td>
+                        </tr>
+                        {% endfor %}
                     </tbody>
                 </table>
             </div>
@@ -56,79 +252,32 @@
         </form>
     </div>
 
-    <!-- Modal for adding trip details -->
-    <div class="modal fade" id="tripModal" tabindex="-1" role="dialog" aria-labelledby="tripModalLabel" aria-hidden="true">
-        <div class="modal-dialog" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="tripModalLabel">Add Trip Details</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <form id="tripForm">
-                        <div class="form-group">
-                            <label for="route_name">Route Name</label>
-                            <input type="text" class="form-control" id="route_name" name="route_name">
-                        </div>
-                        <div class="form-group">
-                            <label for="pick_up_time">Pick Up Time</label>
-                            <input type="time" class="form-control" id="pick_up_time" name="pick_up_time">
-                        </div>
-                        <div class="form-group">
-                            <label for="drop_off_time">Drop Off Time</label>
-                            <input type="time" class="form-control" id="drop_off_time" name="drop_off_time">
-                        </div>
-                        <div class="form-group">
-                            <label for="shift_time">Shift Time</label>
-                            <input type="time" class="form-control" id="shift_time" name="shift_time">
-                        </div>
-                        <div class="form-group">
-                            <label for="head_count">Head Count</label>
-                            <input type="number" class="form-control" id="head_count" name="head_count">
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-primary" id="saveTrip">Add Trip</button>
-                </div>
-            </div>
-        </div>
-    </div>
+    <footer class="footer">
+        <p>&copy; Emirates airlines staff transport project.</p>
+    </footer>
 
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
     <script>
         $(document).ready(function() {
-            var tripCount = 0;
+            var tripCount = {{ trip_formset.total_form_count }} || 0;
 
             $('#add-row').click(function() {
-                $('#tripModal').modal('show');
-            });
-
-            $('#saveTrip').click(function() {
                 tripCount++;
-                var routeName = $('#route_name').val();
-                var pickUpTime = $('#pick_up_time').val();
-                var dropOffTime = $('#drop_off_time').val();
-                var shiftTime = $('#shift_time').val();
-                var headCount = $('#head_count').val();
-
                 var newRow = `
                     <tr class="trip-form">
                         <td>${tripCount}</td>
-                        <td>${routeName}</td>
-                        <td>${pickUpTime}</td>
-                        <td>${dropOffTime}</td>
-                        <td>${shiftTime}</td>
-                        <td>${headCount}</td>
-                        <td><span class="remove-trip" style="cursor: pointer; color: red;">Remove</span></td>
+                        <td><input type="text" name="trips-${tripCount}-route_name" class="form-control"></td>
+                        <td><input type="time" name="trips-${tripCount}-pick_up_time" class="form-control"></td>
+                        <td><input type="time" name="trips-${tripCount}-drop_off_time" class="form-control"></td>
+                        <td><input type="time" name="trips-${tripCount}-shift_time" class="form-control"></td>
+                        <td><input type="number" name="trips-${tripCount}-head_count" class="form-control"></td>
+                        <td><input type="hidden" name="trips-${tripCount}-id" value=""><span class="remove-trip" style="cursor: pointer; color: red;">Remove</span></td>
                     </tr>
                 `;
                 $('#trips-table tbody').append(newRow);
-                $('#tripModal').modal('hide');
-                $('#tripForm')[0].reset();
                 $('#submit-button').show(); // Show the submit button when a trip is added
+                $('#id_trips-TOTAL_FORMS').val(tripCount + 1);
             });
 
             $(document).on('click', '.remove-trip', function() {
@@ -138,6 +287,7 @@
                 if ($('.trip-form').length === 0) {
                     $('#submit-button').hide(); // Hide the submit button if no trips are present
                 }
+                $('#id_trips-TOTAL_FORMS').val(tripCount);
             });
 
             function updateSlNo() {
@@ -151,4 +301,5 @@
         });
     </script>
 </body>
+
 </html>
