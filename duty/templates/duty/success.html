@@ -1,11 +1,127 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+
 <head>
-    <title>Success</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Success - OCC-EKG Project</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f8f9fa;
+        }
+
+        .navbar {
+            background-color: #9eb2c9;
+        }
+
+        .navbar-brand,
+        .nav-link {
+            color: white !important;
+        }
+
+        .header-section {
+            text-align: center;
+            padding: 50px;
+            background: #9eb2c9;
+            color: white;
+            position: relative;
+        }
+
+        .header-section h1 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+        }
+
+        .header-section p {
+            font-size: 1.2rem;
+            margin-bottom: 40px;
+        }
+
+        .header-section img {
+            position: absolute;
+            top: 10px;
+            left: 25px;
+            width: 250px;
+        }
+
+        .success-container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .success-message {
+            font-size: 1.5rem;
+            color: #28a745;
+            margin-bottom: 20px;
+        }
+
+        .success-icon {
+            font-size: 4rem;
+            color: #28a745;
+            margin-bottom: 20px;
+        }
+
+        .footer {
+            background: #9cb3cc;
+            color: rgb(255, 255, 255);
+            text-align: center;
+            padding: 10px 0;
+        }
+
+        .footer p {
+            margin: 0;
+        }
+    </style>
 </head>
+
 <body>
-    <h1>Success!</h1>
-    <p>Your data has been submitted successfully.</p>
-    <a href="{% url 'enter_head_count' %}">Enter more details</a>
+    <nav class="navbar navbar-expand-lg">
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ml-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'home' %}">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'enter_head_count' %}">Enter Details</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#">Reports</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#">Contact</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="header-section">
+        <img src="https://et.ae/wp-content/uploads/2020/03/Logo.svg" alt="Logo">
+        <h1>Success</h1>
+        <p>Your data has been successfully submitted.</p>
+    </div>
+
+    <div class="container success-container">
+        <i class="fas fa-check-circle success-icon"></i>
+        <div class="success-message">
+            <strong>Success!</strong> Your data has been successfully submitted.
+        </div>
+        <a href="{% url 'home' %}" class="btn btn-primary">Go Back to Home</a>
+        <a href="{% url 'enter_head_count' %}" class="btn btn-secondary">Enter More Data</a>
+    </div>
+
+    <footer class="footer">
+        <p>&copy; Emirates airlines staff transport project.</p>
+    </footer>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
 </body>
+
 </html>
