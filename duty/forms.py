@@ -1,3 +1,5 @@
+# forms.py
+
 from django import forms
 from .models import Driver, Trip
 from django.forms import inlineformset_factory
@@ -5,15 +7,15 @@ from django.forms import inlineformset_factory
 class DriverForm(forms.ModelForm):
     class Meta:
         model = Driver
-        fields = ['driver_name', 'staff_id', 'duty_card_no']
+        fields = ['staff_id', 'driver_name', 'duty_card_no']
         labels = {
-            'driver_name': 'Driver Name',
             'staff_id': 'Staff ID',
+            'driver_name': 'Driver Name',
             'duty_card_no': 'Duty Card No',
         }
         widgets = {
-            'driver_name': forms.TextInput(attrs={'class': 'form-control'}),
-            'staff_id': forms.TextInput(attrs={'class': 'form-control'}),
+            'staff_id': forms.TextInput(attrs={'class': 'form-control', 'id': 'staff_id'}),
+            'driver_name': forms.TextInput(attrs={'class': 'form-control', 'id': 'driver_name'}),
             'duty_card_no': forms.TextInput(attrs={'class': 'form-control'}),
         }
 
