@@ -7,6 +7,7 @@
     <title>Enter Head Count - OCC-EKG Project</title>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
     <style>
         body {
             font-family: 'Arial', sans-serif;
@@ -204,12 +205,12 @@
             {% csrf_token %}
             <div class="form-row">
                 <div class="form-group col-md-4">
-                    <label for="{{ driver_form.driver_name.id_for_label }}">Driver Name</label>
-                    {{ driver_form.driver_name }}
-                </div>
-                <div class="form-group col-md-4">
                     <label for="{{ driver_form.staff_id.id_for_label }}">Staff ID</label>
                     {{ driver_form.staff_id }}
+                </div>
+                <div class="form-group col-md-4">
+                    <label for="{{ driver_form.driver_name.id_for_label }}">Driver Name</label>
+                    {{ driver_form.driver_name }}
                 </div>
                 <div class="form-group col-md-4">
                     <label for="{{ driver_form.duty_card_no.id_for_label }}">Duty Card No</label>
@@ -253,13 +254,60 @@
     </div>
 
     <footer class="footer">
-        <p>&copy; Emirates airlines staff transport project.</p>
+        <p>&copy; Emirates Airline Staff Transport Project.</p>
     </footer>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
     <script>
         $(document).ready(function() {
+            // Autocomplete for staff ID
+            $("#id_staff_id").autocomplete({
+                source: function(request, response) {
+                    $.ajax({
+                        url: "{% url 'staff-id-autocomplete' %}",
+                        dataType: "json",
+                        data: {
+                            term: request.term
+                        },
+                        success: function(data) {
+                            response(data);
+                        }
+                    });
+                },
+                minLength: 2,
+                select: function(event, ui) {
+                    $.ajax({
+                        url: "{% url 'get-driver-name' %}",
+                        dataType: "json",
+                        data: {
+                            staff_id: ui.item.value
+                        },
+                        success: function(data) {
+                            $('#id_driver_name').val(data.driver_name);
+                        }
+                    });
+                }
+            });
+
+            // Autocomplete for driver name
+            $("#id_driver_name").autocomplete({
+                source: function(request, response) {
+                    $.ajax({
+                        url: "{% url 'driver-autocomplete' %}",
+                        dataType: "json",
+                        data: {
+                            term: request.term
+                        },
+                        success: function(data) {
+                            response(data);
+                        }
+                    });
+                },
+                minLength: 2
+            });
+
             var tripCount = {{ trip_formset.total_form_count }} || 0;
 
             $('#add-row').click(function() {
@@ -301,5 +349,4 @@
         });
     </script>
 </body>
-
 </html>
