@@ -61,12 +61,6 @@
 
         .trip-form-container {
             margin-top: 20px;
-            overflow-x: auto;
-        }
-
-        table th,
-        table td {
-            text-align: center;
         }
 
         .form-control {
@@ -95,36 +89,19 @@
             border-color: #1e7e34;
         }
 
-        .table thead th {
-            background-color: #343a40;
-            color: white;
-        }
-
-        .table tbody tr:hover {
-            background-color: #f1f1f1;
-        }
-
-        .table {
-            border-collapse: separate;
-            border-spacing: 0 1em;
-        }
-
         .add-icon {
             cursor: pointer;
             color: green;
             font-size: 24px;
             font-weight: bold;
             text-align: center;
+            align-self: center;
         }
 
         .remove-trip {
             cursor: pointer;
             font-weight: bold;
             color: rgb(255, 9, 29);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 50%;
         }
 
         .button-container {
@@ -143,6 +120,24 @@
 
         .footer p {
             margin: 0;
+        }
+
+        .trip-form-container .form-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .trip-form-container .form-group {
+            margin-bottom: 0;
+            flex: 1;
+            margin-right: 10px;
+        }
+
+        .trip-form-container .remove-trip-container {
+            display: flex;
+            align-items: center;
+            margin-left: 10px;
         }
     </style>
 </head>
@@ -204,28 +199,34 @@
             </div>
             <div id="trip-entries">
                 <div class="form-row trip-form-container">
-                    <div class="form-group col-md-2">
+                    <div class="form-group">
                         <label>Route Name</label>
                         <input type="text" name="route_name" class="form-control" placeholder="Enter Route Name" required>
                     </div>
-                    <div class="form-group col-md-2">
+                    <div class="form-group">
+                        <label>Type</label>
+                        <select name="trip_type" class="form-control" required>
+                            <option value="inbound">Inbound</option>
+                            <option value="outbound">Outbound</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
                         <label>Pick Up Time</label>
                         <input type="time" name="pick_up_time" class="form-control" placeholder="Enter Pick Up Time" required>
                     </div>
-                    <div class="form-group col-md-2">
+                    <div class="form-group">
                         <label>Drop Off Time</label>
                         <input type="time" name="drop_off_time" class="form-control" placeholder="Enter Drop Off Time" required>
                     </div>
-                    <div class="form-group col-md-2">
+                    <div class="form-group">
                         <label>Shift Time</label>
                         <input type="time" name="shift_time" class="form-control" placeholder="Enter Shift Time" required>
                     </div>
-                    <div class="form-group col-md-2">
+                    <div class="form-group">
                         <label>Head Count</label>
                         <input type="number" name="head_count" class="form-control" placeholder="Enter Head Count" required>
                     </div>
-                    <div class="form-group col-md-2 remove-trip-container">
-                        <label>&nbsp;</label>
+                    <div class="remove-trip-container">
                         <span class="remove-trip">Remove</span>
                     </div>
                 </div>
@@ -251,28 +252,34 @@
             $('#add-row').click(function() {
                 var newRow = `
                     <div class="form-row trip-form-container">
-                        <div class="form-group col-md-2">
+                        <div class="form-group">
                             <label>Route Name</label>
                             <input type="text" name="trips-${tripCount}-route_name" class="form-control" placeholder="Enter Route Name" required>
                         </div>
-                        <div class="form-group col-md-2">
+                        <div class="form-group">
+                            <label>Type</label>
+                            <select name="trips-${tripCount}-trip_type" class="form-control" required>
+                                <option value="inbound">Inbound</option>
+                                <option value="outbound">Outbound</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
                             <label>Pick Up Time</label>
                             <input type="time" name="trips-${tripCount}-pick_up_time" class="form-control" placeholder="Enter Pick Up Time" required>
                         </div>
-                        <div class="form-group col-md-2">
+                        <div class="form-group">
                             <label>Drop Off Time</label>
                             <input type="time" name="trips-${tripCount}-drop_off_time" class="form-control" placeholder="Enter Drop Off Time" required>
                         </div>
-                        <div class="form-group col-md-2">
+                        <div class="form-group">
                             <label>Shift Time</label>
                             <input type="time" name="trips-${tripCount}-shift_time" class="form-control" placeholder="Enter Shift Time" required>
                         </div>
-                        <div class="form-group col-md-2">
+                        <div class="form-group">
                             <label>Head Count</label>
                             <input type="number" name="trips-${tripCount}-head_count" class="form-control" placeholder="Enter Head Count" required>
                         </div>
-                        <div class="form-group col-md-2 remove-trip-container">
-                            <label>&nbsp;</label>
+                        <div class="remove-trip-container">
                             <span class="remove-trip">Remove</span>
                         </div>
                     </div>

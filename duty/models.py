@@ -1,6 +1,11 @@
 from django.db import models
 
 class DriverTrip(models.Model):
+    INBOUND_OUTBOUND_CHOICES = [
+        ('inbound', 'Inbound'),
+        ('outbound', 'Outbound'),
+    ]
+
     staff_id = models.CharField(max_length=100)
     driver_name = models.CharField(max_length=100)
     duty_card_no = models.CharField(max_length=100)
@@ -9,6 +14,7 @@ class DriverTrip(models.Model):
     drop_off_time = models.TimeField()
     shift_time = models.TimeField()
     head_count = models.IntegerField()
+    trip_type = models.CharField(max_length=8, choices=INBOUND_OUTBOUND_CHOICES, default='inbound')
 
     def __str__(self):
         return self.driver_name
