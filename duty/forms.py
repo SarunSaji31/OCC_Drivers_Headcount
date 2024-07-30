@@ -1,41 +1,27 @@
-# duty/forms.py
-
 from django import forms
-from .models import Driver, Trip
-from django.forms import inlineformset_factory
+from .models import DriverTrip
 
-class DriverForm(forms.ModelForm):
+class DriverTripForm(forms.ModelForm):
     class Meta:
-        model = Driver
-        fields = ['staff_id', 'driver_name', 'duty_card_no']
+        model = DriverTrip
+        fields = ['staff_id', 'driver_name', 'duty_card_no', 'route_name', 'pick_up_time', 'drop_off_time', 'shift_time', 'head_count']
         labels = {
             'staff_id': 'Staff ID',
             'driver_name': 'Driver Name',
             'duty_card_no': 'Duty Card No',
-        }
-        widgets = {
-            'staff_id': forms.TextInput(attrs={'class': 'form-control'}),
-            'driver_name': forms.TextInput(attrs={'class': 'form-control'}),
-            'duty_card_no': forms.TextInput(attrs={'class': 'form-control'}),
-        }
-
-class TripForm(forms.ModelForm):
-    class Meta:
-        model = Trip
-        fields = ['route_name', 'pick_up_time', 'drop_off_time', 'shift_time', 'head_count']
-        labels = {
-            'route_name': 'Route Name', 
+            'route_name': 'Route Name',
             'pick_up_time': 'Pick Up Time',
             'drop_off_time': 'Drop Off Time',
             'shift_time': 'Shift Time',
             'head_count': 'Head Count',
         }
         widgets = {
-            'route_name': forms.TextInput(attrs={'class': 'form-control'}),
-            'pick_up_time': forms.TimeInput(attrs={'class': 'form-control', 'type': 'time'}),
-            'drop_off_time': forms.TimeInput(attrs={'class': 'form-control', 'type': 'time'}),
-            'shift_time': forms.TimeInput(attrs={'class': 'form-control', 'type': 'time'}),
-            'head_count': forms.NumberInput(attrs={'class': 'form-control'}),
+            'staff_id': forms.TextInput(attrs={'class': 'form-control', 'required': 'required'}),
+            'driver_name': forms.TextInput(attrs={'class': 'form-control', 'required': 'required'}),
+            'duty_card_no': forms.TextInput(attrs={'class': 'form-control', 'required': 'required'}),
+            'route_name': forms.TextInput(attrs={'class': 'form-control', 'required': 'required'}),
+            'pick_up_time': forms.TimeInput(attrs={'class': 'form-control', 'required': 'required'}),
+            'drop_off_time': forms.TimeInput(attrs={'class': 'form-control', 'required': 'required'}),
+            'shift_time': forms.TimeInput(attrs={'class': 'form-control', 'required': 'required'}),
+            'head_count': forms.NumberInput(attrs={'class': 'form-control', 'required': 'required'}),
         }
-
-TripFormSet = inlineformset_factory(Driver, Trip, form=TripForm, extra=1)

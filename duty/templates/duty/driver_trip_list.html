@@ -64,11 +64,6 @@
             overflow-x: auto;
         }
 
-        table th,
-        table td {
-            text-align: center;
-        }
-
         .form-control {
             border-radius: 0.25rem;
         }
@@ -119,12 +114,8 @@
 
         .remove-trip {
             cursor: pointer;
+            color: red;
             font-weight: bold;
-            color: rgb(255, 9, 29);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 50%;
         }
 
         .button-container {
@@ -224,9 +215,9 @@
                         <label>Head Count</label>
                         <input type="number" name="head_count" class="form-control" placeholder="Enter Head Count" required>
                     </div>
-                    <div class="form-group col-md-2 remove-trip-container">
+                    <div class="form-group col-md-2">
                         <label>&nbsp;</label>
-                        <span class="remove-trip">Remove</span>
+                        <span class="remove-trip" style="cursor: pointer;">Remove</span>
                     </div>
                 </div>
             </div>
@@ -271,9 +262,9 @@
                             <label>Head Count</label>
                             <input type="number" name="trips-${tripCount}-head_count" class="form-control" placeholder="Enter Head Count" required>
                         </div>
-                        <div class="form-group col-md-2 remove-trip-container">
+                        <div class="form-group col-md-2">
                             <label>&nbsp;</label>
-                            <span class="remove-trip">Remove</span>
+                            <span class="remove-trip" style="cursor: pointer;">Remove</span>
                         </div>
                     </div>
                 `;
@@ -286,18 +277,11 @@
             $(document).on('click', '.remove-trip', function() {
                 $(this).closest('.trip-form-container').remove();
                 tripCount--;
-                updateSlNo();
                 if ($('.trip-form-container').length === 0) {
                     $('#submit-button').hide(); // Hide the submit button if no trips are present
                 }
                 $('#id_trips-TOTAL_FORMS').val(tripCount);
             });
-
-            function updateSlNo() {
-                $('#trip-entries .trip-form-container').each(function(index) {
-                    $(this).find('input[type="text"]').val(index + 1);
-                });
-            }
 
             // Autocomplete for staff ID
             $("#id_staff_id").autocomplete({
