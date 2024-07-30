@@ -1,6 +1,6 @@
 import csv
 from django.core.management.base import BaseCommand
-from duty.models import Driver
+from duty.models import DriverImportLog
 
 class Command(BaseCommand):
     help = 'Import drivers and staff IDs from CSV file'
@@ -15,13 +15,7 @@ class Command(BaseCommand):
                 
                 # Validate the data
                 if driver_name and staff_id and staff_id != '-':
-                    driver, created = Driver.objects.get_or_create(
+                    DriverImportLog.objects.create(
                         driver_name=driver_name,
-                        defaults={'staff_id': staff_id}
+                        staff_id=staff_id
                     )
-                    if not created:
-                        driver.staff_id = staff_id
-                        driver.save()
-                    self.stdout.write(self.style.SUCCESS(f'Successfully imported {driver.driver_name}'))
-                else:
-                    self.stdout.write(self.style.ERROR(f'Skipping invalid row: {row}'))
