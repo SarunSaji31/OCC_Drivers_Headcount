@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect
+from django.http import JsonResponse
 from .forms import DriverForm, TripFormSet
 from .models import Driver
-from django.http import JsonResponse
 
 def home(request):
     return render(request, 'duty/home.html')
@@ -40,28 +40,29 @@ def success(request):
 
 def driver_autocomplete(request):
     if 'term' in request.GET:
-        qs = Driver.objects.filter(driver_name__icontains=request.GET.get('term'))
-        names = list()
-        for driver in qs:
-            names.append(driver.driver_name)
+        term = request.GET.get('term')
+        qs = Driver.objects.filter(driver_name__icontains=term)
+        names = list(qs.values_list('driver_name', flat=True))
         return JsonResponse(names, safe=False)
-    return render(request, 'duty/enter_head_count.html')
+    return JsonResponse([], safe=False)
 
 def staff_id_autocomplete(request):
     if 'term' in request.GET:
-        qs = Driver.objects.filter(staff_id__icontains(request.GET.get('term')))
-        staff_ids = list()
-        for driver in qs:
-            staff_ids.append(driver.staff_id)
+        term = request.GET.get('term')
+        qs = Driver.objects.filter(staff_id__icontains=term)
+        staff_ids = list(qs.values_list('staff_id', flat=True))
         return JsonResponse(staff_ids, safe=False)
-    return render(request, 'duty/enter_head_count.html')
+    return JsonResponse([], safe=False)
 
 def get_driver_name(request):
     staff_id = request.GET.get('staff_id', None)
     if staff_id:
         try:
-            driver = Driver.objects.get(staff_id=staff_id)
-            return JsonResponse({'driver_name': driver.driver_name})
+            driver = Driver.objects.filter(staff_id=staff_id).first()
+            if driver:
+                return JsonResponse({'driver_name': driver.driver_name})
+            else:
+                return JsonResponse({'driver_name': ''})
         except Driver.DoesNotExist:
             return JsonResponse({'driver_name': ''})
     return JsonResponse({'driver_name': ''})
