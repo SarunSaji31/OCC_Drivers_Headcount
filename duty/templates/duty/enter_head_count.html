@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -272,12 +271,21 @@
                             term: request.term
                         },
                         success: function(data) {
-                            response(data);
+                            response($.map(data, function(item) {
+                                return {
+                                    label: item, // This is what is displayed in the dropdown
+                                    value: item  // This is what is stored in the input field
+                                };
+                            }));
+                        },
+                        error: function(xhr, status, error) {
+                            console.log("Error fetching autocomplete data for staff_id:", error); // Debugging log
                         }
                     });
                 },
                 minLength: 2,
                 select: function(event, ui) {
+                    console.log("Selected staff_id:", ui.item.value); // Debugging log
                     $.ajax({
                         url: "{% url 'get-driver-name' %}",
                         dataType: "json",
@@ -286,9 +294,17 @@
                         },
                         success: function(data) {
                             $('#id_driver_name').val(data.driver_name);
+                        },
+                        error: function(xhr, status, error) {
+                            console.log("Error fetching driver name:", error); // Debugging log
                         }
                     });
                 }
+            });
+
+            // Clear driver name when staff ID is cleared or changed
+            $("#id_staff_id").on('input', function() {
+                $('#id_driver_name').val('');
             });
 
             // Autocomplete for driver name
@@ -301,7 +317,15 @@
                             term: request.term
                         },
                         success: function(data) {
-                            response(data);
+                            response($.map(data, function(item) {
+                                return {
+                                    label: item, // This is what is displayed in the dropdown
+                                    value: item  // This is what is stored in the input field
+                                };
+                            }));
+                        },
+                        error: function(xhr, status, error) {
+                            console.log("Error fetching autocomplete data for driver_name:", error); // Debugging log
                         }
                     });
                 },

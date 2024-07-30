@@ -1,4 +1,4 @@
-# forms.py
+# duty/forms.py
 
 from django import forms
 from .models import Driver, Trip
@@ -14,8 +14,8 @@ class DriverForm(forms.ModelForm):
             'duty_card_no': 'Duty Card No',
         }
         widgets = {
-            'staff_id': forms.TextInput(attrs={'class': 'form-control', 'id': 'staff_id'}),
-            'driver_name': forms.TextInput(attrs={'class': 'form-control', 'id': 'driver_name'}),
+            'staff_id': forms.TextInput(attrs={'class': 'form-control'}),
+            'driver_name': forms.TextInput(attrs={'class': 'form-control'}),
             'duty_card_no': forms.TextInput(attrs={'class': 'form-control'}),
         }
 
@@ -24,7 +24,7 @@ class TripForm(forms.ModelForm):
         model = Trip
         fields = ['route_name', 'pick_up_time', 'drop_off_time', 'shift_time', 'head_count']
         labels = {
-            'route_name': 'Route Name',
+            'route_name': 'Route Name', 
             'pick_up_time': 'Pick Up Time',
             'drop_off_time': 'Drop Off Time',
             'shift_time': 'Shift Time',
