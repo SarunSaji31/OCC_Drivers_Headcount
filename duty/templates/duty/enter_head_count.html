@@ -1,9 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    {% load static %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Enter Head Count - OCC-EKG Project</title>
+    <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
@@ -198,39 +200,9 @@
                 </div>
             </div>
             <div id="trip-entries">
-                <div class="form-row trip-form-container">
-                    <div class="form-group">
-                        <label>Route Name</label>
-                        <input type="text" name="route_name" class="form-control" placeholder="Enter Route Name" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Type</label>
-                        <select name="trip_type" class="form-control" required>
-                            <option value="inbound">Inbound</option>
-                            <option value="outbound">Outbound</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Pick Up Time</label>
-                        <input type="time" name="pick_up_time" class="form-control" placeholder="Enter Pick Up Time" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Drop Off Time</label>
-                        <input type="time" name="drop_off_time" class="form-control" placeholder="Enter Drop Off Time" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Shift Time</label>
-                        <input type="time" name="shift_time" class="form-control" placeholder="Enter Shift Time" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Head Count</label>
-                        <input type="number" name="head_count" class="form-control" placeholder="Enter Head Count" required>
-                    </div>
-                    <div class="remove-trip-container">
-                        <span class="remove-trip">Remove</span>
-                    </div>
-                </div>
+                <!-- Trip form entries will be dynamically added here -->
             </div>
+            <input type="hidden" name="trips-TOTAL_FORMS" id="id_trips-TOTAL_FORMS" value="0">
             <div id="button-container" class="button-container">
                 <div id="add-row" class="add-icon">+</div>
                 <button type="submit" class="btn btn-success" id="submit-button">Submit</button>
@@ -247,29 +219,30 @@
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
     <script>
         $(document).ready(function() {
-            var tripCount = 1;
+            var tripCount = 0;
 
-            $('#add-row').click(function() {
+            // Function to add a new trip row
+            function addTripRow(tripData = {}) {
                 var newRow = `
                     <div class="form-row trip-form-container">
                         <div class="form-group">
                             <label>Route Name</label>
-                            <input type="text" name="trips-${tripCount}-route_name" class="form-control" placeholder="Enter Route Name" required>
+                            <input type="text" name="trips-${tripCount}-route_name" class="form-control" placeholder="Enter Route Name" value="${tripData.route_name || ''}" required>
                         </div>
                         <div class="form-group">
                             <label>Type</label>
                             <select name="trips-${tripCount}-trip_type" class="form-control" required>
-                                <option value="inbound">Inbound</option>
-                                <option value="outbound">Outbound</option>
+                                <option value="inbound" ${tripData.trip_type === 'inbound' ? 'selected' : ''}>Inbound</option>
+                                <option value="outbound" ${tripData.trip_type === 'outbound' ? 'selected' : ''}>Outbound</option>
                             </select>
                         </div>
                         <div class="form-group">
                             <label>Pick Up Time</label>
-                            <input type="time" name="trips-${tripCount}-pick_up_time" class="form-control" placeholder="Enter Pick Up Time" required>
+                            <input type="time" name="trips-${tripCount}-pick_up_time" class="form-control" value="${tripData.pick_up_time || ''}" required>
                         </div>
                         <div class="form-group">
                             <label>Drop Off Time</label>
-                            <input type="time" name="trips-${tripCount}-drop_off_time" class="form-control" placeholder="Enter Drop Off Time" required>
+                            <input type="time" name="trips-${tripCount}-drop_off_time" class="form-control" value="${tripData.drop_off_time || ''}" required>
                         </div>
                         <div class="form-group">
                             <label>Shift Time</label>
@@ -285,26 +258,25 @@
                     </div>
                 `;
                 $('#trip-entries').append(newRow);
-                $('#submit-button').show(); // Show the submit button when a trip is added
+                $('#submit-button').show();
                 $('#id_trips-TOTAL_FORMS').val(tripCount + 1);
                 tripCount++;
+            }
+
+            // Event to add a new trip row
+            $('#add-row').click(function() {
+                addTripRow();
             });
 
+            // Event to remove a trip row
             $(document).on('click', '.remove-trip', function() {
                 $(this).closest('.trip-form-container').remove();
                 tripCount--;
-                updateSlNo();
                 if ($('.trip-form-container').length === 0) {
                     $('#submit-button').hide(); // Hide the submit button if no trips are present
                 }
                 $('#id_trips-TOTAL_FORMS').val(tripCount);
             });
-
-            function updateSlNo() {
-                $('#trip-entries .trip-form-container').each(function(index) {
-                    $(this).find('input[type="text"]').val(index + 1);
-                });
-            }
 
             // Autocomplete for staff ID
             $("#id_staff_id").autocomplete({
@@ -352,11 +324,11 @@
                 $('#id_driver_name').val('');
             });
 
-            // Autocomplete for driver name
-            $("#id_driver_name").autocomplete({
+            // Autocomplete for duty card number
+            $("#id_duty_card_no").autocomplete({
                 source: function(request, response) {
                     $.ajax({
-                        url: "{% url 'driver-autocomplete' %}",
+                        url: "{% url 'duty-card-no-autocomplete' %}",
                         dataType: "json",
                         data: {
                             term: request.term
@@ -370,15 +342,36 @@
                             }));
                         },
                         error: function(xhr, status, error) {
-                            console.log("Error fetching autocomplete data for driver_name:", error); // Debugging log
+                            console.log("Error fetching autocomplete data for duty_card_no:", error); // Debugging log
                         }
                     });
                 },
-                minLength: 2
+                minLength: 2,
+                select: function(event, ui) {
+                    console.log("Selected duty_card_no:", ui.item.value); // Debugging log
+                    $.ajax({
+                        url: "{% url 'get-duty-card-details' %}",
+                        dataType: "json",
+                        data: {
+                            duty_card_no: ui.item.value
+                        },
+                        success: function(data) {
+                            $('#trip-entries').empty();
+                            data.trips.forEach(function(trip) {
+                                addTripRow(trip);
+                            });
+                        },
+                        error: function(xhr, status, error) {
+                            console.log("Error fetching duty card details:", error); // Debugging log
+                        }
+                    });
+                }
             });
 
-            // Initial call to hide the submit button
-            $('#submit-button').hide();
+            // Initial call to hide the submit button if no trips are present
+            if (tripCount === 0) {
+                $('#submit-button').hide();
+            }
         });
     </script>
 </body>

@@ -21,9 +21,9 @@ class DriverTripForm(forms.ModelForm):
             'driver_name': forms.TextInput(attrs={'class': 'form-control', 'required': 'required'}),
             'duty_card_no': forms.TextInput(attrs={'class': 'form-control', 'required': 'required'}),
             'route_name': forms.TextInput(attrs={'class': 'form-control', 'required': 'required'}),
-            'pick_up_time': forms.TimeInput(attrs={'class': 'form-control', 'required': 'required'}),
-            'drop_off_time': forms.TimeInput(attrs={'class': 'form-control', 'required': 'required'}),
-            'shift_time': forms.TimeInput(attrs={'class': 'form-control', 'required': 'required'}),
+            'pick_up_time': forms.TimeInput(format='%H:%M', attrs={'class': 'form-control', 'required': 'required'}),
+            'drop_off_time': forms.TimeInput(format='%H:%M', attrs={'class': 'form-control', 'required': 'required'}),
+            'shift_time': forms.TimeInput(format='%H:%M', attrs={'class': 'form-control', 'required': 'required'}),
             'head_count': forms.NumberInput(attrs={'class': 'form-control', 'required': 'required'}),
             'trip_type': forms.Select(attrs={'class': 'form-control', 'required': 'required'}),
         }
