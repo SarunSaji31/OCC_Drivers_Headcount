@@ -25,3 +25,12 @@ class DriverImportLog(models.Model):
 
     def __str__(self):
         return self.driver_name
+
+class DutyCardTrip(models.Model):
+    duty_card_no = models.CharField(max_length=100)
+    route_name = models.CharField(max_length=255)
+    pick_up_time = models.TimeField()
+    drop_off_time = models.TimeField()
+
+    def __str__(self):
+        return self.duty_card_no
