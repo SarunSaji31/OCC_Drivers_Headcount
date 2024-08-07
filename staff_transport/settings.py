@@ -4,6 +4,9 @@ from pathlib import Path
 from decouple import config
 import os
 import dj_database_url
+import pymysql
+
+pymysql.install_as_MySQLdb()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -17,7 +20,7 @@ SECRET_KEY = config('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = ['.herokuapp.com']  # Update for production
+ALLOWED_HOSTS = ['.herokuapp.com', 'localhost', '127.0.0.1']  # Add localhost for local testing
 
 # Application definition
 
@@ -30,7 +33,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'duty',
     'crispy_forms',
-    'crispy_bootstrap5',    
+    'crispy_bootstrap5',
+    # Add other apps here
 ]
 
 CRISPY_ALLOWED_TEMPLATE_PACKS = 'bootstrap5'
@@ -38,13 +42,15 @@ CRISPY_TEMPLATE_PACK = 'bootstrap5'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',  # Add Whitenoise middleware
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # Enable Whitenoise for static file handling
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # Add debug toolbar middleware if using in development
+    # 'debug_toolbar.middleware.DebugToolbarMiddleware',
 ]
 
 ROOT_URLCONF = 'staff_transport.urls'
@@ -52,7 +58,7 @@ ROOT_URLCONF = 'staff_transport.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_DIR, 'templates')],  # Add a template directory if needed
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],  # Template directory
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -71,11 +77,20 @@ WSGI_APPLICATION = 'staff_transport.wsgi.application'
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
 DATABASES = {
-    'default': dj_database_url.config(
-        default=f"mysql://{config('DB_USER')}:{config('DB_PASSWORD')}@{config('DB_HOST')}:{config('DB_PORT')}/{config('DB_NAME')}",
-        conn_max_age=600,
-        ssl_require=True
-    )
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': config('DB_NAME'),
+        'USER': config('DB_USER'),
+        'PASSWORD': config('DB_PASSWORD'),
+        'HOST': config('DB_HOST'),
+        'PORT': config('DB_PORT'),
+        'OPTIONS': {
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+            'charset': 'utf8mb4',
+            # Uncomment if your MySQL server supports SSL and you want to enforce it
+            # 'ssl': {'ssl-ca': '/path/to/ca.pem'},
+        },
+    }
 }
 
 # Password validation
@@ -111,8 +126,8 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 
 STATIC_URL = '/static/'
-STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]  # Local static files
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')    # Collected static files
 
 # Enable gzip compression of static files
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
