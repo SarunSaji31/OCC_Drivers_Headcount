@@ -8,11 +8,9 @@ from duty.models import DutyCardTrip
 class Command(BaseCommand):
     help = 'Import duty card trips from a CSV file'
 
-    def add_arguments(self, parser):
-        parser.add_argument('csv_file', type=str, help='The path to the CSV file to import')
-
     def handle(self, *args, **kwargs):
-        csv_file_path = kwargs['csv_file']
+        # Specify the CSV file path directly in the code
+        csv_file_path = r'D:\Sarun_App\OCC_Drivers_Headcount\Drivers_Master\Dutycard_trips.csv'
 
         if not os.path.exists(csv_file_path):
             raise CommandError(f"File {csv_file_path} does not exist")

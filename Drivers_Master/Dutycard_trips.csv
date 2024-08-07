@@ -1,4 +1,4 @@
-duty_card_no,route_name,pick_up_time,drop_off_time
+Duty Card No,Route Name,Pick Up Time,Drop Off Time
 A001,GD10,03:35,04:20
 A001,GD09,04:46,05:20
 A001,GD09,05:40,06:20
