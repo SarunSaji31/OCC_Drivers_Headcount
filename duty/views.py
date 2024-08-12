@@ -6,6 +6,14 @@ from .models import DutyCardTrip, DriverImportLog, Driver
 def home(request):
     return render(request, 'duty/home.html')
 
+from django.shortcuts import render, redirect
+from django.http import JsonResponse
+from .forms import DriverForm, DriverTripFormSet
+from .models import Driver, DriverTrip, DriverImportLog, DutyCardTrip
+
+def home(request):
+    return render(request, 'duty/home.html')
+
 def enter_head_count(request):
     if request.method == 'POST':
         driver_form = DriverForm(request.POST)
