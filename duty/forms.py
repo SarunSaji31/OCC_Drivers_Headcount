@@ -17,7 +17,7 @@ class DriverForm(forms.ModelForm):
 DriverTripFormSet = inlineformset_factory(
     Driver,
     DriverTrip,
-    fields=('route_name', 'pick_up_time', 'drop_off_time', 'shift_time', 'head_count', 'trip_type'),
+    fields=('route_name', 'pick_up_time', 'drop_off_time', 'shift_time', 'head_count', 'trip_type', 'date'),
     extra=1,
     widgets={
         'route_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter Route Name'}),
@@ -26,5 +26,6 @@ DriverTripFormSet = inlineformset_factory(
         'shift_time': forms.TimeInput(attrs={'class': 'form-control', 'placeholder': 'HH:MM'}),
         'head_count': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Enter Head Count'}),
         'trip_type': forms.Select(attrs={'class': 'form-control'}),
+        'date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'})  # Allow manual entry
     }
 )

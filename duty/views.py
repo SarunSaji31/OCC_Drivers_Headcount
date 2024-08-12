@@ -1,10 +1,4 @@
-from django.shortcuts import render, redirect
-from django.http import JsonResponse
-from .forms import DriverForm, DriverTripFormSet
-from .models import DutyCardTrip, DriverImportLog, Driver
-
-def home(request):
-    return render(request, 'duty/home.html')
+# views.py
 
 from django.shortcuts import render, redirect
 from django.http import JsonResponse
@@ -99,7 +93,9 @@ def duty_card_no_autocomplete(request):
 def get_duty_card_details(request):
     if 'duty_card_no' in request.GET:
         duty_card_no = request.GET['duty_card_no']
+        # Ensure you're querying DutyCardTrip here
         trips = DutyCardTrip.objects.filter(duty_card_no=duty_card_no)
-        trip_details = list(trips.values('route_name', 'pick_up_time', 'drop_off_time'))
+        # Only query fields that exist in DutyCardTrip
+        trip_details = list(trips.values('route_name', 'pick_up_time', 'drop_off_time', 'shift_time', 'trip_type'))
         return JsonResponse({'trips': trip_details}, safe=False)
     return JsonResponse({'trips': []}, safe=False)

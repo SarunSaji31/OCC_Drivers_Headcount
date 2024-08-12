@@ -22,8 +22,10 @@ class Command(BaseCommand):
                     DutyCardTrip.objects.create(
                         duty_card_no=row['Duty Card No'],
                         route_name=row['Route Name'],
+                        trip_type=row['Trip Type'],
                         pick_up_time=row['Pick Up Time'],
-                        drop_off_time=row['Drop Off Time']
+                        drop_off_time=row['Drop Off Time'],
+                        shift_time=row['Shift Time']
                     )
                     self.stdout.write(self.style.SUCCESS(f"Duty Card Trip {row['Duty Card No']} imported successfully"))
                 except KeyError as e:
