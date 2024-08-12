@@ -290,7 +290,11 @@
                         </div>
                         <div class="col-md-2">
                             <label class="form-label">Shift Time</label>
-                            <input type="time" name="drivertrip_set-${index}-shift_time" class="form-control" placeholder="e.g., 08:00" required>
+                            <input type="time" name="drivertrip_set-${index}-shift_time" class="form-control" value="${tripData.shift_time || ''}" required>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Date</label>
+                            <input type="date" name="drivertrip_set-${index}-date" class="form-control" value="${tripData.date || ''}" required>
                         </div>
                         <div class="col-md-1">
                             <label class="form-label">Head Count</label>

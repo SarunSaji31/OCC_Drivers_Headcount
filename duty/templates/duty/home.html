@@ -24,31 +24,27 @@
 
         .header-section {
             text-align: center;
-            padding: 50px;
+            padding: 50px 20px;
             background: #9eb2c9;
             color: white;
             position: relative;
         }
 
         .header-section h1 {
-            font-size: 2.5rem;
+            font-size: 2rem;
             margin-bottom: 20px;
-            margin-left: 710px; /* Adjust space for image */
         }
 
         .header-section p {
-            font-size: 1.2rem;
-            margin-bottom: 40px;
-            margin-left: 678px; /* Adjust space for image */
+            font-size: 1rem;
+            margin-bottom: 20px;
         }
 
         .header-section img {
-            position: absolute;
-            top: 10px;
-            left: 25px;
-            max-width: 250px; /* Ensure the image doesn't exceed its original size */
-            width: 100%; /* Make it responsive */
-            height: auto; /* Maintain aspect ratio */
+            max-width: 100px; /* Set a fixed width for small screens */
+            width: 100%;
+            height: auto;
+            margin-bottom: 20px; /* Space between image and text */
         }
 
         .card-container {
@@ -60,14 +56,17 @@
         }
 
         .card {
-            width: 18rem;
+            width: 100%;
+            max-width: 18rem;
             border: none;
             border-radius: 10px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            margin: 0 10px; /* Add some horizontal margin */
         }
 
         .card img {
             border-radius: 10px 10px 0 0;
+            width: 100%; /* Ensure images fit within the card */
         }
 
         .card-body {
@@ -88,11 +87,32 @@
         .footer p {
             margin: 0;
         }
+
+        @media (max-width: 768px) {
+            .header-section {
+                padding: 30px 15px;
+            }
+
+            .header-section h1 {
+                font-size: 1.75rem;
+            }
+
+            .header-section p {
+                font-size: 0.95rem;
+            }
+
+            .card-container {
+                padding: 0 10px;
+            }
+        }
     </style>
 </head>
 
 <body>
     <nav class="navbar navbar-expand-lg">
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav ml-auto">
                 <li class="nav-item">
@@ -121,7 +141,7 @@
     <div class="container">
         <div class="card-container">
             <div class="card">
-                <img class="card-img-top" src="D:\Sarun_App\OCC_Drivers_Headcount\staticfiles\Card_image_OCCSTM.jpg" alt="Card_image_OCCSTM">
+                <img class="card-img-top" src="D:\Sarun_App\OCC_Drivers_Headcount\staticfiles\Card_image_OCCSTM.jpg" alt="Card image OCCSTM">
                 <div class="card-body">
                     <h5 class="card-title">Driver Headcount</h5>
                     <p class="card-text">Add your trip and head count details.</p>
