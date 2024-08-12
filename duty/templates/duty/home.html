@@ -17,7 +17,8 @@
             background-color: #9eb2c9;
         }
 
-        .navbar-brand, .nav-link {
+        .navbar-brand,
+        .nav-link {
             color: white !important;
         }
 
@@ -32,18 +33,22 @@
         .header-section h1 {
             font-size: 2.5rem;
             margin-bottom: 20px;
+            margin-left: 710px; /* Adjust space for image */
         }
 
         .header-section p {
             font-size: 1.2rem;
             margin-bottom: 40px;
+            margin-left: 678px; /* Adjust space for image */
         }
 
         .header-section img {
             position: absolute;
             top: 10px;
-            left: 29px;
-            width: 280px;
+            left: 25px;
+            max-width: 250px; /* Ensure the image doesn't exceed its original size */
+            width: 100%; /* Make it responsive */
+            height: auto; /* Maintain aspect ratio */
         }
 
         .card-container {
@@ -94,7 +99,7 @@
                     <a class="nav-link" href="#">Home</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="#">Enter Details</a>  
+                    <a class="nav-link" href="#">Enter Details</a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" href="#">Reports</a>
@@ -108,7 +113,7 @@
 
     <div class="header-section">
         <img src="https://et.ae/wp-content/uploads/2020/03/Logo.svg" alt="Logo">
-        <h1>Welcome to OCC-EKG Project</h1>
+        <h1>Welcome to OCC-EKG project</h1>
         <p>Manage and track driver details and trip information efficiently.</p>
         <a href="#" class="btn btn-light btn-lg">Get Started</a>
     </div>
@@ -116,7 +121,7 @@
     <div class="container">
         <div class="card-container">
             <div class="card">
-                <img class="card-img-top" src="https://via.placeholder.com/150" alt="Card image cap">
+                <img class="card-img-top" src="D:\Sarun_App\OCC_Drivers_Headcount\staticfiles\Card_image_OCCSTM.jpg" alt="Card_image_OCCSTM">
                 <div class="card-body">
                     <h5 class="card-title">Driver Headcount</h5>
                     <p class="card-text">Add your trip and head count details.</p>

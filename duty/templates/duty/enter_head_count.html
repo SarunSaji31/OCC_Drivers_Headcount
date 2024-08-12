@@ -6,17 +6,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Enter Head Count - OCC-EKG Project</title>
     <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/5.3.0/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
     <style>
         body {
             font-family: 'Arial', sans-serif;
             background-color: #f8f9fa;
+            color: #333;
         }
 
         .navbar {
-            background-color: #9eb2c9;
+            background-color: #6c757d;
         }
 
         .navbar-brand,
@@ -24,88 +25,98 @@
             color: white !important;
         }
 
+        .navbar-brand {
+            font-weight: bold;
+            font-size: 1.25rem;
+        }
+
+        .navbar-toggler {
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
         .header-section {
             text-align: center;
-            padding: 50px;
-            background: #9eb2c9;
-            color: white;
+            padding: 40px 20px;
+            background: #e9ecef;
+            color: #333;
             position: relative;
+            margin-bottom: 30px;
+            border-bottom: 1px solid #ccc;
         }
 
         .header-section h1 {
-            font-size: 2.5rem;
-            margin-bottom: 20px;
+            font-size: 2rem;
+            margin-bottom: 10px;
+            font-weight: 700;
         }
 
         .header-section p {
-            font-size: 1.2rem;
-            margin-bottom: 40px;
+            font-size: 1rem;
+            margin-bottom: 20px;
         }
 
         .header-section img {
             position: absolute;
             top: 10px;
             left: 25px;
-            width: 250px;
+            width: 100px;
         }
 
         .form-container {
             background-color: white;
-            padding: 30px;
+            padding: 40px;
             border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.05);
             margin-top: 20px;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            border: 1px solid #ddd;
         }
 
         .form-group label {
-            font-weight: bold;
-            font-size: 0.9rem;
+            font-weight: 500;
+            font-size: 1rem;
+            color: #555;
         }
 
         .form-control {
-            border-radius: 0.25rem;
-            height: 38px; /* Adjust height to make it consistent */
+            border-radius: 0.5rem;
+            border: 1px solid #ccc;
+            transition: border-color 0.3s ease;
         }
 
-        .btn-primary {
-            background-color: #007bff;
+        .form-control:focus {
             border-color: #007bff;
-            border-radius: 0.25rem;
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
         }
 
-        .btn-primary:hover {
-            background-color: #0056b3;
-            border-color: #004085;
+        .form-control::placeholder {
+            color: #888;
+            font-style: italic;
+            font-size: 0.9rem;
         }
 
-        .btn-success {
-            background-color: #28a745;
-            border-color: #28a745;
-            border-radius: 0.25rem;
-        }
-
-        .btn-success:hover {
-            background-color: #218838;
-            border-color: #1e7e34;
+        .btn-primary, .btn-success {
+            border-radius: 0.5rem;
+            font-weight: bold;
+            padding: 10px 20px;
         }
 
         .add-icon {
             cursor: pointer;
-            color: green;
-            font-size: 24px;
+            color: #28a745;
+            font-size: 30px;
             font-weight: bold;
             text-align: center;
             align-self: center;
+            margin-bottom: 20px;
         }
 
         .remove-trip {
             cursor: pointer;
             font-weight: bold;
-            color: rgb(255, 9, 29);
+            color: #dc3545;
         }
 
         .button-container {
@@ -116,53 +127,78 @@
         }
 
         .footer {
-            background: #9cb3cc;
-            color: rgb(255, 255, 255);
+            background: #e9ecef;
+            color: #333;
             text-align: center;
             padding: 10px 0;
+            margin-top: 30px;
+            border-top: 1px solid #ccc;
         }
 
         .footer p {
             margin: 0;
+            font-size: 0.9rem;
         }
 
-        .trip-form-container .form-row {
-            display: flex;
-            align-items: center;
-            margin-bottom: 10px;
+        .trip-form-container {
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 20px;
+            margin-bottom: 20px;
         }
 
-        .trip-form-container .form-group {
-            margin-bottom: 0;
-            flex: 1;
-            margin-right: 10px;
+        .driver-form-container {
+            margin-bottom: 40px;
         }
 
-        .trip-form-container .remove-trip-container {
-            display: flex;
-            align-items: center;
-            margin-left: 10px;
+        @media (max-width: 768px) {
+            .header-section img {
+                width: 70px;
+                top: 5px;
+                left: 10px;
+            }
+
+            .header-section {
+                padding: 30px 10px;
+            }
+
+            .header-section h1 {
+                font-size: 1.75rem;
+            }
+
+            .header-section p {
+                font-size: 0.95rem;
+            }
+
+            .form-container {
+                padding: 20px;
+            }
         }
     </style>
 </head>
 
 <body>
     <nav class="navbar navbar-expand-lg">
-        <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav ml-auto">
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'home' %}">Home</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#">Enter Details</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#">Reports</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#">Contact</a>
-                </li>
-            </ul>
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">OCC-EKG Project</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'home' %}">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Enter Details</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Reports</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Contact</a>
+                    </li>
+                </ul>
+            </div>
         </div>
     </nav>
 
@@ -187,29 +223,31 @@
         <!-- Combined Form for Driver and Trip Details -->
         <form id="driver-trip-form" method="post">
             {% csrf_token %}
-            <div class="form-row">
-                <div class="form-group col-md-4">
-                    <label for="id_staff_id">Staff ID</label>
-                    <input type="text" id="id_staff_id" name="staff_id" class="form-control" placeholder="Enter Staff ID" required>
-                </div>
-                <div class="form-group col-md-4">
-                    <label for="id_driver_name">Driver Name</label>
-                    <input type="text" id="id_driver_name" name="driver_name" class="form-control" placeholder="Enter Driver Name" required>
-                </div>
-                <div class="form-group col-md-4">
-                    <label for="id_duty_card_no">Duty Card No</label>
-                    <input type="text" id="id_duty_card_no" name="duty_card_no" class="form-control" placeholder="Enter Duty Card No" required>
+            <div class="driver-form-container">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label for="id_staff_id" class="form-label">Staff ID</label>
+                        <input type="text" id="id_staff_id" name="staff_id" class="form-control" placeholder="e.g., 12345" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="id_driver_name" class="form-label">Driver Name</label>
+                        <input type="text" id="id_driver_name" name="driver_name" class="form-control" placeholder="e.g., Sarun" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="id_duty_card_no" class="form-label">Duty Card No</label>
+                        <input type="text" id="id_duty_card_no" name="duty_card_no" class="form-control" placeholder="e.g., A012" required>
+                    </div>
                 </div>
             </div>
 
-            <div id="trip-entries">
+            <div id="trip-entries" class="mt-4">
                 <!-- Trip form entries will be dynamically added here -->
             </div>
             <input type="hidden" name="drivertrip_set-TOTAL_FORMS" id="id_drivertrip_set-TOTAL_FORMS" value="0">
             <input type="hidden" name="drivertrip_set-INITIAL_FORMS" value="0">
             <input type="hidden" name="drivertrip_set-MIN_NUM_FORMS" value="0">
             <input type="hidden" name="drivertrip_set-MAX_NUM_FORMS" value="1000">
-            <div id="button-container" class="button-container">
+            <div id="button-container" class="button-container mt-4">
                 <div id="add-row" class="add-icon">+</div>
                 <button type="submit" class="btn btn-success" id="submit-button">Submit</button>
             </div>
@@ -217,12 +255,12 @@
     </div>
 
     <footer class="footer">
-        <p>&copy; Emirates Airline Staff Transport Project.</p>
+        <p>&copy; Emirates Airline Staff Transport Project. All rights reserved.</p>
     </footer>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
     <script>
         $(document).ready(function() {
             var tripCount = 0;
@@ -230,35 +268,35 @@
             // Function to add a new trip row
             function addTripRow(tripData = {}, index) {
                 var newRow = `
-                    <div class="form-row trip-form-container">
-                        <div class="form-group">
-                            <label>Route Name</label>
-                            <input type="text" name="drivertrip_set-${index}-route_name" class="form-control" placeholder="Enter Route Name" value="${tripData.route_name || ''}" required>
+                    <div class="row trip-form-container mb-3">
+                        <div class="col-md-2">
+                            <label class="form-label">Route Name</label>
+                            <input type="text" name="drivertrip_set-${index}-route_name" class="form-control" placeholder="e.g., Route 1" value="${tripData.route_name || ''}" required>
                         </div>
-                        <div class="form-group">
-                            <label>Type</label>
+                        <div class="col-md-2">
+                            <label class="form-label">Type</label>
                             <select name="drivertrip_set-${index}-trip_type" class="form-control" required>
                                 <option value="inbound" ${tripData.trip_type === 'inbound' ? 'selected' : ''}>Inbound</option>
                                 <option value="outbound" ${tripData.trip_type === 'outbound' ? 'selected' : ''}>Outbound</option>
                             </select>
                         </div>
-                        <div class="form-group">
-                            <label>Pick Up Time</label>
+                        <div class="col-md-2">
+                            <label class="form-label">Pick Up Time</label>
                             <input type="time" name="drivertrip_set-${index}-pick_up_time" class="form-control" value="${tripData.pick_up_time || ''}" required>
                         </div>
-                        <div class="form-group">
-                            <label>Drop Off Time</label>
+                        <div class="col-md-2">
+                            <label class="form-label">Drop Off Time</label>
                             <input type="time" name="drivertrip_set-${index}-drop_off_time" class="form-control" value="${tripData.drop_off_time || ''}" required>
                         </div>
-                        <div class="form-group">
-                            <label>Shift Time</label>
-                            <input type="time" name="drivertrip_set-${index}-shift_time" class="form-control" placeholder="Enter Shift Time" required>
+                        <div class="col-md-2">
+                            <label class="form-label">Shift Time</label>
+                            <input type="time" name="drivertrip_set-${index}-shift_time" class="form-control" placeholder="e.g., 08:00" required>
                         </div>
-                        <div class="form-group">
-                            <label>Head Count</label>
-                            <input type="number" name="drivertrip_set-${index}-head_count" class="form-control" placeholder="Enter Head Count" required>
+                        <div class="col-md-1">
+                            <label class="form-label">Head Count</label>
+                            <input type="number" name="drivertrip_set-${index}-head_count" class="form-control" placeholder="e.g., 25" required>
                         </div>
-                        <div class="remove-trip-container">
+                        <div class="col-md-1 d-flex align-items-center justify-content-center">
                             <span class="remove-trip">Remove</span>
                         </div>
                     </div>
