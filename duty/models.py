@@ -7,8 +7,8 @@ class DriverTrip(models.Model):
     ]
 
     staff_id = models.CharField(max_length=100)
-    driver_name = models.CharField(max_length=100)
-    duty_card_no = models.CharField(max_length=100)
+    driver = models.ForeignKey('DriverImportLog', on_delete=models.CASCADE)
+    duty_card = models.ForeignKey('DutyCardTrip', on_delete=models.CASCADE)
     route_name = models.CharField(max_length=100)
     pick_up_time = models.TimeField()
     drop_off_time = models.TimeField()
@@ -18,7 +18,7 @@ class DriverTrip(models.Model):
     date = models.DateField()
 
     def __str__(self):
-        return f"{self.driver_name} - {self.route_name}"
+        return f"{self.driver.driver_name} - {self.route_name}"
 
 class DriverImportLog(models.Model):
     driver_name = models.CharField(max_length=100)
