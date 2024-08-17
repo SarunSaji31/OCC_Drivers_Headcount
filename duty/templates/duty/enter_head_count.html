@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Enter Head Count - OCC-EKG Project</title>
     <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/5.3.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/5.1.3/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
     <style>
@@ -15,25 +15,17 @@
             background-color: #f8f9fa;
             color: #333;
         }
-
         .navbar {
             background-color: #6c757d;
         }
-
         .navbar-brand,
         .nav-link {
             color: white !important;
         }
-
         .navbar-brand {
             font-weight: bold;
             font-size: 1.25rem;
         }
-
-        .navbar-toggler {
-            border-color: rgba(255, 255, 255, 0.1);
-        }
-
         .header-section {
             text-align: center;
             padding: 40px 20px;
@@ -43,25 +35,15 @@
             margin-bottom: 30px;
             border-bottom: 1px solid #ccc;
         }
-
         .header-section h1 {
             font-size: 2rem;
             margin-bottom: 10px;
             font-weight: 700;
         }
-
         .header-section p {
             font-size: 1rem;
             margin-bottom: 20px;
         }
-
-        .header-section img {
-            position: absolute;
-            top: 10px;
-            left: 25px;
-            width: 100px;
-        }
-
         .form-container {
             background-color: white;
             padding: 40px;
@@ -73,59 +55,58 @@
             margin-right: auto;
             border: 1px solid #ddd;
         }
-
+        .hidden-section {
+            display: none;
+        }
         .form-group label {
             font-weight: 500;
             font-size: 1rem;
             color: #555;
         }
-
         .form-control {
-            border-radius: 0.5rem;
+            border-radius: 0.25rem;
             border: 1px solid #ccc;
+            height: 38px;
             transition: border-color 0.3s ease;
         }
-
         .form-control:focus {
             border-color: #007bff;
             box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
         }
-
         .form-control::placeholder {
             color: #888;
             font-style: italic;
             font-size: 0.9rem;
         }
-
+        .form-control[readonly] {
+            background-color: #e9ecef;
+            color: #495057;
+        }
         .btn-primary, .btn-success {
-            border-radius: 0.5rem;
+            border-radius: 0.25rem;
             font-weight: bold;
             padding: 10px 20px;
         }
-
         .add-icon {
             cursor: pointer;
             color: #28a745;
-            font-size: 30px;
+            font-size: 24px;
             font-weight: bold;
             text-align: center;
             align-self: center;
             margin-bottom: 20px;
         }
-
         .remove-trip {
             cursor: pointer;
             font-weight: bold;
             color: #dc3545;
         }
-
         .button-container {
             display: flex;
             gap: 10px;
             margin-top: 20px;
             justify-content: center;
         }
-
         .footer {
             background: #e9ecef;
             color: #333;
@@ -134,41 +115,16 @@
             margin-top: 30px;
             border-top: 1px solid #ccc;
         }
-
-        .footer p {
-            margin: 0;
-            font-size: 0.9rem;
-        }
-
-        .trip-form-container {
-            border-bottom: 1px solid #ddd;
-            padding-bottom: 20px;
-            margin-bottom: 20px;
-        }
-
-        .driver-form-container {
-            margin-bottom: 40px;
-        }
-
         @media (max-width: 768px) {
-            .header-section img {
-                width: 70px;
-                top: 5px;
-                left: 10px;
-            }
-
             .header-section {
                 padding: 30px 10px;
             }
-
             .header-section h1 {
                 font-size: 1.75rem;
             }
-
             .header-section p {
                 font-size: 0.95rem;
             }
-
             .form-container {
                 padding: 20px;
             }
@@ -189,10 +145,10 @@
                         <a class="nav-link" href="{% url 'home' %}">Home</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#">Enter Details</a>
+                        <a class="nav-link" href="{% url 'enter_head_count' %}">Enter Details</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#">Reports</a>
+                        <a class="nav-link" href="{% url 'report' %}">Reports</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="#">Contact</a>
@@ -203,51 +159,41 @@
     </nav>
 
     <div class="header-section">
-        <img src="https://et.ae/wp-content/uploads/2020/03/Logo.svg" alt="Logo">
         <h1>Enter Head Count Details</h1>
         <p>Manage and track driver details and trip information efficiently.</p>
     </div>
 
     <div class="container form-container">
-        {% if form_errors %}
-        <div class="alert alert-danger">
-            <strong>Driver Trip Form Errors:</strong>
-            <ul>
-                {% for field, errors in form_errors.items %}
-                <li>{{ field }}: {{ errors }}</li>
-                {% endfor %}
-            </ul>
-        </div>
-        {% endif %}
-
-        <!-- Combined Form for Driver and Trip Details -->
         <form id="driver-trip-form" method="post">
             {% csrf_token %}
             <div class="driver-form-container">
-                <div class="row g-3">
-                    <div class="col-md-4">
+                <div class="form-row">
+                    <div class="form-group col-md-4">
                         <label for="id_staff_id" class="form-label">Staff ID</label>
                         <input type="text" id="id_staff_id" name="staff_id" class="form-control" placeholder="e.g., 12345" required>
                     </div>
-                    <div class="col-md-4">
+                    <div class="form-group col-md-4">
                         <label for="id_driver_name" class="form-label">Driver Name</label>
-                        <input type="text" id="id_driver_name" name="driver_name" class="form-control" placeholder="e.g., Sarun" required>
+                        <input type="text" id="id_driver_name" name="driver_name" class="form-control" placeholder="e.g., Sarun" readonly required>
                     </div>
-                    <div class="col-md-4">
+                    <div class="form-group col-md-4">
                         <label for="id_duty_card_no" class="form-label">Duty Card No</label>
                         <input type="text" id="id_duty_card_no" name="duty_card_no" class="form-control" placeholder="e.g., A012" required>
                     </div>
                 </div>
             </div>
 
-            <div id="trip-entries" class="mt-4">
-                <!-- Trip form entries will be dynamically added here -->
+            <div id="trip-entries" class="mt-4 hidden-section">
+                {% for form in trip_formset.forms %}
+                    {{ form.as_p }}
+                {% endfor %}
             </div>
-            <input type="hidden" name="drivertrip_set-TOTAL_FORMS" id="id_drivertrip_set-TOTAL_FORMS" value="0">
-            <input type="hidden" name="drivertrip_set-INITIAL_FORMS" value="0">
-            <input type="hidden" name="drivertrip_set-MIN_NUM_FORMS" value="0">
-            <input type="hidden" name="drivertrip_set-MAX_NUM_FORMS" value="1000">
-            <div id="button-container" class="button-container mt-4">
+
+            <input type="hidden" name="drivertrip_set-TOTAL_FORMS" id="id_drivertrip_set-TOTAL_FORMS" value="{{ trip_formset.total_form_count }}">
+            <input type="hidden" name="drivertrip_set-INITIAL_FORMS" id="id_drivertrip_set-INITIAL_FORMS" value="{{ trip_formset.initial_form_count }}">
+            <input type="hidden" name="drivertrip_set-MIN_NUM_FORMS" id="id_drivertrip_set-MIN_NUM_FORMS" value="0">
+            <input type="hidden" name="drivertrip_set-MAX_NUM_FORMS" id="id_drivertrip_set-MAX_NUM_FORMS" value="1000">
+            <div id="button-container" class="button-container mt-4 hidden-section">
                 <div id="add-row" class="add-icon">+</div>
                 <button type="submit" class="btn btn-success" id="submit-button">Submit</button>
             </div>
@@ -260,47 +206,52 @@
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
     <script>
         $(document).ready(function() {
             var tripCount = 0;
 
-            // Function to add a new trip row
+            // Get today's date in YYYY-MM-DD format
+            var today = new Date().toISOString().split('T')[0];
+
             function addTripRow(tripData = {}, index) {
+                var selectedInbound = tripData.trip_type === 'inbound' ? 'selected' : '';
+                var selectedOutbound = tripData.trip_type === 'outbound' ? 'selected' : '';
+
                 var newRow = `
-                    <div class="row trip-form-container mb-3">
-                        <div class="col-md-2">
-                            <label class="form-label">Route Name</label>
-                            <input type="text" name="drivertrip_set-${index}-route_name" class="form-control" placeholder="e.g., Route 1" value="${tripData.route_name || ''}" required>
+                    <div class="form-row trip-form-container">
+                        <div class="form-group col-md-4">
+                            <label>Route Name</label>
+                            <input type="text" name="drivertrip_set-${index}-route_name" class="form-control" placeholder="Enter Route Name" value="${tripData.route_name || ''}" required>
                         </div>
-                        <div class="col-md-2">
-                            <label class="form-label">Type</label>
-                            <select name="drivertrip_set-${index}-trip_type" class="form-control" required>
-                                <option value="inbound" ${tripData.trip_type === 'inbound' ? 'selected' : ''}>Inbound</option>
-                                <option value="outbound" ${tripData.trip_type === 'outbound' ? 'selected' : ''}>Outbound</option>
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label">Pick Up Time</label>
+                        <div class="form-group col-md-4">
+                            <label>Pick Up Time</label>
                             <input type="time" name="drivertrip_set-${index}-pick_up_time" class="form-control" value="${tripData.pick_up_time || ''}" required>
                         </div>
-                        <div class="col-md-2">
-                            <label class="form-label">Drop Off Time</label>
+                        <div class="form-group col-md-4">
+                            <label>Drop Off Time</label>
                             <input type="time" name="drivertrip_set-${index}-drop_off_time" class="form-control" value="${tripData.drop_off_time || ''}" required>
                         </div>
-                        <div class="col-md-2">
-                            <label class="form-label">Shift Time</label>
+                        <div class="form-group col-md-4">
+                            <label>Shift Time</label>
                             <input type="time" name="drivertrip_set-${index}-shift_time" class="form-control" value="${tripData.shift_time || ''}" required>
                         </div>
-                        <div class="col-md-2">
-                            <label class="form-label">Date</label>
-                            <input type="date" name="drivertrip_set-${index}-date" class="form-control" value="${tripData.date || ''}" required>
+                        <div class="form-group col-md-4">
+                            <label>Date</label>
+                            <input type="date" name="drivertrip_set-${index}-date" class="form-control" value="${tripData.date || today}" required>
                         </div>
-                        <div class="col-md-1">
-                            <label class="form-label">Head Count</label>
-                            <input type="number" name="drivertrip_set-${index}-head_count" class="form-control" placeholder="e.g., 25" required>
+                        <div class="form-group col-md-4">
+                            <label>Head Count</label>
+                            <input type="number" name="drivertrip_set-${index}-head_count" class="form-control" placeholder="Enter Head Count" required>
                         </div>
-                        <div class="col-md-1 d-flex align-items-center justify-content-center">
+                        <div class="form-group col-md-4">
+                            <label>Trip Type</label>
+                            <select name="drivertrip_set-${index}-trip_type" class="form-control" required>
+                                <option value="inbound" ${selectedInbound}>Inbound</option>
+                                <option value="outbound" ${selectedOutbound}>Outbound</option>
+                            </select>
+                        </div>
+                        <div class="remove-trip-container col-md-4">
                             <span class="remove-trip">Remove</span>
                         </div>
                     </div>
@@ -311,22 +262,19 @@
                 tripCount++;
             }
 
-            // Event to add a new trip row
             $('#add-row').click(function() {
                 addTripRow({}, tripCount);
             });
 
-            // Event to remove a trip row
             $(document).on('click', '.remove-trip', function() {
                 $(this).closest('.trip-form-container').remove();
                 tripCount--;
-                if ($('.trip-form-container').length === 0) {
+                $('#id_drivertrip_set-TOTAL_FORMS').val(tripCount);
+                if (tripCount === 0) {
                     $('#submit-button').hide();
                 }
-                $('#id_drivertrip_set-TOTAL_FORMS').val(tripCount);
             });
 
-            // Autocomplete for staff ID
             $("#id_staff_id").autocomplete({
                 source: function(request, response) {
                     $.ajax({
@@ -359,6 +307,7 @@
                         },
                         success: function(data) {
                             $('#id_driver_name').val(data.driver_name);
+                            $('.hidden-section').show();
                         },
                         error: function(xhr, status, error) {
                             console.log("Error fetching driver name:", error);
@@ -367,12 +316,6 @@
                 }
             });
 
-            // Clear driver name when staff ID is cleared or changed
-            $("#id_staff_id").on('input', function() {
-                $('#id_driver_name').val('');
-            });
-
-            // Autocomplete for duty card number
             $("#id_duty_card_no").autocomplete({
                 source: function(request, response) {
                     $.ajax({
@@ -405,7 +348,7 @@
                         },
                         success: function(data) {
                             $('#trip-entries').empty();
-                            tripCount = 0; // Reset trip count
+                            tripCount = 0; 
                             data.trips.forEach(function(trip, index) {
                                 addTripRow(trip, index);
                             });
@@ -416,11 +359,6 @@
                     });
                 }
             });
-
-            // Initial call to hide the submit button if no trips are present
-            if (tripCount === 0) {
-                $('#submit-button').hide();
-            }
         });
     </script>
 </body>

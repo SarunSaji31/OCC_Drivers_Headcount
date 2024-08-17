@@ -41,10 +41,10 @@
         }
 
         .header-section img {
-            max-width: 100px; /* Set a fixed width for small screens */
+            max-width: 100px;
             width: 100%;
             height: auto;
-            margin-bottom: 20px; /* Space between image and text */
+            margin-bottom: 20px;
         }
 
         .card-container {
@@ -61,12 +61,12 @@
             border: none;
             border-radius: 10px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            margin: 0 10px; /* Add some horizontal margin */
+            margin: 0 10px;
         }
 
         .card img {
             border-radius: 10px 10px 0 0;
-            width: 100%; /* Ensure images fit within the card */
+            width: 100%;
         }
 
         .card-body {
@@ -116,13 +116,13 @@
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav ml-auto">
                 <li class="nav-item">
-                    <a class="nav-link" href="#">Home</a>
+                    <a class="nav-link" href="{% url 'home' %}">Home</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="#">Enter Details</a>
+                    <a class="nav-link" href="{% url 'enter_head_count' %}">Enter Details</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="#">Reports</a>
+                    <a class="nav-link" href="{% url 'report' %}">Reports</a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" href="#">Contact</a>
@@ -135,7 +135,7 @@
         <img src="https://et.ae/wp-content/uploads/2020/03/Logo.svg" alt="Logo">
         <h1>Welcome to OCC-EKG project</h1>
         <p>Manage and track driver details and trip information efficiently.</p>
-        <a href="#" class="btn btn-light btn-lg">Get Started</a>
+        <a href="{% url 'enter_head_count' %}" class="btn btn-light btn-lg">Get Started</a>
     </div>
 
     <div class="container">
@@ -153,11 +153,11 @@
                 <div class="card-body">
                     <h5 class="card-title">Driver Management</h5>
                     <p class="card-text">Add and manage driver details with ease.</p>
-                    <a href="#" class="btn btn-primary">Go to Drivers</a>
+                    <a href="{% url 'report' %}" class="btn btn-primary">Go to Reports</a>
                 </div>
             </div>
         </div>
-    </div>
+    </div>duty/templates/report_data.html
 
     <footer class="footer">
         <p>&copy; Emirates Airline Staff Transport Project.</p>
