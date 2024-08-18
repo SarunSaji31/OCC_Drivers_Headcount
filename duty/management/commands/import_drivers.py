@@ -7,7 +7,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         # Update the path for Windows
-        csvfile_path = r'D:\Sarun_App\OCC_Drivers_Headcount\Drivers_Master\Driver_Staff_ data.csv'
+        csvfile_path = '/home/ubuntu/OCC_Drivers_Headcount/Drivers_Master/Dutycard_trips.csv'
         with open(csvfile_path, newline='', encoding='ISO-8859-1') as csvfile:
             reader = csv.DictReader(csvfile)
             for row in reader:
