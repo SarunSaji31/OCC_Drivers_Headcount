@@ -7,7 +7,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         # Update the path for Heroku
-        csvfile_path = '/app/tmp/Dutycard_trips.csv'
+        csvfile_path = '/app/tmp/Driver_Staff_ data.csv'
         with open(csvfile_path, newline='', encoding='ISO-8859-1') as csvfile:
             reader = csv.DictReader(csvfile)
             for row in reader:
