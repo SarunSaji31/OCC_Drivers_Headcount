@@ -10,7 +10,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         # Use an environment variable to specify the CSV file path
-        csv_file_path = os.getenv('CSV_FILE_PATH', '/app/Dutycard_trips.csv')
+        csv_file_path = os.getenv('CSV_FILE_PATH', '/app/Drivers_Master/Dutycard_trips.csv')
 
         if not os.path.exists(csv_file_path):
             raise CommandError(f"File {csv_file_path} does not exist")
