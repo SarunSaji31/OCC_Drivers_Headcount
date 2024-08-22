@@ -10,7 +10,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         # Specify the CSV file path directly in the code
-        csv_file_path = r'D:\Sarun_App\OCC_Drivers_Headcount\Drivers_Master\Dutycard_trips.csv'
+        csv_file_path = '/home/ubuntu/OCC_Drivers_Headcount/Drivers_Master/Dutycard_trips.csv'
 
         if not os.path.exists(csv_file_path):
             raise CommandError(f"File {csv_file_path} does not exist")
