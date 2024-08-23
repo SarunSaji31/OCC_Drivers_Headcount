@@ -9,8 +9,8 @@ class Command(BaseCommand):
     help = 'Import duty card trips from a CSV file'
 
     def handle(self, *args, **kwargs):
-        # Specify the CSV file path directly in the code
-        csv_file_path = '/home/ubuntu/OCC_Drivers_Headcount/Drivers_Master/Dutycard_trips.csv'
+        # Update the path for Heroku
+        csv_file_path = '/app/Drivers_Master/Dutycard_trips.csv'
 
         if not os.path.exists(csv_file_path):
             raise CommandError(f"File {csv_file_path} does not exist")

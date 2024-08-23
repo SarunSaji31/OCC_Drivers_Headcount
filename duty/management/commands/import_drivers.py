@@ -6,8 +6,8 @@ class Command(BaseCommand):
     help = 'Import drivers and staff IDs from CSV file'
 
     def handle(self, *args, **kwargs):
-        # Update the path for Windows
-        csvfile_path = '/home/ubuntu/OCC_Drivers_Headcount/Drivers_Master/Dutycard_trips.csv'
+        # Update the path for Heroku
+        csvfile_path = '/app/Drivers_Master/Driver_Staff_ data.csv'
         with open(csvfile_path, newline='', encoding='ISO-8859-1') as csvfile:
             reader = csv.DictReader(csvfile)
             for row in reader:
