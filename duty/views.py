@@ -4,7 +4,7 @@ from .forms import DriverTripFormSet
 from .models import DriverTrip, DriverImportLog, DutyCardTrip
 import pandas as pd
 from datetime import datetime, timedelta
-
+import xlsxwriter
 def home(request):
     return render(request, 'duty/home.html')
 
@@ -171,7 +171,7 @@ def download_report(request):
     with pd.ExcelWriter(response, engine='xlsxwriter') as writer:
         df.to_excel(writer, sheet_name='Driver Trips', index=False)
 
-    return response
+    return response 
 
 def staff_id_autocomplete(request):
     if 'term' in request.GET:
