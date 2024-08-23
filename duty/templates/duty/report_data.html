@@ -167,7 +167,7 @@
                     <option value="outbound">Outbound</option>
                 </select>
                 <input type="text" id="shiftTimeFilter" class="form-control" placeholder="HH:MM" style="max-width: 200px;">
-                <button id="downloadButton" class="btn btn-custom" disabled>Download XLSX</button>
+                <button id="downloadButton" class="btn btn-custom">Download XLSX</button>
             </div>
             <div class="table-responsive">
                 <table id="reportTable" class="table">
@@ -272,6 +272,15 @@
 
             $shiftTimeFilter.on('input', function() {
                 fetchData();
+            });
+
+            $('#downloadButton').on('click', function() {
+                const date = $('#dateFilter').val();
+                const route = $routeFilter.val();
+                const shift_time = $shiftTimeFilter.val();
+                const trip_type = $('#tripTypeFilter').val();
+
+                window.location.href = `{% url 'download_report' %}?date=${date}&route=${route}&shift_time=${shift_time}&trip_type=${trip_type}`;
             });
         });
     </script>
