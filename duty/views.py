@@ -5,6 +5,7 @@ from .models import DriverTrip, DriverImportLog, DutyCardTrip
 import pandas as pd
 from datetime import datetime, timedelta
 import xlsxwriter
+
 def home(request):
     return render(request, 'duty/home.html')
 
@@ -23,7 +24,6 @@ def enter_head_count(request):
         duty_card_no = request.POST.get('duty_card_no')
         duty_card = DutyCardTrip.objects.filter(duty_card_no=duty_card_no).first()
 
-        # Determine the desired date (today, tomorrow, etc.)
         desired_date = datetime.today().date()  # Default to today
         if 'tomorrow' in request.POST:
             desired_date = datetime.today().date() + timedelta(days=1)
@@ -84,7 +84,6 @@ def enter_head_count(request):
                 'duty_card': duty_card,
             })
     else:
-        # Prepopulate the formset with today's date by default
         initial_data = [{'date': datetime.today().date()}]
         trip_formset = DriverTripFormSet(prefix='drivertrip_set', initial=initial_data)
 
@@ -109,7 +108,6 @@ def report_view(request):
         driver_trips = driver_trips.filter(route_name=route_filter)
     if shift_time_filter:
         try:
-            # Attempt to parse the shift time filter to HH:MM format
             parsed_shift_time = datetime.strptime(shift_time_filter, '%H:%M').time()
             driver_trips = driver_trips.filter(shift_time=parsed_shift_time)
         except ValueError:
@@ -209,7 +207,7 @@ def get_duty_card_details(request):
             trip['drop_off_time'] = trip['drop_off_time'].strftime("%H:%M")
             trip['shift_time'] = trip['shift_time'].strftime("%H:%M")
             trip['trip_type'] = trip['trip_type']
-            trip['date'] = datetime.today().strftime("%Y-%m-%d")  # Set the date to today's date
+            trip['date'] = datetime.today().strftime("%Y-%m-%d")
 
         return JsonResponse({'trips': trip_details}, safe=False)
     

@@ -20,12 +20,9 @@ SECRET_KEY = config('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=False, cast=bool)
 
-<<<<<<< HEAD
-ALLOWED_HOSTS = ['.herokuapp.com', 'localhost', '127.0.0.1']  # Add localhost for local testing
-=======
 # Allowed hosts configuration
 ALLOWED_HOSTS = ['occ-ek-stm-f6f65e876101.herokuapp.com', 'localhost', '127.0.0.1']
->>>>>>> fd608acce57eab07cc6f30d4f4d97922cf33b947
+
 
 # Application definition
 
