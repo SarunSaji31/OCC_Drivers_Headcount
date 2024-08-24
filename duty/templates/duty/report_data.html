@@ -7,131 +7,210 @@
     <title>Driver Trip Report</title>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
     <style>
         body {
-            background-color: #f0f4f8;
-            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f4;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #333;
+            margin: 0;
+            padding: 0;
         }
 
         .navbar {
-            background-color: #0066cc;
+            background-color: #343a40;
+            padding: 0.3rem 1rem;
         }
 
         .navbar-brand,
         .nav-link {
             color: white !important;
+            font-weight: bold;
         }
 
         .container {
-            margin-top: 30px;
+            margin-top: 10px;
+            padding: 0 15px;
         }
 
         .card {
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            background-color: #fff;
-            margin-bottom: 20px;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            background-color: #ffffff;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
         }
 
         h1 {
             color: #333;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
+            text-align: center;
+            font-size: 1.6rem;
+            font-weight: 600;
         }
 
         table {
             width: 100%;
-            margin-bottom: 20px;
             border-collapse: collapse;
+            margin-bottom: 10px;
         }
 
         th,
         td {
-            padding: 10px;
+            padding: 6px 8px;
             text-align: left;
             border-bottom: 1px solid #ddd;
         }
 
         th {
-            background-color: #f7f9fb;
-            color: #333;
+            background-color: #007bff;
+            color: white;
             font-weight: bold;
+        }
+
+        td {
+            font-size: 0.9rem;
+            color: #555;
         }
 
         .filter-controls {
             display: flex;
             flex-wrap: wrap;
-            gap: 10px;
-            margin-bottom: 20px;
+            gap: 5px;
+            margin-bottom: 10px;
+            justify-content: center;
         }
 
-        .btn-custom {
-            background-color: #0066cc;
-            color: white;
+        .filter-controls .form-control {
+            border-radius: 4px;
+            padding: 6px;
+            font-size: 0.9rem;
+        }
+
+        .btn-custom,
+        .btn-clear {
             border: none;
-            border-radius: 5px;
-            padding: 10px 20px;
-            text-transform: uppercase;
+            border-radius: 4px;
+            padding: 6px 12px;
             font-weight: bold;
-            transition: background-color 0.3s ease;
             align-self: flex-start;
-        }
-
-        .btn-custom:hover {
-            background-color: #005bb5;
-        }
-
-        .btn-custom:disabled {
-            background-color: #ccc;
+            margin-top: 5px;
+            transition: background-color 0.3s ease;
+            opacity: 0.5;
             cursor: not-allowed;
+        }
+
+        .btn-custom.enabled,
+        .btn-clear.enabled {
+            opacity: 1;
+            cursor: pointer;
+        }
+
+        .btn-custom:hover.enabled {
+            background-color: #218838;
+        }
+
+        .btn-clear {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .btn-clear:hover.enabled {
+            background-color: #c82333;
+        }
+
+        .btn-container {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 5px;
+        }
+
+        .filter-controls select.form-control {
+            max-width: 180px;
+            padding-right: 30px;
+            text-overflow: ellipsis;
+        }
+
+        .form-control::placeholder {
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+
+        /* Improve visibility of select container */
+        .filter-controls select {
+            padding-right: 15px;
+            text-align-last: center;
+            overflow: hidden;
+        }
+
+        /* Table styling */
+        .table thead th {
+            background-color: #17a2b8;
+        }
+
+        .table tbody tr {
+            background-color: #e9f7fa;
         }
 
         /* Responsive Design */
         @media (max-width: 768px) {
-            .filter-controls {
-                flex-direction: column;
-            }
-
-            table {
-                font-size: 0.9rem;
-            }
-
             th,
             td {
+                font-size: 0.8rem;
+                padding: 5px 7px;
+            }
+
+            h1 {
+                font-size: 1.4rem;
+            }
+
+            .filter-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .btn-custom,
+            .btn-clear {
+                width: 100%;
+                text-align: center;
                 padding: 8px;
             }
 
-            .container {
-                padding-left: 10px;
-                padding-right: 10px;
+            .card {
+                padding: 8px;
+                margin: 5px;
             }
         }
 
         @media (max-width: 576px) {
-            .card {
-                padding: 15px;
-            }
-
             th,
             td {
-                padding: 6px;
+                font-size: 0.75rem;
+                padding: 5px 6px;
             }
 
-            table {
-                font-size: 0.8rem;
-            }
-
-            .btn-custom {
-                width: 100%;
-                text-align: center;
-            }
-
-            .navbar-brand {
+            h1 {
                 font-size: 1.2rem;
             }
 
-            .navbar-nav .nav-link {
-                font-size: 0.9rem;
+            .filter-controls {
+                gap: 5px;
+            }
+
+            .card {
+                padding: 6px;
+            }
+
+            .filter-controls .form-control {
+                padding: 5px;
+            }
+
+            .btn-custom,
+            .btn-clear {
+                padding: 6px;
             }
         }
     </style>
@@ -159,18 +238,21 @@
         <div class="card">
             <h1>Driver Trip Report</h1>
             <div class="filter-controls">
-                <input type="date" id="dateFilter" class="form-control" style="max-width: 200px;">
-                <input type="text" id="routeFilter" class="form-control" placeholder="Type route name" style="max-width: 200px;">
-                <select id="tripTypeFilter" class="form-control" style="max-width: 200px;">
+                <input type="date" id="dateFilter" class="form-control" style="max-width: 180px;">
+                <input type="text" id="routeFilter" class="form-control" placeholder="Type route name" style="max-width: 180px;">
+                <select id="tripTypeFilter" class="form-control" style="max-width: 180px;">
                     <option value="">Select Trip Type</option>
                     <option value="inbound">Inbound</option>
                     <option value="outbound">Outbound</option>
                 </select>
-                <input type="text" id="shiftTimeFilter" class="form-control" placeholder="HH:MM" style="max-width: 200px;">
-                <button id="downloadButton" class="btn btn-custom">Download XLSX</button>
+                <input type="text" id="shiftTimeFilter" class="form-control" placeholder="HH:MM" style="max-width: 180px;">
+            </div>
+            <div class="btn-container">
+                <button id="downloadButton" class="btn btn-custom enabled" disabled>Download XLSX</button>
+                <button id="clearButton" class="btn btn-clear enabled" disabled>Clear Filters</button>
             </div>
             <div class="table-responsive">
-                <table id="reportTable" class="table">
+                <table id="reportTable" class="table table-striped table-bordered">
                     <thead>
                         <tr>
                             <th>Staff ID</th>
@@ -208,80 +290,99 @@
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
     <script>
         $(document).ready(function() {
-            const $routeFilter = $('#routeFilter');
-            const $shiftTimeFilter = $('#shiftTimeFilter');
-            const $reportTable = $('#reportTable tbody');
+            const $reportTable = $('#reportTable').DataTable({
+                paging: true,
+                searching: true,
+                order: [[0, 'asc']],
+                columnDefs: [{
+                    targets: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+                    orderable: true
+                }],
+                dom: '<"top"f>rt<"bottom"p><"clear">',
+                language: {
+                    search: "_INPUT_",
+                    searchPlaceholder: "Search..."
+                }
+            });
 
-            function fetchData() {
-                const route = $routeFilter.val();
-                const shiftTime = $shiftTimeFilter.val();
+            function checkFilters() {
+                const dateValue = $('#dateFilter').val();
+                const routeValue = $('#routeFilter').val();
+                const tripTypeValue = $('#tripTypeFilter').val();
+                const shiftTimeValue = $('#shiftTimeFilter').val();
+                const searchValue = $reportTable.search();
 
-                $.get("{% url 'report' %}", {
-                    route: route,
-                    shift_time: shiftTime
-                }, function(data) {
-                    $reportTable.html($(data).find('#reportTable tbody').html());
-                });
+                if (dateValue || routeValue || tripTypeValue || shiftTimeValue || searchValue) {
+                    $('#downloadButton, #clearButton').addClass('enabled').prop('disabled', false);
+                } else {
+                    $('#downloadButton, #clearButton').removeClass('enabled').prop('disabled', true);
+                }
             }
 
-            $routeFilter.autocomplete({
-                source: function(request, response) {
-                    $.ajax({
-                        url: "{% url 'route-autocomplete' %}",
-                        dataType: "json",
-                        data: {
-                            term: request.term
-                        },
-                        success: function(data) {
-                            response(data);
-                        }
-                    });
-                },
-                minLength: 1,
-                select: function(event, ui) {
-                    $routeFilter.val(ui.item.value);
-                    fetchData();
-                }
+            $('#dateFilter, #routeFilter, #tripTypeFilter, #shiftTimeFilter').on('change input', function() {
+                checkFilters();
             });
 
-            $routeFilter.on('input', function() {
-                fetchData();
+            $('#dateFilter').on('change', function() {
+                const dateValue = $(this).val();
+                $reportTable.column(8).search(dateValue).draw();
+                checkFilters();
             });
 
-            $shiftTimeFilter.autocomplete({
-                source: function(request, response) {
-                    $.ajax({
-                        url: "{% url 'shift-time-autocomplete' %}",
-                        dataType: "json",
-                        data: {
-                            term: request.term
-                        },
-                        success: function(data) {
-                            response(data);
-                        }
-                    });
-                },
-                minLength: 1,
-                select: function(event, ui) {
-                    $shiftTimeFilter.val(ui.item.value);
-                    fetchData();
-                }
+            $('#routeFilter').on('input', function() {
+                const routeValue = $(this).val();
+                $reportTable.column(3).search(routeValue).draw();
+                checkFilters();
             });
 
-            $shiftTimeFilter.on('input', function() {
-                fetchData();
+            $('#tripTypeFilter').on('change', function() {
+                const tripTypeValue = $(this).val();
+                $reportTable.column(7).search(tripTypeValue).draw();
+                checkFilters();
+            });
+
+            $('#shiftTimeFilter').on('input', function() {
+                const shiftTimeValue = $(this).val();
+                $reportTable.column(6).search(shiftTimeValue).draw();
+                checkFilters();
+            });
+
+            $reportTable.on('search.dt', function() {
+                checkFilters();
             });
 
             $('#downloadButton').on('click', function() {
                 const date = $('#dateFilter').val();
-                const route = $routeFilter.val();
-                const shift_time = $shiftTimeFilter.val();
+                const route = $('#routeFilter').val();
+                const shift_time = $('#shiftTimeFilter').val();
                 const trip_type = $('#tripTypeFilter').val();
 
                 window.location.href = `{% url 'download_report' %}?date=${date}&route=${route}&shift_time=${shift_time}&trip_type=${trip_type}`;
             });
+
+            $('#clearButton').on('click', function() {
+                $('#dateFilter').val('');
+                $('#routeFilter').val('');
+                $('#tripTypeFilter').val('');
+                $('#shiftTimeFilter').val('');
+                $reportTable.search('').columns().search('').draw();
+                $('#downloadButton, #clearButton').removeClass('enabled').prop('disabled', true);
+            });
+
+            $('#shiftTimeFilter').on('keydown', function(e) {
+                const key = e.which || e.keyCode;
+                if ((key >= 48 && key <= 57) || (key >= 96 && key <= 105)) { // Allow numeric keys only
+                    if ($(this).val().length === 2 && key !== 8 && key !== 46) { // Add colon after HH
+                        $(this).val($(this).val() + ':');
+                    }
+                }
+            });
+
+            // Initially check filters to set the state of the download and clear buttons
+            checkFilters();
         });
     </script>
 </body>

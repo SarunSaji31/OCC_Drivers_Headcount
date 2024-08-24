@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -243,11 +244,11 @@
             var tripCount = 0;
 
             // Get today's date in YYYY-MM-DD format
-            var today = new Date().toISOString().split('T')[0];
+             var today = new Date().toISOString().split('T')[0];
 
-            function addTripRow(tripData = {}, index) {
-                var selectedInbound = tripData.trip_type === 'inbound' ? 'selected' : '';
-                var selectedOutbound = tripData.trip_type === 'outbound' ? 'selected' : '';
+             function addTripRow(tripData = {}, index) {tripData
+                var selectedInbound = tripData.trip_type === 'IN' ? 'selected' : '';
+                var selectedOutbound = tripData.trip_type === 'OUT' ? 'selected' : ''
 
                 var newRow = `
                     <div class="form-row trip-form-container">
