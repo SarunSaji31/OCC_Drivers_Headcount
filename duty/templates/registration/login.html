@@ -1,0 +1,20 @@
+{% extends "duty/base_generic.html" %}
+
+{% block content %}
+<div class="container">
+    <h2>Login</h2>
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="id_username">Enter your Staff ID</label>
+            <input type="text" id="id_username" name="username" class="form-control" placeholder="Enter your Staff ID" required>
+        </div>
+        <div class="form-group mt-3">
+            <label for="id_password">Password</label>
+            <input type="password" id="id_password" name="password" class="form-control" placeholder="Enter your password" required>
+        </div>
+        <button type="submit" class="btn btn-primary mt-3">Login</button>
+    </form>
+    <p class="mt-3">Don't have an account? <a href="{% url 'signup' %}">Sign Up</a></p> <!-- Added Sign Up link -->
+</div>
+{% endblock %}

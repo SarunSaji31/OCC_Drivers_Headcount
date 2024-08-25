@@ -1,28 +1,31 @@
 from django.shortcuts import render, redirect
 from django.http import JsonResponse, HttpResponse
-from .forms import DriverTripFormSet
+from .forms import DriverTripFormSet, CustomUserCreationForm
 from .models import DriverTrip, DriverImportLog, DutyCardTrip
+from django.contrib.auth import login, authenticate
 import pandas as pd
 from datetime import datetime, timedelta
 import xlsxwriter
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
 
+@login_required
 def home(request):
     return render(request, 'duty/home.html')
 
+@login_required
 def enter_head_count(request):
     if request.method == 'POST':
         trip_formset = DriverTripFormSet(request.POST, prefix='drivertrip_set')
 
-        staff_id = request.POST.get('staff_id')
-        if not staff_id:
-            return render(request, 'duty/enter_head_count.html', {
-                'trip_formset': trip_formset,
-                'error_message': "Please fill in the Staff ID.",
-            })
-
-        driver = DriverImportLog.objects.filter(staff_id=staff_id).first()
         duty_card_no = request.POST.get('duty_card_no')
         duty_card = DutyCardTrip.objects.filter(duty_card_no=duty_card_no).first()
+
+        if not duty_card_no:
+            return render(request, 'duty/enter_head_count.html', {  
+                'trip_formset': trip_formset,
+                'error_message': "Please fill in the Duty Card No.",
+            })
 
         desired_date = datetime.today().date()  # Default to today
         if 'tomorrow' in request.POST:
@@ -39,20 +42,18 @@ def enter_head_count(request):
                         form.cleaned_data['date'] = desired_date
                         trip_date = form.cleaned_data.get('date')
                         existing_trip = DriverTrip.objects.filter(
-                            driver=driver,
+                            duty_card=duty_card,
                             date=trip_date
                         ).exists()
 
                         if existing_trip:
                             duplicate_entry = True
-                            form.add_error(None, f"Data for Staff ID {staff_id} on {trip_date} already exists.")
+                            form.add_error(None, f"Data for Duty Card No {duty_card_no} on {trip_date} already exists.")
                             break
 
                 if duplicate_entry:
                     return render(request, 'duty/enter_head_count.html', {
                         'trip_formset': trip_formset,
-                        'staff_id': staff_id,
-                        'driver': driver,
                         'duty_card': duty_card,
                         'error_message': "Duplicate entry found. Please check your input.",
                     })
@@ -61,7 +62,6 @@ def enter_head_count(request):
                         if form.is_valid():
                             trip = form.save(commit=False)
                             trip.date = desired_date  # Set the date to the desired date
-                            trip.driver = driver
                             trip.duty_card = duty_card
                             trip.save()
 
@@ -69,8 +69,6 @@ def enter_head_count(request):
             else:
                 return render(request, 'duty/enter_head_count.html', {
                     'trip_formset': trip_formset,
-                    'staff_id': staff_id,
-                    'driver': driver,
                     'duty_card': duty_card,
                     'error_message': "Please correct the errors below.",
                 })
@@ -79,8 +77,6 @@ def enter_head_count(request):
             return render(request, 'duty/enter_head_count.html', {
                 'trip_formset': trip_formset,
                 'error_message': f"An error occurred: {str(e)}",
-                'staff_id': staff_id,
-                'driver': driver,
                 'duty_card': duty_card,
             })
     else:
@@ -91,9 +87,11 @@ def enter_head_count(request):
         'trip_formset': trip_formset,
     })
 
+@login_required
 def success(request):
     return render(request, 'duty/success.html')
 
+@login_required
 def report_view(request):
     date_filter = request.GET.get('date')
     route_filter = request.GET.get('route')
@@ -129,6 +127,7 @@ def report_view(request):
     else:
         return render(request, 'duty/report_data.html', context)
 
+@login_required
 def download_report(request):
     date_filter = request.GET.get('date')
     route_filter = request.GET.get('route')
@@ -171,6 +170,7 @@ def download_report(request):
 
     return response 
 
+@login_required
 def staff_id_autocomplete(request):
     if 'term' in request.GET:
         term = request.GET.get('term')
@@ -179,6 +179,7 @@ def staff_id_autocomplete(request):
         return JsonResponse(staff_ids, safe=False)
     return JsonResponse([], safe=False)
 
+@login_required
 def get_driver_name(request):
     staff_id = request.GET.get('staff_id', None)
     if staff_id:
@@ -189,6 +190,7 @@ def get_driver_name(request):
             return JsonResponse({'driver_name': ''})
     return JsonResponse({'driver_name': ''})
 
+@login_required
 def duty_card_no_autocomplete(request):
     if 'term' in request.GET:
         term = request.GET.get('term')
@@ -196,6 +198,7 @@ def duty_card_no_autocomplete(request):
         duty_card_nos = list(set(qs))
         return JsonResponse(duty_card_nos, safe=False)
 
+@login_required
 def get_duty_card_details(request):
     if 'duty_card_no' in request.GET:
         duty_card_no = request.GET.get('duty_card_no')
@@ -213,6 +216,7 @@ def get_duty_card_details(request):
     
     return JsonResponse({'trips': []}, safe=False)
 
+@login_required
 def route_autocomplete(request):
     if 'term' in request.GET:
         qs = DriverTrip.objects.filter(route_name__istartswith=request.GET.get('term'))
@@ -220,10 +224,26 @@ def route_autocomplete(request):
         return JsonResponse(routes, safe=False)
     return JsonResponse([], safe=False)
 
+@login_required
 def shift_time_autocomplete(request):
     if 'term' in request.GET:
-        qs = DriverTrip.objects.filter(shift_time__startswith=request.GET.get('term'))
+        qs = DriverTrip.objects.filter(shift_time__startswith(request.GET.get('term')))
         shift_times = list(qs.values_list('shift_time', flat=True).distinct())
         shift_times = [time.strftime("%H:%M") for time in shift_times]
         return JsonResponse(shift_times, safe=False)
     return JsonResponse([], safe=False)
+
+def signup(request):
+    if request.method == 'POST':
+        form = CustomUserCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            login(request, user)
+            return redirect('login')  # Redirect to login page after successful signup
+        else:
+            # If form is invalid, show error message
+            return render(request, 'registration/signup.html', {'form': form, 'error_message': 'Sign up failed. Please correct the errors below.'})
+    else:
+        form = CustomUserCreationForm()
+    return render(request, 'registration/signup.html', {'form': form})
+        
