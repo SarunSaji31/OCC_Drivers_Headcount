@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -246,9 +245,9 @@
             // Get today's date in YYYY-MM-DD format
              var today = new Date().toISOString().split('T')[0];
 
-             function addTripRow(tripData = {}, index) {tripData
-                var selectedInbound = tripData.trip_type === 'IN' ? 'selected' : '';
-                var selectedOutbound = tripData.trip_type === 'OUT' ? 'selected' : ''
+             function addTripRow(tripData = {}, index) {
+                var selectedInbound = tripData.trip_type === 'inbound' ? 'selected' : '';
+                var selectedOutbound = tripData.trip_type === 'outbound' ? 'selected' : '';
 
                 var newRow = `
                     <div class="form-row trip-form-container">
@@ -281,7 +280,7 @@
                         </div>
                         <div class="form-group col-md-1">
                             <label>Head Count</label>
-                            <input type="number" name="drivertrip_set-${index}-head_count" class="form-control" placeholder="Enter Head Count" required>
+                            <input type="number" name="drivertrip_set-${index}-head_count" class="form-control" placeholder="Enter Head Count" value="${tripData.head_count || ''}" required>
                         </div>
                         <div class="remove-trip-container col-md-1">
                             <span class="remove-trip">Remove</span>
