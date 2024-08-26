@@ -1,4 +1,4 @@
-from django.urls import path, include  # Include 'include' for auth URLs
+from django.urls import path, include
 from . import views
 from django.conf import settings
 from django.conf.urls.static import static
@@ -28,6 +28,9 @@ urlpatterns = [
 
     # Sign up endpoint
     path('signup/', views.signup, name='signup'),  # Sign up page for new users
+    
+    # Logout endpoint
+    path('logout/', views.user_logout, name='logout'),  # Custom logout view
 ]
 
 # Serve static files during development

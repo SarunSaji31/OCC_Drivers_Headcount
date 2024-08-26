@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from django.http import JsonResponse, HttpResponse
 from .forms import DriverTripFormSet, CustomUserCreationForm
 from .models import DriverTrip, DriverImportLog, DutyCardTrip
-from django.contrib.auth import login, authenticate
+from django.contrib.auth import login, authenticate, logout
 import pandas as pd
 from datetime import datetime, timedelta
 import xlsxwriter
@@ -237,13 +237,18 @@ def signup(request):
     if request.method == 'POST':
         form = CustomUserCreationForm(request.POST)
         if form.is_valid():
-            user = form.save()
-            login(request, user)
-            return redirect('login')  # Redirect to login page after successful signup
-        else:
-            # If form is invalid, show error message
-            return render(request, 'registration/signup.html', {'form': form, 'error_message': 'Sign up failed. Please correct the errors below.'})
+            form.save()
+            username = form.cleaned_data.get('username')
+            raw_password = form.cleaned_data.get('password1')
+            user = authenticate(username=username, password=raw_password)
+            if user is not None:
+                login(request, user)
+                return redirect('home')
     else:
         form = CustomUserCreationForm()
     return render(request, 'registration/signup.html', {'form': form})
-        
+
+def user_logout(request):
+    logout(request)
+    messages.success(request, "You have successfully logged out.")
+    return redirect('login')

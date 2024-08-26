@@ -139,5 +139,12 @@ LOGGING = {
         },
     },
 }
+
+# Session settings for auto-logout
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+SESSION_COOKIE_AGE = 300  # 5 minutes
+SESSION_SAVE_EVERY_REQUEST = True
+
 # Redirect to the home page after login
 LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/'  # Redirect to the home page after logout
