@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     {% load static %}
     <meta charset="UTF-8">
@@ -126,7 +125,7 @@
                     <a class="nav-link" href="{% url 'report' %}">Reports</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="#">Contact</a>
+                    <a class="nav-link" href="{% url 'logout' %}">Logout</a>
                 </li>
             </ul>
         </div>
@@ -136,7 +135,6 @@
         <img src="https://et.ae/wp-content/uploads/2020/03/Logo.svg" alt="Logo">
         <h1>Welcome to OCC-EKG project</h1>
         <p>Manage and track driver details and trip information efficiently.</p>
-
     </div>
 
     <div class="container">
@@ -164,8 +162,27 @@
         <p>&copy; Emirates Airline Staff Transport Project.</p>
     </footer>
 
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
-</body>
+    <!-- Auto Logout Scripts -->
+    <script>
+        // Auto Logout on Browser Close
+        window.addEventListener('beforeunload', function (e) {
+            navigator.sendBeacon("{% url 'logout' %}");
+        });
 
+        // Auto Logout after 5 minutes of inactivity
+        let timeout;
+        function startTimer() {
+            clearTimeout(timeout);
+            timeout = setTimeout(function() {
+                window.location.href = "{% url 'logout' %}";
+            }, 300000);  // 300000ms = 5 minutes
+        }
+
+        window.onload = startTimer;
+        document.onmousemove = startTimer;
+        document.onkeypress = startTimer;
+        document.onscroll = startTimer;
+        document.onmousedown = startTimer;
+    </script>
+</body>
 </html>
