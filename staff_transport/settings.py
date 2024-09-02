@@ -16,6 +16,9 @@ SECRET_KEY = config('SECRET_KEY')
 # Debug mode configuration
 DEBUG = config('DEBUG', default=False, cast=bool)
 
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+
 # Allowed hosts configuration
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
 

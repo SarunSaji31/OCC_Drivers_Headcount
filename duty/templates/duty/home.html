@@ -88,6 +88,15 @@
             margin: 0;
         }
 
+        .staff-name {
+            position: absolute;
+            left: 20px;
+            top: 20px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: white;
+        }
+
         @media (max-width: 768px) {
             .header-section {
                 padding: 30px 15px;
@@ -132,6 +141,7 @@
     </nav>
 
     <div class="header-section">
+        <span class="staff-name">Welcome, {{ staff_name }}!</span>
         <img src="https://et.ae/wp-content/uploads/2020/03/Logo.svg" alt="Logo">
         <h1>Welcome to OCC-EKG project</h1>
         <p>Manage and track driver details and trip information efficiently.</p>
@@ -162,27 +172,7 @@
         <p>&copy; Emirates Airline Staff Transport Project.</p>
     </footer>
 
-    <!-- Auto Logout Scripts -->
-    <script>
-        // Auto Logout on Browser Close
-        window.addEventListener('beforeunload', function (e) {
-            navigator.sendBeacon("{% url 'logout' %}");
-        });
-
-        // Auto Logout after 5 minutes of inactivity
-        let timeout;
-        function startTimer() {
-            clearTimeout(timeout);
-            timeout = setTimeout(function() {
-                window.location.href = "{% url 'logout' %}";
-            }, 300000);  // 300000ms = 5 minutes
-        }
-
-        window.onload = startTimer;
-        document.onmousemove = startTimer;
-        document.onkeypress = startTimer;
-        document.onscroll = startTimer;
-        document.onmousedown = startTimer;
-    </script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
 </body>
 </html>

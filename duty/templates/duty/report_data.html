@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,7 +7,10 @@
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
+    <!-- Date Range Picker CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
     <style>
+        /* Add your custom CSS here */
         body {
             background-color: #f4f4f4;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -16,23 +18,19 @@
             margin: 0;
             padding: 0;
         }
-
         .navbar {
             background-color: #343a40;
             padding: 0.3rem 1rem;
         }
-
         .navbar-brand,
         .nav-link {
             color: white !important;
             font-weight: bold;
         }
-
         .container {
             margin-top: 10px;
             padding: 0 15px;
         }
-
         .card {
             padding: 10px;
             border-radius: 8px;
@@ -41,7 +39,6 @@
             margin-bottom: 10px;
             border: 1px solid #ddd;
         }
-
         h1 {
             color: #333;
             margin-bottom: 10px;
@@ -49,31 +46,26 @@
             font-size: 1.6rem;
             font-weight: 600;
         }
-
         table {
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 10px;
         }
-
         th,
         td {
             padding: 6px 8px;
             text-align: left;
             border-bottom: 1px solid #ddd;
         }
-
         th {
             background-color: #007bff;
             color: white;
             font-weight: bold;
         }
-
         td {
             font-size: 0.9rem;
             color: #555;
         }
-
         .filter-controls {
             display: flex;
             flex-wrap: wrap;
@@ -81,13 +73,11 @@
             margin-bottom: 10px;
             justify-content: center;
         }
-
         .filter-controls .form-control {
             border-radius: 4px;
             padding: 6px;
             font-size: 0.9rem;
         }
-
         .btn-custom,
         .btn-clear {
             border: none;
@@ -100,26 +90,21 @@
             opacity: 0.5;
             cursor: not-allowed;
         }
-
         .btn-custom.enabled,
         .btn-clear.enabled {
             opacity: 1;
             cursor: pointer;
         }
-
         .btn-custom:hover.enabled {
             background-color: #218838;
         }
-
         .btn-clear {
             background-color: #dc3545;
             color: white;
         }
-
         .btn-clear:hover.enabled {
             background-color: #c82333;
         }
-
         .btn-container {
             display: flex;
             justify-content: center;
@@ -127,87 +112,63 @@
             flex-wrap: wrap;
             margin-top: 5px;
         }
-
         .filter-controls select.form-control {
             max-width: 180px;
             padding-right: 30px;
             text-overflow: ellipsis;
         }
-
         .form-control::placeholder {
             color: #6c757d;
             font-size: 0.9rem;
         }
-
-        /* Improve visibility of select container */
-        .filter-controls select {
-            padding-right: 15px;
-            text-align-last: center;
-            overflow: hidden;
-        }
-
-        /* Table styling */
         .table thead th {
             background-color: #17a2b8;
         }
-
         .table tbody tr {
             background-color: #e9f7fa;
         }
-
-        /* Responsive Design */
         @media (max-width: 768px) {
             th,
             td {
                 font-size: 0.8rem;
                 padding: 5px 7px;
             }
-
             h1 {
                 font-size: 1.4rem;
             }
-
             .filter-controls {
                 flex-direction: column;
                 align-items: stretch;
             }
-
             .btn-custom,
             .btn-clear {
                 width: 100%;
                 text-align: center;
                 padding: 8px;
             }
-
             .card {
                 padding: 8px;
                 margin: 5px;
             }
         }
-
         @media (max-width: 576px) {
             th,
             td {
                 font-size: 0.75rem;
                 padding: 5px 6px;
             }
-
             h1 {
                 font-size: 1.2rem;
             }
-
             .filter-controls {
                 gap: 5px;
             }
-
             .card {
                 padding: 6px;
             }
-
             .filter-controls .form-control {
                 padding: 5px;
             }
-
             .btn-custom,
             .btn-clear {
                 padding: 6px;
@@ -247,7 +208,7 @@
         <div class="card">
             <h1>Driver Trip Report</h1>
             <div class="filter-controls">
-                <input type="date" id="dateFilter" class="form-control" style="max-width: 180px;">
+                <input type="text" name="daterange" class="form-control" style="max-width: 200px;">
                 <input type="text" id="routeFilter" class="form-control" placeholder="Type route name" style="max-width: 180px;">
                 <select id="tripTypeFilter" class="form-control" style="max-width: 180px;">
                     <option value="">Select Trip Type</option>
@@ -257,8 +218,8 @@
                 <input type="text" id="shiftTimeFilter" class="form-control" placeholder="HH:MM" style="max-width: 180px;">
             </div>
             <div class="btn-container">
-                <button id="downloadButton" class="btn btn-custom enabled" disabled>Download XLSX</button>
-                <button id="clearButton" class="btn btn-clear enabled" disabled>Clear Filters</button>
+                <button id="downloadButton" class="btn btn-custom" disabled>Download XLSX</button>
+                <button id="clearButton" class="btn btn-clear" disabled>Clear Filters</button>
             </div>
             <div class="table-responsive">
                 <table id="reportTable" class="table table-striped table-bordered">
@@ -287,8 +248,12 @@
                             <td>{{ trip.drop_off_time|time:"H:i" }}</td>
                             <td>{{ trip.shift_time|time:"H:i" }}</td>
                             <td>{{ trip.trip_type }}</td>
-                            <td>{{ trip.date }}</td>
+                            <td>{{ trip.date|date:"Y-m-d" }}</td> <!-- Ensure date format matches -->
                             <td>{{ trip.head_count }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="10" class="text-center">No data available</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -300,12 +265,15 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
     <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+    <!-- Moment.js and Date Range Picker Scripts -->
+    <script src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
     <script>
-        $(document).ready(function() {
+                    $(document).ready(function() {
             const $reportTable = $('#reportTable').DataTable({
-                paging: true,
+                paging: false, // Disable paging for continuous scroll
                 searching: true,
-                order: [[0, 'asc']],
+                order: [[8, 'desc']], // Order by date (index 8)
                 columnDefs: [{
                     targets: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
                     orderable: true
@@ -317,27 +285,59 @@
                 }
             });
 
+            // Initialize date range picker with current date as default
+            $('input[name="daterange"]').daterangepicker({
+                locale: {
+                    format: 'YYYY-MM-DD'
+                },
+                startDate: moment().startOf('day'), // Start of the current day
+                endDate: moment().endOf('day'), // End of the current day
+                alwaysShowCalendars: true, // Always show calendars when the picker is opened
+                autoUpdateInput: false // Don't automatically set the input value when the picker is closed
+            });
+
+            // When the date range is applied, update the input and apply the filter
+            $('input[name="daterange"]').on('apply.daterangepicker', function(ev, picker) {
+                const startDate = picker.startDate.format('YYYY-MM-DD');
+                const endDate = picker.endDate.format('YYYY-MM-DD');
+                $(this).val(`${startDate} - ${endDate}`);
+                $reportTable.draw(); // Trigger a redraw to apply the date range filter
+                checkFilters();
+            });
+
             function checkFilters() {
-                const dateValue = $('#dateFilter').val();
+                const dateRange = $('input[name="daterange"]').val();
                 const routeValue = $('#routeFilter').val();
                 const tripTypeValue = $('#tripTypeFilter').val();
                 const shiftTimeValue = $('#shiftTimeFilter').val();
                 const searchValue = $reportTable.search();
 
-                if (dateValue || routeValue || tripTypeValue || shiftTimeValue || searchValue) {
+                if (dateRange || routeValue || tripTypeValue || shiftTimeValue || searchValue) {
                     $('#downloadButton, #clearButton').addClass('enabled').prop('disabled', false);
                 } else {
                     $('#downloadButton, #clearButton').removeClass('enabled').prop('disabled', true);
                 }
             }
 
-            $('#dateFilter, #routeFilter, #tripTypeFilter, #shiftTimeFilter').on('change input', function() {
-                checkFilters();
-            });
+            $.fn.dataTable.ext.search.push(
+                function(settings, data, dataIndex) {
+                    const dateRange = $('input[name="daterange"]').val();
+                    if (!dateRange) return true; // If no date range, don't filter by date
+                    const dates = dateRange.split(" - ");
+                    const min = moment(dates[0], "YYYY-MM-DD");
+                    const max = moment(dates[1], "YYYY-MM-DD");
+                    const date = moment(data[8], "YYYY-MM-DD"); // Ensure this matches your date format
 
-            $('#dateFilter').on('change', function() {
-                const dateValue = $(this).val();
-                $reportTable.column(8).search(dateValue).draw();
+                    if (date.isBetween(min, max, null, '[]')) {
+                        return true;
+                    }
+                    return false;
+                }
+            );
+
+            // Attach event listeners to filters
+            $('input[name="daterange"], #routeFilter, #tripTypeFilter, #shiftTimeFilter').on('change input', function() {
+                $reportTable.draw(); // Redraw the table whenever filters change
                 checkFilters();
             });
 
@@ -364,16 +364,16 @@
             });
 
             $('#downloadButton').on('click', function() {
-                const date = $('#dateFilter').val();
+                const date = $('input[name="daterange"]').val();
                 const route = $('#routeFilter').val();
                 const shift_time = $('#shiftTimeFilter').val();
                 const trip_type = $('#tripTypeFilter').val();
 
-                window.location.href = `{% url 'download_report' %}?date=${date}&route=${route}&shift_time=${shift_time}&trip_type=${trip_type}`;
+                window.location.href = `{% url 'download_report' %}?daterange=${date}&route=${route}&shift_time=${shift_time}&trip_type=${trip_type}`;
             });
 
             $('#clearButton').on('click', function() {
-                $('#dateFilter').val('');
+                $('input[name="daterange"]').val('');
                 $('#routeFilter').val('');
                 $('#tripTypeFilter').val('');
                 $('#shiftTimeFilter').val('');
@@ -393,6 +393,8 @@
             // Initially check filters to set the state of the download and clear buttons
             checkFilters();
         });
+
+
     </script>
 </body>
 
