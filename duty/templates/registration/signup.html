@@ -1,42 +1,62 @@
 {% extends "duty/base_generic.html" %}
 
+{% block title %}Sign Up - OCC-EKG Project{% endblock %}
+
 {% block content %}
-<div class="container">
-    <h2>Sign Up</h2>
-    
-    <!-- Display error messages if form validation fails -->
-    {% if form.errors %}
-    <div class="alert alert-danger">
-        <ul>
-            {% for field in form %}
-                {% for error in field.errors %}
+<div class="col-md-6 col-lg-4">
+    <div class="card p-4">
+        <h3 class="text-center mb-4">Create Your Account</h3>
+
+        {% if form.errors %}
+        <div class="alert alert-danger">
+            <ul>
+                {% for field in form %}
+                    {% for error in field.errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                {% endfor %}
+                {% for error in form.non_field_errors %}
                     <li>{{ error }}</li>
                 {% endfor %}
-            {% endfor %}
-            {% for error in form.non_field_errors %}
-                <li>{{ error }}</li>
-            {% endfor %}
-        </ul>
+            </ul>
+        </div>
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label for="staff_id" class="form-label">Staff ID</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-person-badge"></i></span>
+                    <input type="text" id="staff_id" name="staff_id" class="form-control" value="{{ form.staff_id.value|default_if_none:'' }}" placeholder="Enter your Staff ID" required>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label for="email" class="form-label">Email Address</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                    <input type="email" id="email" name="email" class="form-control" value="{{ form.email.value|default_if_none:'' }}" placeholder="Enter your email address" required>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label for="password1" class="form-label">Create a Password</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-key"></i></span>
+                    <input type="password" id="password1" name="password1" class="form-control" placeholder="Create a password" required>
+                </div>
+                <small class="form-text">Your password must be at least 8 characters long.</small>
+            </div>
+            <div class="mb-3">
+                <label for="password2" class="form-label">Confirm Password</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-key-fill"></i></span>
+                    <input type="password" id="password2" name="password2" class="form-control" placeholder="Confirm your password" required>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Sign Up</button>
+        </form>
+
+        <p class="text-center mt-3">Already have an account? <a href="{% url 'login' %}">Log in here</a>.</p>
     </div>
-    {% endif %}
-    
-    <form method="post">
-        {% csrf_token %}
-        <div class="form-group">
-            <label for="staff_id">Enter your Staff ID</label>
-            <input type="text" id="staff_id" name="staff_id" class="form-control" value="{{ form.staff_id.value }}" required>
-        </div>
-        <div class="form-group mt-3">
-            <label for="password1">Create a Password</label>
-            <input type="password" id="password1" name="password1" class="form-control" required>
-            <div class="form-text">Your password must be at least 8 characters long.</div>
-        </div>
-        <div class="form-group mt-3">
-            <label for="password2">Confirm Password</label>
-            <input type="password" id="password2" name="password2" class="form-control" required>
-        </div>
-        <button type="submit" class="btn btn-primary mt-3">Sign Up</button>
-    </form>
 </div>
 {% endblock %}
-    

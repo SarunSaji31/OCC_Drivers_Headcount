@@ -25,17 +25,23 @@ class DriverTripForm(forms.ModelForm):
 # Formset for handling multiple driver trip entries
 DriverTripFormSet = formset_factory(DriverTripForm, extra=1)
 
-# Custom user creation form for handling staff ID as the username
+# Custom user creation form for handling staff ID as the username and adding an email field
 class CustomUserCreationForm(UserCreationForm):
     staff_id = forms.CharField(
         max_length=150, 
         required=True, 
-        help_text='Enter your staff ID. Required.'
+        help_text='Enter your staff ID. Required.',
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter your Staff ID'})
+    )
+    email = forms.EmailField(
+        required=True,
+        help_text='Enter your email address. Required.',
+        widget=forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'Enter your email address'})
     )
 
     class Meta:
         model = User
-        fields = ['staff_id', 'password1', 'password2']
+        fields = ['staff_id', 'email', 'password1', 'password2']
 
     def clean_staff_id(self):
         staff_id = self.cleaned_data.get('staff_id')
@@ -48,6 +54,25 @@ class CustomUserCreationForm(UserCreationForm):
         user = super().save(commit=False)
         # Set the staff ID as the username for the user
         user.username = self.cleaned_data['staff_id']
+        user.email = self.cleaned_data['email']  # Save the email address
         if commit:
             user.save()
         return user
+
+class PasswordResetRequestForm(forms.Form):
+    staff_id = forms.CharField(max_length=150, label="Staff ID")
+    email = forms.EmailField(label="Email")
+
+# Form for setting a new password
+class SetNewPasswordForm(forms.Form):
+    new_password = forms.CharField(widget=forms.PasswordInput, label="New Password")
+    confirm_password = forms.CharField(widget=forms.PasswordInput, label="Confirm Password")
+
+    def clean(self):
+        cleaned_data = super().clean()
+        new_password = cleaned_data.get("new_password")
+        confirm_password = cleaned_data.get("confirm_password")
+
+        if new_password != confirm_password:
+            raise forms.ValidationError("Passwords do not match.")
+        return cleaned_data
