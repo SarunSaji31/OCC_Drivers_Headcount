@@ -3,6 +3,7 @@
 <head>
     {% load static %}
     <meta charset="UTF-8">
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
@@ -71,16 +72,19 @@
 
 <body>
     <div class="container-fluid mt-5">
-        <!-- Back Button -->
+        <!-- Back Button and Report Button -->
         <div class="back-btn">
             <a href="{% url 'home' %}" class="btn btn-outline-primary">
                 <i class="fas fa-arrow-left"></i> Back to Home
             </a>
+            <a href="{% url 'report' %}" class="btn btn-outline-success ml-2">
+                <i class="fas fa-file-alt"></i> View Report
+            </a>
         </div>
 
         <div class="dashboard-header">
-            <h2 class="text-primary">Admin Dashboard</h2>
-            <p class="text-muted">View real-time insights and key metrics</p>
+            <h2 class="text-primary">Passenger Dashboard</h2>
+            <p class="text-muted">View real-time staff loads</p>
         </div>
 
         <!-- Filters Section -->
@@ -219,7 +223,6 @@
                         $('#gk-staff').text(data.gk_staff);
                         $('#ge-staff').text(data.ge_staff);
                         $('#dwc-staff').text(data.dwc_staff);
-                        $('#cc-staff').text(data.cc_staff);
                     },
                     error: function() {
                         console.log("Error loading data");
