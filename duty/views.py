@@ -424,7 +424,8 @@ def login_view(request):
 
     return render(request, "login.html", {"form": form})
 
-def dashboard_data(request):
+@user_in_driverimportlog_required  # Apply custom decorator
+def dashboard_data(request):    
     # Fetching query parameters for filtering
     date_filter = request.GET.get('date')
     shift_filter = request.GET.get('shift')
@@ -466,11 +467,11 @@ def dashboard_data(request):
     # Return the data as JSON for the AJAX request
     return JsonResponse(data)
 
+@user_in_driverimportlog_required  # Apply custom decorator
+@login_required
 def admin_dashboard(request):
     # This view simply renders the HTML template for the dashboard
     return render(request, 'duty/admin_dashboard.html')
-
-
 
 
     
