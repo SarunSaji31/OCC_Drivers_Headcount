@@ -17,10 +17,16 @@ class DriverTripForm(forms.ModelForm):
             'pick_up_time': forms.TimeInput(attrs={'class': 'form-control', 'placeholder': 'HH:MM'}),
             'drop_off_time': forms.TimeInput(attrs={'class': 'form-control', 'placeholder': 'HH:MM'}),
             'shift_time': forms.TimeInput(attrs={'class': 'form-control', 'placeholder': 'HH:MM'}),
-            'head_count': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Enter Head Count'}),
+            'head_count': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Enter Head Count', 'min': 0, 'max': 47}),
             'trip_type': forms.Select(attrs={'class': 'form-control'}),
             'date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
         }
+
+    def clean_head_count(self):
+        head_count = self.cleaned_data.get('head_count')
+        if head_count is None or head_count < 0 or head_count > 47:
+            raise forms.ValidationError("Head count must be between 0 and 47.")
+        return head_count
 
 # Formset for handling multiple driver trip entries
 DriverTripFormSet = formset_factory(DriverTripForm, extra=1)
