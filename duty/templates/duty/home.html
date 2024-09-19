@@ -114,6 +114,16 @@
                 padding: 0 10px;
             }
         }
+
+        .login-background {
+            background-image: url('{% static "occ_background_img.png" %}');
+            background-size: cover;
+            background-position: center;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
     </style>
 </head>
 
@@ -134,6 +144,9 @@
                     <a class="nav-link" href="{% url 'report' %}">Reports</a>
                 </li>
                 <li class="nav-item">
+                    <a class="nav-link" href="{% url 'dashboard' %}">Dashboard</a>
+                </li>
+                <li class="nav-item">
                     <a class="nav-link" href="{% url 'logout' %}">Logout</a>
                 </li>
             </ul>
@@ -150,7 +163,7 @@
     <div class="container">
         <div class="card-container">
             <div class="card">
-                <img class="card-img-top" src="{% static 'Card_image_OCCSTM.jpg' %}" alt="Card image OCCSTM">
+                <img class="card-img-top" src="{% static 'OCC.jpg' %}" alt="OCC">
                 <div class="card-body">
                     <h5 class="card-title">Driver Headcount</h5>
                     <p class="card-text">Add your trip and head count details.</p>
@@ -158,9 +171,9 @@
                 </div>
             </div>
             <div class="card">
-                <img class="card-img-top" src="https://via.placeholder.com/150" alt="Card image cap">
+                <img class="card-img-top" src="{% static 'occreport.jpg' %}" alt="occreport">
                 <div class="card-body">
-                    <h5 class="card-title">Driver Management</h5>
+                    <h5 class="card-title">Report Views</h5>
                     <p class="card-text">Add and manage driver details with ease.</p>
                     <a href="{% url 'report' %}" class="btn btn-primary">Go to Reports</a>
                 </div>

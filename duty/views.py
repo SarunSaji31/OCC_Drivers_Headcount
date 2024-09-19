@@ -1,20 +1,22 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse, HttpResponse
-from .forms import DriverTripFormSet, CustomUserCreationForm
-from .models import DriverTrip, DriverImportLog, DutyCardTrip
-from django.contrib.auth import logout
+from django.contrib.auth import logout, authenticate, login
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth.hashers import make_password
+from django.contrib.auth.models import User
 from django.contrib import messages
-from datetime import datetime, timedelta
+from django.urls import reverse
+
+from datetime import datetime, timedelta,date
 import pandas as pd
 import logging
-from .decorators import user_in_driverimportlog_required
-from django.contrib.auth.models import User
-from .forms import PasswordResetRequestForm, SetNewPasswordForm
-from django.contrib import messages
-from django.contrib.auth.hashers import make_password
-from django.urls import reverse 
+from functools import wraps
+from django.db.models import Sum
 
+from .forms import DriverTripFormSet, CustomUserCreationForm, PasswordResetRequestForm, SetNewPasswordForm
+from .models import DriverTrip, DriverImportLog, DutyCardTrip
+from .decorators import user_in_driverimportlog_required
 
 # Setup logger
 logger = logging.getLogger(__name__)
@@ -141,20 +143,26 @@ def enter_head_count(request):
 def success(request):
     return render(request, 'duty/success.html')
 
+def user_in_driverimportlog_required(view_func):
+    @wraps(view_func)
+    def _wrapped_view(request, *args, **kwargs):
+        # Deny access if the user's staff ID exists in the DriverImportLog table
+        if DriverImportLog.objects.filter(staff_id=request.user.username).exists():
+            return render(request, 'duty/access_denied.html')
+        return view_func(request, *args, **kwargs)
+    return _wrapped_view
+
 @login_required
 @user_in_driverimportlog_required  # Apply the custom decorator here
-
 def report_view(request):
-    # Retrieve filters from the request
+    # Your view logic here...
     date_range = request.GET.get('daterange')
     route_filter = request.GET.get('route')
     shift_time_filter = request.GET.get('shift_time')
     trip_type_filter = request.GET.get('trip_type')
 
-    # Start with all DriverTrip objects
     driver_trips = DriverTrip.objects.all()
 
-    # Apply date range filter if provided
     if date_range:
         try:
             start_date, end_date = date_range.split(' - ')
@@ -164,11 +172,9 @@ def report_view(request):
         except ValueError as e:
             driver_trips = driver_trips.none()
 
-    # Apply route filter if provided (case-insensitive)
     if route_filter:
-        driver_trips = driver_trips.filter(route_name__icontains=route_filter)
+        driver_trips = DriverTrip.objects.filter(route_name__icontains=route_filter)
 
-    # Apply shift time filter if provided
     if shift_time_filter:
         try:
             parsed_shift_time = datetime.strptime(shift_time_filter, '%H:%M').time()
@@ -176,15 +182,12 @@ def report_view(request):
         except ValueError:
             driver_trips = driver_trips.none()
 
-    # Apply trip type filter if provided (case-insensitive)
     if trip_type_filter:
         driver_trips = driver_trips.filter(trip_type__iexact=trip_type_filter)
 
-    # Get distinct routes and shift times
     routes = driver_trips.values_list('route_name', flat=True).distinct()
     shift_times = driver_trips.values_list('shift_time', flat=True).distinct()
 
-    # Prepare the context
     context = {
         'driver_trips': driver_trips,
         'routes': routes,
@@ -272,7 +275,7 @@ def duty_card_no_autocomplete(request):
 def get_duty_card_details(request):
     if 'duty_card_no' in request.GET:
         duty_card_no = request.GET.get('duty_card_no')
-        print(f"Received duty_card_no: {duty_card_no}")
+        #print(f"Received duty_card_no: {duty_card_no}")
 
         # Fetching trips from the database
         trips = DutyCardTrip.objects.filter(duty_card_no=duty_card_no)
@@ -294,10 +297,10 @@ def get_duty_card_details(request):
                 'date': trip.date.strftime("%Y-%m-%d") if hasattr(trip, 'date') else datetime.today().strftime("%Y-%m-%d"),
                 'head_count': trip.head_count if hasattr(trip, 'head_count') else 0  # Add other fields as needed
             }
-            print(f"Processed trip: {trip_info}")
+            #print(f"Processed trip: {trip_info}")
             trip_details.append(trip_info)
 
-        print(f"Returning trip details: {trip_details}")
+        #print(f"Returning trip details: {trip_details}")
         return JsonResponse({'trips': trip_details}, safe=False)
 
     print("No duty_card_no provided in request.")
@@ -314,11 +317,25 @@ def route_autocomplete(request):
 @login_required
 def shift_time_autocomplete(request):
     if 'term' in request.GET:
-        qs = DriverTrip.objects.filter(shift_time__startswith(request.GET.get('term')))
-        shift_times = list(qs.values_list('shift_time', flat=True).distinct())
-        shift_times = [time.strftime("%H:%M") for time in shift_times]
+        shift_time_term = request.GET.get('term')
+
+        # Ensure the term is in a valid time format like "HH:MM"
+        try:
+            # Check if the term is in "HH:MM" format
+            parsed_time = datetime.strptime(shift_time_term, "%H:%M").time()
+            qs = DriverTrip.objects.filter(shift_time__startswith=parsed_time)
+            shift_times = new_func(qs)
+            shift_times = [time.strftime("%H:%M") for time in shift_times]
+        except ValueError:
+            shift_times = []
+
         return JsonResponse(shift_times, safe=False)
+    
     return JsonResponse([], safe=False)
+
+def new_func(qs):
+    shift_times = list(qs.values_list('shift_time', flat=True).distinct())
+    return shift_times
 
 def signup(request):
     if request.method == 'POST':
@@ -378,3 +395,82 @@ def set_new_password(request, user_id):
         form = SetNewPasswordForm()
 
     return render(request, 'registration/set_new_password.html', {'form': form})
+
+def login_view(request):
+    if request.method == "POST":
+        form = AuthenticationForm(request, data=request.POST)
+        if form.is_valid():
+            username = form.cleaned_data.get('username')
+            password = form.cleaned_data.get('password')
+            user = authenticate(username=username, password=password)
+            if user is not None:
+                login(request, user)
+                
+                # Check if "Remember Me" was checked
+                if request.POST.get('remember_me'):
+                    request.session.set_expiry(1209600)  # 2 weeks
+                    request.session['remember_me'] = True
+                else:
+                    request.session.set_expiry(300)  # 5 minutes
+                    request.session['remember_me'] = False
+                
+                return redirect('home')
+            else:
+                messages.error(request, "Invalid username or password.")
+        else:
+            messages.error(request, "Invalid username or password.")
+    else:
+        form = AuthenticationForm()
+
+    return render(request, "login.html", {"form": form})
+
+def dashboard_data(request):
+    # Fetching query parameters for filtering
+    date_filter = request.GET.get('date')
+    shift_filter = request.GET.get('shift')
+    type_filter = request.GET.get('type')  # This will contain 'Inbound' or 'Outbound'
+
+    # If no date is provided, default to today's date
+    if not date_filter:
+        date_filter = date.today()
+
+    # Apply filtering logic based on the selected date, shift, and type
+    trips = DriverTrip.objects.filter(date=date_filter)
+
+    if shift_filter:
+        trips = trips.filter(shift_time=shift_filter)
+    
+    if type_filter:
+        trips = trips.filter(trip_type=type_filter)  # Filter by 'Inbound' or 'Outbound'
+
+    # Total staff members based on 'Head Count' column
+    total_staff = trips.aggregate(total_head_count=Sum('head_count'))['total_head_count'] or 0
+
+    # Count based on route prefixes and 'Head Count' column
+    total_gd_staff = trips.filter(route_name__startswith='GD').aggregate(gd_head_count=Sum('head_count'))['gd_head_count'] or 0
+    total_gk_staff = trips.filter(route_name__startswith='GK').aggregate(gk_head_count=Sum('head_count'))['gk_head_count'] or 0
+    total_ge_staff = trips.filter(route_name__startswith='GE').aggregate(ge_head_count=Sum('head_count'))['ge_head_count'] or 0
+    total_dwc_staff = trips.filter(route_name__startswith='DWC').aggregate(dwc_head_count=Sum('head_count'))['dwc_head_count'] or 0
+    total_cc_staff = trips.filter(route_name__startswith='CC').aggregate(cc_head_count=Sum('head_count'))['cc_head_count'] or 0
+
+    # Prepare the data for the dashboard
+    data = {
+        'total_staff': total_staff,
+        'gd_staff': total_gd_staff,
+        'gk_staff': total_gk_staff,
+        'ge_staff': total_ge_staff,
+        'dwc_staff': total_dwc_staff,
+        'cc_staff': total_cc_staff,
+    }
+
+    # Return the data as JSON for the AJAX request
+    return JsonResponse(data)
+
+def admin_dashboard(request):
+    # This view simply renders the HTML template for the dashboard
+    return render(request, 'duty/admin_dashboard.html')
+
+
+
+
+    

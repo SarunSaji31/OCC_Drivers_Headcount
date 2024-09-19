@@ -78,6 +78,20 @@
             padding: 6px;
             font-size: 0.9rem;
         }
+        .daterange-wrapper {
+            position: relative;
+            max-width: 200px;
+        }
+        .daterange-wrapper input.form-control {
+            padding-right: 30px;
+        }
+        .daterange-wrapper .icon-calendar {
+            position: absolute;
+            right: 10px;
+            top: 8px;
+            font-size: 1.2rem;
+            color: #6c757d;
+        }
         .btn-custom,
         .btn-clear {
             border: none;
@@ -188,6 +202,9 @@
                 <li class="nav-item">
                     <a class="nav-link" href="{% url 'home' %}">Home</a>
                 </li>
+                <li class="nav-item"></li>
+                    <a class="nav-link" href="{% url 'dashboard' %}">Dashboard</a>
+                </li>
                 <li class="nav-item">
                     <a class="nav-link" href="{% url 'enter_head_count' %}">Enter Details</a>
                 </li>
@@ -208,7 +225,10 @@
         <div class="card">
             <h1>Driver Trip Report</h1>
             <div class="filter-controls">
-                <input type="text" name="daterange" class="form-control" style="max-width: 200px;">
+                <div class="daterange-wrapper">
+                    <input type="text" name="daterange" id="daterange" class="form-control">
+                    <span class="icon icon-calendar"></span>
+                </div>
                 <input type="text" id="routeFilter" class="form-control" placeholder="Type route name" style="max-width: 180px;">
                 <select id="tripTypeFilter" class="form-control" style="max-width: 180px;">
                     <option value="">Select Trip Type</option>
@@ -248,7 +268,7 @@
                             <td>{{ trip.drop_off_time|time:"H:i" }}</td>
                             <td>{{ trip.shift_time|time:"H:i" }}</td>
                             <td>{{ trip.trip_type }}</td>
-                            <td>{{ trip.date|date:"Y-m-d" }}</td> <!-- Ensure date format matches -->
+                            <td>{{ trip.date|date:"Y-m-d" }}</td>
                             <td>{{ trip.head_count }}</td>
                         </tr>
                         {% empty %}
@@ -269,11 +289,11 @@
     <script src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
     <script>
-                    $(document).ready(function() {
+        $(document).ready(function() {
             const $reportTable = $('#reportTable').DataTable({
-                paging: false, // Disable paging for continuous scroll
+                paging: false,
                 searching: true,
-                order: [[8, 'desc']], // Order by date (index 8)
+                order: [[8, 'desc']],
                 columnDefs: [{
                     targets: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
                     orderable: true
@@ -285,15 +305,45 @@
                 }
             });
 
+            // Function to get the first and last day of the current month
+            function getCurrentMonthDateRange() {
+                const now = new Date();
+                const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+                const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+                
+                const formatDate = (date) => {
+                    let day = ("0" + date.getDate()).slice(-2);
+                    let month = ("0" + (date.getMonth() + 1)).slice(-2);
+                    return `${day}.${month}.${date.getFullYear()}`;
+                };
+                
+                return `${formatDate(firstDay)} – ${formatDate(lastDay)}`;
+            }
+
+            // Set the default date range on page load
+            const dateRangeInput = document.getElementById('daterange');
+            dateRangeInput.value = getCurrentMonthDateRange();
+
+            // Handle the clear button click to reset filters, but not the date range
+            const clearButton = document.getElementById('clearButton');
+            clearButton.addEventListener('click', function () {
+                document.getElementById('routeFilter').value = '';
+                document.getElementById('tripTypeFilter').value = '';
+                document.getElementById('shiftTimeFilter').value = '';
+                dateRangeInput.value = getCurrentMonthDateRange();  // Reset the date range to the current month
+                $reportTable.search('').columns().search('').draw();
+                $('#downloadButton, #clearButton').removeClass('enabled').prop('disabled', true);
+            });
+
             // Initialize date range picker with current date as default
             $('input[name="daterange"]').daterangepicker({
                 locale: {
                     format: 'YYYY-MM-DD'
                 },
-                startDate: moment().startOf('day'), // Start of the current day
-                endDate: moment().endOf('day'), // End of the current day
-                alwaysShowCalendars: true, // Always show calendars when the picker is opened
-                autoUpdateInput: false // Don't automatically set the input value when the picker is closed
+                startDate: moment().startOf('day'),
+                endDate: moment().endOf('day'),
+                alwaysShowCalendars: true,
+                autoUpdateInput: false
             });
 
             // When the date range is applied, update the input and apply the filter
@@ -301,7 +351,7 @@
                 const startDate = picker.startDate.format('YYYY-MM-DD');
                 const endDate = picker.endDate.format('YYYY-MM-DD');
                 $(this).val(`${startDate} - ${endDate}`);
-                $reportTable.draw(); // Trigger a redraw to apply the date range filter
+                $reportTable.draw(); 
                 checkFilters();
             });
 
@@ -322,11 +372,11 @@
             $.fn.dataTable.ext.search.push(
                 function(settings, data, dataIndex) {
                     const dateRange = $('input[name="daterange"]').val();
-                    if (!dateRange) return true; // If no date range, don't filter by date
+                    if (!dateRange) return true; 
                     const dates = dateRange.split(" - ");
                     const min = moment(dates[0], "YYYY-MM-DD");
                     const max = moment(dates[1], "YYYY-MM-DD");
-                    const date = moment(data[8], "YYYY-MM-DD"); // Ensure this matches your date format
+                    const date = moment(data[8], "YYYY-MM-DD");
 
                     if (date.isBetween(min, max, null, '[]')) {
                         return true;
@@ -337,7 +387,7 @@
 
             // Attach event listeners to filters
             $('input[name="daterange"], #routeFilter, #tripTypeFilter, #shiftTimeFilter').on('change input', function() {
-                $reportTable.draw(); // Redraw the table whenever filters change
+                $reportTable.draw(); 
                 checkFilters();
             });
 
@@ -383,18 +433,15 @@
 
             $('#shiftTimeFilter').on('keydown', function(e) {
                 const key = e.which || e.keyCode;
-                if ((key >= 48 && key <= 57) || (key >= 96 && key <= 105)) { // Allow numeric keys only
-                    if ($(this).val().length === 2 && key !== 8 && key !== 46) { // Add colon after HH
+                if ((key >= 48 && key <= 57) || (key >= 96 && key <= 105)) { 
+                    if ($(this).val().length === 2 && key !== 8 && key !== 46) { 
                         $(this).val($(this).val() + ':');
                     }
                 }
             });
 
-            // Initially check filters to set the state of the download and clear buttons
             checkFilters();
         });
-
-
     </script>
 </body>
 

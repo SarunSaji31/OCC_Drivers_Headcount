@@ -40,6 +40,10 @@ urlpatterns = [
     # Custom password reset views without email
     path('password_reset/', views.password_reset_request, name='password_reset'),
     path('set_new_password/<int:user_id>/', views.set_new_password, name='set_new_password'),
+
+    path('dashboard/', views.admin_dashboard, name='dashboard'),  # For rendering the page
+    path('dashboard/data/', views.dashboard_data, name='dashboard_data')
+    
 ]
 
 # Serve static files during development
