@@ -264,9 +264,7 @@
         $(document).ready(function() {
             var tripCount = 0;
 
-            // Get today's date in YYYY-MM-DD format
-            var today = new Date().toISOString().split('T')[0];
-
+            // Function to add a new trip row
             function addTripRow(tripData = {}, index) {
                 var newRow = `
                     <div class="form-row trip-form-container">
@@ -299,17 +297,22 @@
                         </div>
                         <div class="form-group col-md-3">
                             <label>Head Count</label>
-                            <input type="number" name="drivertrip_set-0-head_count" class="form-control" placeholder="Enter Head Count" value="" min="0" max="47" required>
+                            <input type="number" name="drivertrip_set-${index}-head_count" class="form-control" placeholder="Enter Head Count" value="${tripData.head_count || ''}" min="0" max="47" required>
                         </div>
-
                         <div class="remove-trip-container col-md-1">
                             <span class="remove-trip">Remove</span>
                         </div>
                     </div>
                 `;
 
-                // Append the new row to the trip entries
                 $('#trip-entries').append(newRow);
+                tripCount++;
+                $('#id_drivertrip_set-TOTAL_FORMS').val(tripCount);
+                
+                // Show submit button when at least one row is added
+                if (tripCount > 0) {
+                    $('#submit-button').show();
+                }
 
                 // Add input validation for head count (client-side check)
                 $(`input[name="drivertrip_set-${index}-head_count"]`).on('input', function() {
@@ -322,20 +325,21 @@
                     }
                 });
             }
+
             // Remove trip row
             $(document).on('click', '.remove-trip', function() {
                 $(this).closest('.trip-form-container').remove();
                 tripCount--;
                 $('#id_drivertrip_set-TOTAL_FORMS').val(tripCount);
+
+                // Hide submit button if no rows left
                 if (tripCount === 0) {
                     $('#submit-button').hide();
                 }
             });
 
             // Initially hide submit button
-            if (tripCount === 0) {
-                $('#submit-button').hide();
-            }
+            $('#submit-button').hide();
 
             // Duty card autocomplete
             $("#id_duty_card_no").autocomplete({
@@ -374,6 +378,11 @@
                             data.trips.forEach(function(trip, index) {
                                 addTripRow(trip, index);
                             });
+
+                            // Show submit button if trips are added
+                            if (tripCount > 0) {
+                                $('#submit-button').show();
+                            }
                         },
                         error: function(xhr, status, error) {
                             console.log("Error fetching duty card details:", error);
@@ -389,5 +398,6 @@
                 }
             });
         });
+
     </script>
 </body>
