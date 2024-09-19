@@ -297,26 +297,31 @@
                             <label>Date</label>
                             <input type="date" name="drivertrip_set-${index}-date" class="form-control" value="${tripData.date || today}" required>
                         </div>
-                        <div class="form-group col-md-1">
+                        <div class="form-group col-md-3">
                             <label>Head Count</label>
-                            <input type="number" name="drivertrip_set-${index}-head_count" class="form-control" placeholder="Enter Head Count" value="${tripData.head_count || ''}" required>
+                            <input type="number" name="drivertrip_set-0-head_count" class="form-control" placeholder="Enter Head Count" value="" min="0" max="47" required>
                         </div>
+
                         <div class="remove-trip-container col-md-1">
                             <span class="remove-trip">Remove</span>
                         </div>
                     </div>
                 `;
+
+                // Append the new row to the trip entries
                 $('#trip-entries').append(newRow);
-                $('#submit-button').show();
-                $('#id_drivertrip_set-TOTAL_FORMS').val(tripCount + 1);
-                tripCount++;
+
+                // Add input validation for head count (client-side check)
+                $(`input[name="drivertrip_set-${index}-head_count"]`).on('input', function() {
+                    var value = parseInt($(this).val(), 10);
+                    if (value > 47) {
+                        $(this).val(47); // Restrict max value to 47
+                    }
+                    if (value < 0) {
+                        $(this).val(0); // Restrict min value to 0
+                    }
+                });
             }
-
-            // Add new trip row
-            $('#add-row').click(function() {
-                addTripRow({}, tripCount);
-            });
-
             // Remove trip row
             $(document).on('click', '.remove-trip', function() {
                 $(this).closest('.trip-form-container').remove();
