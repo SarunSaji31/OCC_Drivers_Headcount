@@ -11,7 +11,8 @@
     <style>
         body {
             font-family: 'Arial', sans-serif;
-            background-color: #f8f9fa;
+            background: url("{% static 'occ_background_img.png' %}") no-repeat center center fixed;
+            background-size: cover;
             color: #333;
         }
         .navbar {
@@ -19,7 +20,7 @@
         }
         .navbar-brand,
         .nav-link {
-            color: white !important;
+            color: rgb(5, 5, 5) !important;
         }
         .navbar-brand {
             font-weight: bold;
@@ -31,7 +32,7 @@
         .header-section {
             text-align: center;
             padding: 40px 20px;
-            background: #e9ecef;
+            background: rgba(233, 236, 239, 0.85);
             color: #333;
             position: relative;
             margin-bottom: 30px;
@@ -53,7 +54,7 @@
             width: 100px;
         }
         .form-container {
-            background-color: white;
+            background-color: rgba(255, 255, 255, 0.9);
             padding: 40px;
             border-radius: 10px;
             box-shadow: 0 6px 12px rgba(0, 0, 0, 0.05);
@@ -132,7 +133,7 @@
             position: absolute;
             right: 20px;
             top: 10px;
-            color: white;
+            color: rgb(0, 0, 0);
             font-weight: bold;
         }
         @media (max-width: 768px) {
@@ -162,33 +163,37 @@
 </head>
 
 <body>
-    <nav class="navbar navbar-expand-lg">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="#">OCC-EKG Project</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'home' %}">Home</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'enter_head_count' %}">Enter Details</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'report' %}">Reports</a>
-                    </li>
-                    <li class="nav-item">
-                        {% if user.is_authenticated %}
-                            <span class="navbar-text">Welcome, {{ staff_name }}!</span>
-                            <a class="nav-link" href="{% url 'logout' %}">Logout</a>
-                        {% else %}
-                            <a class="nav-link" href="{% url 'login' %}">Login</a>
-                        {% endif %}
-                    </li>
-                </ul>
-            </div>
+    <!-- Navbar with Transparent Background -->
+    <nav class="navbar navbar-expand-lg navbar-light" style="background-color: rgba(235, 235, 235, 0.8); border-bottom: 2px solid #ccc; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
+        <a class="navbar-brand" href="#" style="color: black; font-weight: bold;">OCC-EKG Project</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse flex-column" id="navbarNav">
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'home' %}">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'enter_head_count' %}">Enter Details</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'report' %}">Reports</a>
+                </li>
+                <li class="nav-item"></li>
+                    <a class="nav-link" href="{% url 'dashboard' %}">Dashboard</a>
+                </li>
+                {% if user.is_authenticated %}
+                <li class="nav-item">
+                    <span class="navbar-text">Welcome, {{ staff_name }}!</span>
+                    <a class="nav-link" href="{% url 'logout' %}">Logout</a>
+                </li>
+                {% else %}
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'login' %}">Login</a>
+                </li>
+                {% endif %}
+            </ul>
         </div>
     </nav>
 
