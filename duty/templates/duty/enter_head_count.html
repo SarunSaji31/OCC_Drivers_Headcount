@@ -264,6 +264,9 @@
         $(document).ready(function() {
             var tripCount = 0;
 
+            // Get today's date in YYYY-MM-DD format    
+            var today = new Date().toISOString().split('T')[0];
+
             // Function to add a new trip row
             function addTripRow(tripData = {}, index) {
                 var newRow = `
@@ -299,6 +302,7 @@
                             <label>Head Count</label>
                             <input type="number" name="drivertrip_set-${index}-head_count" class="form-control" placeholder="Enter Head Count" value="${tripData.head_count || ''}" min="0" max="47" required>
                         </div>
+                        <input type="hidden" name="drivertrip_set-${index}-DELETE" class="delete-marker" value="false">
                         <div class="remove-trip-container col-md-1">
                             <span class="remove-trip">Remove</span>
                         </div>
@@ -308,7 +312,7 @@
                 $('#trip-entries').append(newRow);
                 tripCount++;
                 $('#id_drivertrip_set-TOTAL_FORMS').val(tripCount);
-                
+
                 // Show submit button when at least one row is added
                 if (tripCount > 0) {
                     $('#submit-button').show();
@@ -326,16 +330,29 @@
                 });
             }
 
-            // Remove trip row
+            // Bind click event to the add-row button
+            $('#add-row').on('click', function() {
+                addTripRow({}, tripCount);
+            });
+
+            // Remove trip row by marking it for deletion
             $(document).on('click', '.remove-trip', function() {
-                $(this).closest('.trip-form-container').remove();
-                tripCount--;
+                var container = $(this).closest('.trip-form-container');
+                container.find('.delete-marker').val('on');  // Mark for deletion
+                container.hide();  // Hide the row visually
+
+                // Decrease tripCount and update the total forms count
                 $('#id_drivertrip_set-TOTAL_FORMS').val(tripCount);
 
-                // Hide submit button if no rows left
-                if (tripCount === 0) {
+                // Show submit button if there are still rows
+                if ($('.trip-form-container:visible').length === 0) {
                     $('#submit-button').hide();
                 }
+            });
+
+            // Ensure that hidden forms (those marked for deletion) are not validated
+            $('form').on('submit', function() {
+                $('.trip-form-container:hidden input, .trip-form-container:hidden select').prop('disabled', true);
             });
 
             // Initially hide submit button
@@ -398,6 +415,8 @@
                 }
             });
         });
+
+
 
     </script>
 </body>
