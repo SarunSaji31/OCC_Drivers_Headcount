@@ -13,6 +13,7 @@
             background-color: #f8f9fa;
         }
 
+        /* Navbar styling */
         .navbar {
             background-color: #9eb2c9;
         }
@@ -22,67 +23,112 @@
             color: white !important;
         }
 
+        /* Header styling */
         .header-section {
             text-align: center;
-            padding: 50px;
+            padding: 30px 20px;
             background: #9eb2c9;
             color: white;
             position: relative;
         }
 
-        .header-section h1 {
-            font-size: 2.5rem;
-            margin-bottom: 20px;
-        }
-
-        .header-section p {
-            font-size: 1.2rem;
-            margin-bottom: 40px;
-        }
-
         .header-section img {
             position: absolute;
-            top: 10px;
-            left: 25px;
-            width: 250px;
+            top: -30px; /* Further moved up */
+            left: 20px;
+            max-width: 220px;
+            height: auto;
         }
 
+        /* Success container styling */
         .success-container {
             background-color: white;
-            padding: 30px;
+            padding: 40px;
             border-radius: 10px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            margin-top: 20px;
+            margin: 30px auto;
             text-align: center;
+            max-width: 700px;
         }
 
         .success-message {
-            font-size: 1.5rem;
+            font-size: 1.6rem;
             color: #28a745;
             margin-bottom: 20px;
         }
 
         .success-icon {
-            font-size: 4rem;
+            font-size: 4.5rem;
             color: #28a745;
             margin-bottom: 20px;
         }
 
+        /* Footer styling */
         .footer {
             background: #9cb3cc;
             color: rgb(255, 255, 255);
             text-align: center;
-            padding: 10px 0;
+            padding: 15px 0;
+            margin-top: 40px;
         }
 
         .footer p {
             margin: 0;
+        }
+
+        /* Mobile view styling */
+        @media (max-width: 768px) {
+            .header-section {
+                padding: 20px;
+            }
+
+            .header-section img {
+                top: -20px; /* Move the logo further up for mobile */
+                max-width: 150px;
+            }
+
+            .success-container {
+                padding: 25px;
+                max-width: 90%;
+            }
+
+            .success-message {
+                font-size: 1.3rem;
+            }
+
+            .success-icon {
+                font-size: 3.5rem;
+            }
+
+            .footer {
+                padding: 10px 0;
+            }
+        }
+
+        /* Larger desktop screens */
+        @media (min-width: 992px) {
+            .header-section {
+                padding: 60px 40px;
+            }
+
+            .header-section img {
+                top: -40px; /* Move the logo even further up for larger screens */
+                max-width: 240px;
+            }
+
+            .success-container {
+                max-width: 800px;
+                padding: 50px;
+            }
         }
     </style>
 </head>
 
 <body>
     <nav class="navbar navbar-expand-lg">
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav ml-auto">
                 <li class="nav-item">
@@ -94,7 +140,7 @@
                 <li class="nav-item">
                     <a class="nav-link" href="{% url 'report' %}">Reports</a>
                 </li>
-                <li class="nav-item"></li>
+                <li class="nav-item">
                     <a class="nav-link" href="{% url 'dashboard' %}">Dashboard</a>
                 </li>
                 <li class="nav-item">
@@ -106,8 +152,6 @@
 
     <div class="header-section">
         <img src="https://et.ae/wp-content/uploads/2020/03/Logo.svg" alt="Logo">
-        <h1>Success</h1>
-        <p>Your data has been successfully submitted.</p>
     </div>
 
     <div class="container success-container">
@@ -115,8 +159,8 @@
         <div class="success-message">
             <strong>Success!</strong> Your data has been successfully submitted.
         </div>
-        <a href="{% url 'home' %}" class="btn btn-primary">Go Back to Home</a>
-        <a href="{% url 'enter_head_count' %}" class="btn btn-secondary">Enter More Data</a>
+        <a href="{% url 'home' %}" class="btn btn-primary btn-block">Go Back to Home</a>
+        <a href="{% url 'enter_head_count' %}" class="btn btn-secondary btn-block">Enter More Data</a>
     </div>
 
     <footer class="footer">
