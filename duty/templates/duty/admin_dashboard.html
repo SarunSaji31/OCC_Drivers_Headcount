@@ -105,6 +105,9 @@
             <a href="{% url 'report' %}" class="btn btn-outline-success">
                 <i class="fas fa-file-alt"></i> View Report
             </a>
+            <a href="/dashboard/duty-card-submission-data/?download=xlsx&date=2024-09-28" class="btn btn-outline-warning" id="download-btn">
+                <i class="fas fa-file-download"></i> Download Pending card
+            </a>            
         </div>
 
         <div class="dashboard-header">
@@ -279,6 +282,13 @@
                     }
                 });
             }
+
+            // Download Excel when clicking the button
+            $('#download-btn').on('click', function(e) {
+                const date = $('#date-filter').val();
+                // Modify the href of the download button with the selected date
+                $(this).attr('href', `/dashboard/duty-card-submission-data/?download=xlsx&date=${date}`);
+            });
 
             // Initial fetch when the page loads
             fetchDashboardData();
