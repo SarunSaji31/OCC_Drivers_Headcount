@@ -264,46 +264,42 @@
         $(document).ready(function() {
             var tripCount = 0;
 
-            // Get today's date in YYYY-MM-DD format    
-            var today = new Date().toISOString().split('T')[0];
-
             // Function to add a new trip row
             function addTripRow(tripData = {}, index) {
                 var newRow = `
-                    <div class="form-row trip-form-container">
-                        <div class="form-group col-md-3">
+                    <div class="form-row trip-form-container" data-index="${index}">
+                        <div class="col-md-3 mb-3">
                             <label>Route Name</label>
                             <input type="text" name="drivertrip_set-${index}-route_name" class="form-control" placeholder="Enter Route Name" value="${tripData.route_name || ''}" required>
                         </div>
-                        <div class="form-group col-md-2">
+                        <div class="col-md-2 mb-3">
                             <label>Type</label>
                             <select name="drivertrip_set-${index}-trip_type" class="form-control" required>
                                 <option value="inbound" ${tripData.trip_type === 'inbound' ? 'selected' : ''}>Inbound</option>
                                 <option value="outbound" ${tripData.trip_type === 'outbound' ? 'selected' : ''}>Outbound</option>
                             </select>
                         </div>
-                        <div class="form-group col-md-2">
+                        <div class="col-md-2 mb-3">
                             <label>Pick Up Time</label>
                             <input type="time" name="drivertrip_set-${index}-pick_up_time" class="form-control" value="${tripData.pick_up_time || ''}" required>
                         </div>
-                        <div class="form-group col-md-2">
+                        <div class="col-md-2 mb-3">
                             <label>Drop Off Time</label>
                             <input type="time" name="drivertrip_set-${index}-drop_off_time" class="form-control" value="${tripData.drop_off_time || ''}" required>
                         </div>
-                        <div class="form-group col-md-2">
+                        <div class="col-md-2 mb-3">
                             <label>Shift Time</label>
                             <input type="time" name="drivertrip_set-${index}-shift_time" class="form-control" value="${tripData.shift_time || ''}" required>
                         </div>
-                        <div class="form-group col-md-2">
+                        <div class="col-md-3 mb-3">
                             <label>Date</label>
-                            <input type="date" name="drivertrip_set-${index}-date" class="form-control" value="${tripData.date || today}" required>
+                            <input type="date" name="drivertrip_set-${index}-date" class="form-control" value="${tripData.date || ''}" required>
                         </div>
-                        <div class="form-group col-md-3">
+                        <div class="col-md-2 mb-3">
                             <label>Head Count</label>
                             <input type="number" name="drivertrip_set-${index}-head_count" class="form-control" placeholder="Enter Head Count" value="${tripData.head_count || ''}" min="0" max="47" required>
                         </div>
-                        <input type="hidden" name="drivertrip_set-${index}-DELETE" class="delete-marker" value="false">
-                        <div class="remove-trip-container col-md-1">
+                        <div class="col-md-1 remove-trip-container mb-3">
                             <span class="remove-trip">Remove</span>
                         </div>
                     </div>
@@ -311,48 +307,38 @@
 
                 $('#trip-entries').append(newRow);
                 tripCount++;
-                $('#id_drivertrip_set-TOTAL_FORMS').val(tripCount);
-
-                // Show submit button when at least one row is added
-                if (tripCount > 0) {
-                    $('#submit-button').show();
-                }
-
-                // Add input validation for head count (client-side check)
-                $(`input[name="drivertrip_set-${index}-head_count"]`).on('input', function() {
-                    var value = parseInt($(this).val(), 10);
-                    if (value > 47) {
-                        $(this).val(47); // Restrict max value to 47
-                    }
-                    if (value < 0) {
-                        $(this).val(0); // Restrict min value to 0
-                    }
-                });
+                updateFormIndices();
             }
 
-            // Bind click event to the add-row button
+            // Function to update form indices and TOTAL_FORMS
+            function updateFormIndices() {
+                $('.trip-form-container').each(function(index) {
+                    $(this).attr('data-index', index);
+                    $(this).find('input, select').each(function() {
+                        const name = $(this).attr('name');
+                        const newName = name.replace(/\d+/, index);
+                        $(this).attr('name', newName);
+                    });
+                });
+                $('#id_drivertrip_set-TOTAL_FORMS').val(tripCount);  // Update total form count
+            }
+
+            // Add a trip row when clicking the "Add Row" button
             $('#add-row').on('click', function() {
                 addTripRow({}, tripCount);
+                $('#submit-button').show();  // Show submit button once a row is added
             });
 
-            // Remove trip row by marking it for deletion
+            // Remove trip row and update indices
             $(document).on('click', '.remove-trip', function() {
-                var container = $(this).closest('.trip-form-container');
-                container.find('.delete-marker').val('on');  // Mark for deletion
-                container.hide();  // Hide the row visually
+                $(this).closest('.trip-form-container').remove();
+                tripCount--;
+                updateFormIndices();  // Update form indices after removal
 
-                // Decrease tripCount and update the total forms count
-                $('#id_drivertrip_set-TOTAL_FORMS').val(tripCount);
-
-                // Show submit button if there are still rows
-                if ($('.trip-form-container:visible').length === 0) {
+                // Hide submit button if no rows left
+                if (tripCount === 0) {
                     $('#submit-button').hide();
                 }
-            });
-
-            // Ensure that hidden forms (those marked for deletion) are not validated
-            $('form').on('submit', function() {
-                $('.trip-form-container:hidden input, .trip-form-container:hidden select').prop('disabled', true);
             });
 
             // Initially hide submit button
@@ -415,8 +401,6 @@
                 }
             });
         });
-
-
-
-    </script>
+    </script>   
 </body>
+</html>
