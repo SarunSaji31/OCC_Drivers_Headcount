@@ -7,6 +7,7 @@ from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import User
 from django.contrib import messages
 from django.urls import reverse
+from django.utils import timezone
 
 from datetime import datetime, timedelta,date
 import pandas as pd
@@ -425,36 +426,32 @@ def login_view(request):
     return render(request, "login.html", {"form": form})
 
 @user_in_driverimportlog_required  # Apply custom decorator
-def dashboard_data(request):    
-    # Fetching query parameters for filtering
+def dashboard_data(request):
+    """
+    Returns staff load data based on filters like date, shift time, and type.
+    """
     date_filter = request.GET.get('date')
     shift_filter = request.GET.get('shift')
-    type_filter = request.GET.get('type')  # This will contain 'Inbound' or 'Outbound'
+    type_filter = request.GET.get('type')
 
-    # If no date is provided, default to today's date
     if not date_filter:
         date_filter = date.today()
 
-    # Apply filtering logic based on the selected date, shift, and type
     trips = DriverTrip.objects.filter(date=date_filter)
 
     if shift_filter:
         trips = trips.filter(shift_time=shift_filter)
     
     if type_filter:
-        trips = trips.filter(trip_type=type_filter)  # Filter by 'Inbound' or 'Outbound'
+        trips = trips.filter(trip_type=type_filter)
 
-    # Total staff members based on 'Head Count' column
     total_staff = trips.aggregate(total_head_count=Sum('head_count'))['total_head_count'] or 0
+    total_gd_staff = trips.filter(route_name__startswith='GD').aggregate(Sum('head_count'))['head_count__sum'] or 0
+    total_gk_staff = trips.filter(route_name__startswith='GK').aggregate(Sum('head_count'))['head_count__sum'] or 0
+    total_ge_staff = trips.filter(route_name__startswith='GE').aggregate(Sum('head_count'))['head_count__sum'] or 0
+    total_dwc_staff = trips.filter(route_name__startswith='DWC').aggregate(Sum('head_count'))['head_count__sum'] or 0
+    total_cc_staff = trips.filter(route_name__startswith='CC').aggregate(Sum('head_count'))['head_count__sum'] or 0
 
-    # Count based on route prefixes and 'Head Count' column
-    total_gd_staff = trips.filter(route_name__startswith='GD').aggregate(gd_head_count=Sum('head_count'))['gd_head_count'] or 0
-    total_gk_staff = trips.filter(route_name__startswith='GK').aggregate(gk_head_count=Sum('head_count'))['gk_head_count'] or 0
-    total_ge_staff = trips.filter(route_name__startswith='GE').aggregate(ge_head_count=Sum('head_count'))['ge_head_count'] or 0
-    total_dwc_staff = trips.filter(route_name__startswith='DWC').aggregate(dwc_head_count=Sum('head_count'))['dwc_head_count'] or 0
-    total_cc_staff = trips.filter(route_name__startswith='CC').aggregate(cc_head_count=Sum('head_count'))['cc_head_count'] or 0
-
-    # Prepare the data for the dashboard
     data = {
         'total_staff': total_staff,
         'gd_staff': total_gd_staff,
@@ -464,14 +461,37 @@ def dashboard_data(request):
         'cc_staff': total_cc_staff,
     }
 
-    # Return the data as JSON for the AJAX request
     return JsonResponse(data)
 
-@user_in_driverimportlog_required  # Apply custom decorator
+def duty_card_submission_data(request):
+    # Get the date filter from the request or default to today's date
+    date_filter = request.GET.get('date', datetime.today().strftime('%Y-%m-%d'))
+
+    # Create aware datetime range for the selected date
+    date_filter_start = timezone.make_aware(datetime.combine(datetime.strptime(date_filter, '%Y-%m-%d'), datetime.min.time()))
+    date_filter_end = timezone.make_aware(datetime.combine(datetime.strptime(date_filter, '%Y-%m-%d'), datetime.max.time()))
+
+    # Fetch all unique duty cards from DutyCardTrip (total duty cards)
+    duty_card_trips = DutyCardTrip.objects.values('duty_card_no').distinct()
+    total_duty_cards = duty_card_trips.count()
+
+    # Fetch all unique submitted duty cards from DriverTrip (submitted duty cards)
+    submitted_duty_cards = DriverTrip.objects.filter(date__range=(date_filter_start, date_filter_end)).values('duty_card').distinct()
+    submitted_cards = submitted_duty_cards.count()
+
+    # Calculate pending cards
+    pending_cards = total_duty_cards - submitted_cards if total_duty_cards > submitted_cards else 0
+
+    # Return the data for the chart
+    data = {
+        'total_duty_cards': total_duty_cards,
+        'submitted_cards': submitted_cards,
+        'pending_cards': pending_cards,
+    }
+
+    return JsonResponse(data)
+
+@user_in_driverimportlog_required
 @login_required
 def admin_dashboard(request):
-    # This view simply renders the HTML template for the dashboard
     return render(request, 'duty/admin_dashboard.html')
-
-
-    
