@@ -53,12 +53,18 @@ def home(request):
 
     return render(request, 'duty/home.html', context)
 
-
 @login_required
 def enter_head_count(request):
     # Fetch the staff name using the logged-in user's username (assumed to be their staff ID)
     staff_id = request.user.username
     driver = DriverImportLog.objects.filter(staff_id=staff_id).first()
+
+    # Check if driver is None
+    if not driver:
+        return render(request, 'duty/enter_head_count.html', {
+            'error_message': "Driver information not found. Please contact support.",
+        })
+
     staff_name = driver.driver_name if driver else request.user.username  # Fallback to username if staff name is not found
 
     if request.method == 'POST':
@@ -74,71 +80,43 @@ def enter_head_count(request):
                 'error_message': "Please fill in the Duty Card No.",
             })
 
-        desired_date = datetime.today().date()  # Default to today
-        if 'tomorrow' in request.POST:
-            desired_date = datetime.today().date() + timedelta(days=1)
-        elif 'day_after_tomorrow' in request.POST:
-            desired_date = datetime.today().date() + timedelta(days=2)
+        # Allow the user to select a date for the trip (from the form)
+        desired_date = datetime.strptime(request.POST.get('drivertrip_set-0-date'), '%Y-%m-%d').date()
 
-        duplicate_entry = False
-
-        try:
-            if trip_formset.is_valid():
-                for form in trip_formset:
-                    if form.is_valid():
-                        form.cleaned_data['date'] = desired_date
-                        trip_date = form.cleaned_data.get('date')
-                        existing_trip = DriverTrip.objects.filter(
-                            duty_card=duty_card,
-                            date=trip_date
-                        ).exists()
-
-                        if existing_trip:
-                            duplicate_entry = True
-                            form.add_error(None, f"Data for Duty Card No {duty_card_no} on {trip_date} already exists.")
-                            break
-
-                if duplicate_entry:
-                    return render(request, 'duty/enter_head_count.html', {
-                        'trip_formset': trip_formset,
-                        'staff_name': staff_name,
-                        'duty_card': duty_card,
-                        'error_message': "Duplicate entry found. Please check your input.",
-                    })
-                else:
-                    for form in trip_formset:
-                        if form.is_valid():
-                            trip = form.save(commit=False)
-                            trip.date = desired_date  # Set the date to the desired date
-                            trip.duty_card = duty_card
-                            trip.driver = driver  # Set the driver ID from the logged-in user's staff ID
-                            trip.save()
-
-                    return redirect('success')  # Redirect to the success page after saving the data
-            else:
-                return render(request, 'duty/enter_head_count.html', {
-                    'trip_formset': trip_formset,
-                    'staff_name': staff_name,
-                    'duty_card': duty_card,
-                    'error_message': "Please correct the errors below.",
-                })
-
-        except Exception as e:
-            logger.error(f"Error occurred while entering head count: {str(e)}")
+        # Check if the user has already submitted a duty card on the selected date
+        existing_trip = DriverTrip.objects.filter(driver=driver, date=desired_date).first()
+        if existing_trip:
             return render(request, 'duty/enter_head_count.html', {
                 'trip_formset': trip_formset,
                 'staff_name': staff_name,
-                'error_message': f"An error occurred: {str(e)}",
-                'duty_card': duty_card,
+                'error_message': f"You have already added duty card {existing_trip.duty_card.duty_card_no} for {desired_date}. You cannot add multiple duty cards for the same date.",
             })
+
+        # Process the form submission and save trips
+        if trip_formset.is_valid():
+            for form in trip_formset:
+                trip = form.save(commit=False)
+                trip.driver = driver  # Assign the driver object to the trip
+                trip.duty_card = duty_card  # Assign the duty card
+                trip.save()
+
+            messages.success(request, "Headcount successfully submitted.")
+            return redirect('success')
+        else:
+            return render(request, 'duty/enter_head_count.html', {
+                'trip_formset': trip_formset,
+                'staff_name': staff_name,
+                'error_message': "Please correct the errors below.",
+            })
+
     else:
-        initial_data = [{'date': datetime.today().date()}]
-        trip_formset = DriverTripFormSet(prefix='drivertrip_set', initial=initial_data)
+        trip_formset = DriverTripFormSet(prefix='drivertrip_set')
 
     return render(request, 'duty/enter_head_count.html', {
         'trip_formset': trip_formset,
         'staff_name': staff_name,
     })
+
 
 @login_required
 def success(request):
@@ -467,6 +445,10 @@ def duty_card_submission_data(request):
     # Get the date filter from the request or default to today's date
     date_filter = request.GET.get('date', datetime.today().strftime('%Y-%m-%d'))
 
+    # Check if the user requested an Excel download
+    if request.GET.get('download') == 'xlsx':
+        return download_duty_card_data_as_excel(date_filter)
+
     # Create aware datetime range for the selected date
     date_filter_start = timezone.make_aware(datetime.combine(datetime.strptime(date_filter, '%Y-%m-%d'), datetime.min.time()))
     date_filter_end = timezone.make_aware(datetime.combine(datetime.strptime(date_filter, '%Y-%m-%d'), datetime.max.time()))
@@ -490,6 +472,44 @@ def duty_card_submission_data(request):
     }
 
     return JsonResponse(data)
+
+
+def download_duty_card_data_as_excel(date_filter):
+    # Create aware datetime range for the selected date
+    date_filter_start = timezone.make_aware(datetime.combine(datetime.strptime(date_filter, '%Y-%m-%d'), datetime.min.time()))
+    date_filter_end = timezone.make_aware(datetime.combine(datetime.strptime(date_filter, '%Y-%m-%d'), datetime.max.time()))
+
+    # Fetch all unique duty cards from DutyCardTrip
+    duty_card_trips = DutyCardTrip.objects.values('duty_card_no').distinct()
+
+    # Fetch submitted duty cards from DriverTrip (based on the selected date)
+    submitted_duty_cards = DriverTrip.objects.filter(date__range=(date_filter_start, date_filter_end)).values('duty_card__duty_card_no').distinct()
+
+    # Prepare data for Excel
+    data = []
+    for duty_card in duty_card_trips:
+        duty_card_no = duty_card['duty_card_no']
+
+        # Check if the duty card was submitted by looking at the submitted duty cards
+        is_submitted = submitted_duty_cards.filter(duty_card__duty_card_no=duty_card_no).exists()
+
+        data.append({
+            'Duty Card No': duty_card_no,
+            'Submission Status': 'Submitted' if is_submitted else 'Pending',
+            'Date': date_filter  # We use the provided date as there's no date in DutyCardTrip
+        })
+
+    # Create DataFrame
+    df = pd.DataFrame(data)
+
+    # Generate the Excel file
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename=duty_card_details_{date_filter}.xlsx'
+
+    with pd.ExcelWriter(response, engine='xlsxwriter') as writer:
+        df.to_excel(writer, sheet_name='Duty Cards', index=False)
+
+    return response
 
 @user_in_driverimportlog_required
 @login_required
