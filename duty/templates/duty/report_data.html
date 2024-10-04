@@ -7,7 +7,6 @@
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
-    <!-- Date Range Picker CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
     <style>
         /* Add your custom CSS here */
@@ -202,7 +201,7 @@
                 <li class="nav-item">
                     <a class="nav-link" href="{% url 'home' %}">Home</a>
                 </li>
-                <li class="nav-item"></li>
+                <li class="nav-item">
                     <a class="nav-link" href="{% url 'dashboard' %}">Dashboard</a>
                 </li>
                 <li class="nav-item">
@@ -257,26 +256,7 @@
                             <th>Head Count</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        {% for trip in driver_trips %}
-                        <tr>
-                            <td>{{ trip.driver.staff_id }}</td>
-                            <td>{{ trip.driver.driver_name }}</td>
-                            <td>{{ trip.duty_card.duty_card_no }}</td>
-                            <td>{{ trip.route_name }}</td>
-                            <td>{{ trip.pick_up_time|time:"H:i" }}</td>
-                            <td>{{ trip.drop_off_time|time:"H:i" }}</td>
-                            <td>{{ trip.shift_time|time:"H:i" }}</td>
-                            <td>{{ trip.trip_type }}</td>
-                            <td>{{ trip.date|date:"Y-m-d" }}</td>
-                            <td>{{ trip.head_count }}</td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="10" class="text-center">No data available</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
+                    <tbody></tbody>
                 </table>
             </div>
         </div>
@@ -291,157 +271,98 @@
     <script>
         $(document).ready(function() {
             const $reportTable = $('#reportTable').DataTable({
-                paging: false,
-                searching: true,
-                order: [[8, 'desc']],
-                columnDefs: [{
-                    targets: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
-                    orderable: true
-                }],
-                dom: '<"top"f>rt<"bottom"p><"clear">',
+                serverSide: true,
+                paging: true,
+                processing: true, // Show a processing indicator
+                pageLength: 10, // Number of rows per page
+                searching: true, 
+                ajax: {
+                    url: '{% url "report" %}',  // Correct your server-side endpoint here
+                    type: 'GET',
+                    data: function (d) {
+                        d.searchValue = $('input[type="search"]').val(); 
+                        d.routeFilter = $('#routeFilter').val();
+                        d.tripTypeFilter = $('#tripTypeFilter').val();
+                        d.shiftTimeFilter = $('#shiftTimeFilter').val();
+                        d.dateRange = $('#daterange').val();  // Pass the date range filter
+                    }
+                },
+                columns: [
+                    { data: 'staff_id' },
+                    { data: 'driver_name' },
+                    { data: 'duty_card_no' },
+                    { data: 'route_name' },
+                    { data: 'pick_up_time' },
+                    { data: 'drop_off_time' },
+                    { data: 'shift_time' },
+                    { data: 'trip_type' },
+                    { data: 'date' },
+                    { data: 'head_count' }
+                ],
                 language: {
                     search: "_INPUT_",
                     searchPlaceholder: "Search..."
                 }
             });
 
-            // Function to get the first and last day of the current month
+            // Function to get current month's date range
             function getCurrentMonthDateRange() {
                 const now = new Date();
                 const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
                 const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-                
-                const formatDate = (date) => {
-                    let day = ("0" + date.getDate()).slice(-2);
-                    let month = ("0" + (date.getMonth() + 1)).slice(-2);
-                    return `${day}.${month}.${date.getFullYear()}`;
-                };
-                
-                return `${formatDate(firstDay)} – ${formatDate(lastDay)}`;
+                return `${firstDay.getFullYear()}-${('0' + (firstDay.getMonth() + 1)).slice(-2)}-${('0' + firstDay.getDate()).slice(-2)} - ${lastDay.getFullYear()}-${('0' + (lastDay.getMonth() + 1)).slice(-2)}-${('0' + lastDay.getDate()).slice(-2)}`;
             }
 
-            // Set the default date range on page load
-            const dateRangeInput = document.getElementById('daterange');
-            dateRangeInput.value = getCurrentMonthDateRange();
-
-            // Handle the clear button click to reset filters, but not the date range
-            const clearButton = document.getElementById('clearButton');
-            clearButton.addEventListener('click', function () {
-                document.getElementById('routeFilter').value = '';
-                document.getElementById('tripTypeFilter').value = '';
-                document.getElementById('shiftTimeFilter').value = '';
-                dateRangeInput.value = getCurrentMonthDateRange();  // Reset the date range to the current month
-                $reportTable.search('').columns().search('').draw();
-                $('#downloadButton, #clearButton').removeClass('enabled').prop('disabled', true);
-            });
-
-            // Initialize date range picker with current date as default
+            // Initialize date range picker
             $('input[name="daterange"]').daterangepicker({
                 locale: {
                     format: 'YYYY-MM-DD'
                 },
                 startDate: moment().startOf('day'),
                 endDate: moment().endOf('day'),
-                alwaysShowCalendars: true,
                 autoUpdateInput: false
             });
 
-            // When the date range is applied, update the input and apply the filter
+            // Update date range input on user selection
             $('input[name="daterange"]').on('apply.daterangepicker', function(ev, picker) {
                 const startDate = picker.startDate.format('YYYY-MM-DD');
                 const endDate = picker.endDate.format('YYYY-MM-DD');
                 $(this).val(`${startDate} - ${endDate}`);
-                $reportTable.draw(); 
-                checkFilters();
+                $('#downloadButton').addClass('enabled').prop('disabled', false);
+                $('#clearButton').addClass('enabled').prop('disabled', false);
+                $reportTable.draw();
             });
 
-            function checkFilters() {
-                const dateRange = $('input[name="daterange"]').val();
-                const routeValue = $('#routeFilter').val();
-                const tripTypeValue = $('#tripTypeFilter').val();
-                const shiftTimeValue = $('#shiftTimeFilter').val();
-                const searchValue = $reportTable.search();
-
-                if (dateRange || routeValue || tripTypeValue || shiftTimeValue || searchValue) {
-                    $('#downloadButton, #clearButton').addClass('enabled').prop('disabled', false);
-                } else {
-                    $('#downloadButton, #clearButton').removeClass('enabled').prop('disabled', true);
-                }
-            }
-
-            $.fn.dataTable.ext.search.push(
-                function(settings, data, dataIndex) {
-                    const dateRange = $('input[name="daterange"]').val();
-                    if (!dateRange) return true; 
-                    const dates = dateRange.split(" - ");
-                    const min = moment(dates[0], "YYYY-MM-DD");
-                    const max = moment(dates[1], "YYYY-MM-DD");
-                    const date = moment(data[8], "YYYY-MM-DD");
-
-                    if (date.isBetween(min, max, null, '[]')) {
-                        return true;
-                    }
-                    return false;
-                }
-            );
-
-            // Attach event listeners to filters
-            $('input[name="daterange"], #routeFilter, #tripTypeFilter, #shiftTimeFilter').on('change input', function() {
-                $reportTable.draw(); 
-                checkFilters();
+            // Handle other filter changes
+            $('#routeFilter, #tripTypeFilter, #shiftTimeFilter').on('change input', function() {
+                $('#downloadButton').addClass('enabled').prop('disabled', false);
+                $('#clearButton').addClass('enabled').prop('disabled', false);
+                $reportTable.draw();
             });
 
-            $('#routeFilter').on('input', function() {
-                const routeValue = $(this).val();
-                $reportTable.column(3).search(routeValue).draw();
-                checkFilters();
-            });
-
-            $('#tripTypeFilter').on('change', function() {
-                const tripTypeValue = $(this).val();
-                $reportTable.column(7).search(tripTypeValue).draw();
-                checkFilters();
-            });
-
-            $('#shiftTimeFilter').on('input', function() {
-                const shiftTimeValue = $(this).val();
-                $reportTable.column(6).search(shiftTimeValue).draw();
-                checkFilters();
-            });
-
-            $reportTable.on('search.dt', function() {
-                checkFilters();
-            });
-
-            $('#downloadButton').on('click', function() {
-                const date = $('input[name="daterange"]').val();
-                const route = $('#routeFilter').val();
-                const shift_time = $('#shiftTimeFilter').val();
-                const trip_type = $('#tripTypeFilter').val();
-
-                window.location.href = `{% url 'download_report' %}?daterange=${date}&route=${route}&shift_time=${shift_time}&trip_type=${trip_type}`;
-            });
-
+            // Clear Button Functionality
             $('#clearButton').on('click', function() {
-                $('input[name="daterange"]').val('');
+                // Reset the filters
+                $('input[name="daterange"]').val(getCurrentMonthDateRange());  // Reset date range to current month
                 $('#routeFilter').val('');
                 $('#tripTypeFilter').val('');
                 $('#shiftTimeFilter').val('');
-                $reportTable.search('').columns().search('').draw();
+                $reportTable.search('').columns().search('').draw();  // Reset filters and redraw the table
+
+                // Disable buttons after clearing
                 $('#downloadButton, #clearButton').removeClass('enabled').prop('disabled', true);
             });
 
-            $('#shiftTimeFilter').on('keydown', function(e) {
-                const key = e.which || e.keyCode;
-                if ((key >= 48 && key <= 57) || (key >= 96 && key <= 105)) { 
-                    if ($(this).val().length === 2 && key !== 8 && key !== 46) { 
-                        $(this).val($(this).val() + ':');
-                    }
-                }
+            // Download Button Functionality
+            $('#downloadButton').on('click', function() {
+                const date = $('#daterange').val();
+                const route = $('#routeFilter').val();
+                const shift_time = $('#shiftTimeFilter').val();
+                const trip_type = $('#tripTypeFilter').val();
+                window.location.href = `{% url 'download_report' %}?daterange=${date}&route=${route}&shift_time=${shift_time}&trip_type=${trip_type}`;
             });
-
-            checkFilters();
         });
+
     </script>
 </body>
 
