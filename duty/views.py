@@ -8,6 +8,9 @@ from django.contrib.auth.models import User
 from django.contrib import messages
 from django.urls import reverse
 from django.utils import timezone
+from django.core.paginator import Paginator
+from django.db.models import Q
+
 
 from datetime import datetime, timedelta,date
 import pandas as pd
@@ -24,94 +27,78 @@ logger = logging.getLogger(__name__)
 
 @login_required
 def home(request):
-    # Fetch the staff name using the logged-in user's username (assumed to be their staff ID)
+    """Render the home page for logged-in users with driver trip details."""
     staff_id = request.user.username
-    staff_name = DriverImportLog.objects.filter(staff_id=staff_id).values_list('driver_name', flat=True).first()
-    
-    if not staff_name:
-        staff_name = request.user.username  # Fallback to username if staff name is not found
+    staff_name = DriverImportLog.objects.filter(staff_id=staff_id).values_list('driver_name', flat=True).first() or staff_id
 
-    # Example of converting datetime to string
+    # Fetch driver trips
     driver_trips = DriverTrip.objects.filter(driver__staff_id=staff_id)
-    driver_trip_data = []
-    for trip in driver_trips:
-        trip_data = {
-            'route_name': trip.route_name,
-            'pick_up_time': trip.pick_up_time.strftime('%H:%M:%S'),  # Convert time to string
-            'drop_off_time': trip.drop_off_time.strftime('%H:%M:%S'),  # Convert time to string
-            'shift_time': trip.shift_time.strftime('%H:%M:%S'),  # Convert time to string
-            'head_count': trip.head_count,
-            'trip_type': trip.trip_type,
-            'date': trip.date.strftime('%Y-%m-%d')  # Convert date to string
-        }
-        driver_trip_data.append(trip_data)
+    driver_trip_data = [{
+        'route_name': trip.route_name,
+        'pick_up_time': trip.pick_up_time.strftime('%H:%M:%S'),
+        'drop_off_time': trip.drop_off_time.strftime('%H:%M:%S'),
+        'shift_time': trip.shift_time.strftime('%H:%M:%S'),
+        'head_count': trip.head_count,
+        'trip_type': trip.trip_type,
+        'date': trip.date.strftime('%Y-%m-%d')
+    } for trip in driver_trips]
 
     context = {
         'staff_name': staff_name,
         'driver_trips': driver_trip_data,
     }
-
     return render(request, 'duty/home.html', context)
+
 
 @login_required
 def enter_head_count(request):
-    # Fetch the staff name using the logged-in user's username (assumed to be their staff ID)
+    """Handle the form for entering headcount details."""
     staff_id = request.user.username
     driver = DriverImportLog.objects.filter(staff_id=staff_id).first()
 
-    # Check if driver is None
     if not driver:
         return render(request, 'duty/enter_head_count.html', {
-            'error_message': "Driver information not found. Please contact support.",
+            'error_message': "Driver information not found. Please contact support."
         })
 
-    staff_name = driver.driver_name if driver else request.user.username  # Fallback to username if staff name is not found
+    staff_name = driver.driver_name or staff_id
 
     if request.method == 'POST':
         trip_formset = DriverTripFormSet(request.POST, prefix='drivertrip_set')
-
         duty_card_no = request.POST.get('duty_card_no')
         duty_card = DutyCardTrip.objects.filter(duty_card_no=duty_card_no).first()
 
         if not duty_card_no:
-            return render(request, 'duty/enter_head_count.html', {  
-                'trip_formset': trip_formset,
-                'staff_name': staff_name,
-                'error_message': "Please fill in the Duty Card No.",
-            })
-
-        # Allow the user to select a date for the trip (from the form)
-        desired_date = datetime.strptime(request.POST.get('drivertrip_set-0-date'), '%Y-%m-%d').date()
-
-        # Check if the user has already submitted a duty card on the selected date
-        existing_trip = DriverTrip.objects.filter(driver=driver, date=desired_date).first()
-        if existing_trip:
             return render(request, 'duty/enter_head_count.html', {
                 'trip_formset': trip_formset,
                 'staff_name': staff_name,
-                'error_message': f"You have already added duty card {existing_trip.duty_card.duty_card_no} for {desired_date}. You cannot add multiple duty cards for the same date.",
+                'error_message': "Please fill in the Duty Card No."
             })
 
-        # Process the form submission and save trips
+        desired_date = datetime.strptime(request.POST.get('drivertrip_set-0-date'), '%Y-%m-%d').date()
+        if DriverTrip.objects.filter(driver=driver, date=desired_date).exists():
+            return render(request, 'duty/enter_head_count.html', {
+                'trip_formset': trip_formset,
+                'staff_name': staff_name,
+                'error_message': f"Duty card already submitted for {desired_date}. Cannot submit twice for the same date."
+            })
+
         if trip_formset.is_valid():
             for form in trip_formset:
                 trip = form.save(commit=False)
-                trip.driver = driver  # Assign the driver object to the trip
-                trip.duty_card = duty_card  # Assign the duty card
+                trip.driver = driver
+                trip.duty_card = duty_card
                 trip.save()
-
             messages.success(request, "Headcount successfully submitted.")
             return redirect('success')
         else:
             return render(request, 'duty/enter_head_count.html', {
                 'trip_formset': trip_formset,
                 'staff_name': staff_name,
-                'error_message': "Please correct the errors below.",
+                'error_message': "Please correct the errors below."
             })
 
-    else:
-        trip_formset = DriverTripFormSet(prefix='drivertrip_set')
-
+    trip_formset = DriverTripFormSet(prefix='drivertrip_set')
     return render(request, 'duty/enter_head_count.html', {
         'trip_formset': trip_formset,
         'staff_name': staff_name,
@@ -120,63 +107,107 @@ def enter_head_count(request):
 
 @login_required
 def success(request):
+    """Render a success page after form submission."""
     return render(request, 'duty/success.html')
 
+
 def user_in_driverimportlog_required(view_func):
+    """Custom decorator to deny access to users in DriverImportLog."""
     @wraps(view_func)
     def _wrapped_view(request, *args, **kwargs):
-        # Deny access if the user's staff ID exists in the DriverImportLog table
         if DriverImportLog.objects.filter(staff_id=request.user.username).exists():
             return render(request, 'duty/access_denied.html')
         return view_func(request, *args, **kwargs)
     return _wrapped_view
 
+
 @login_required
-@user_in_driverimportlog_required  # Apply the custom decorator here
+@user_in_driverimportlog_required
 def report_view(request):
-    # Your view logic here...
-    date_range = request.GET.get('daterange')
-    route_filter = request.GET.get('route')
-    shift_time_filter = request.GET.get('shift_time')
-    trip_type_filter = request.GET.get('trip_type')
+    """Handle report generation, including DataTables server-side processing for AJAX requests."""
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        # DataTables AJAX request handling
+        draw = int(request.GET.get('draw', 1))
+        start = int(request.GET.get('start', 0))
+        length = int(request.GET.get('length', 10))
+        search_value = request.GET.get('search[value]', '')
 
-    driver_trips = DriverTrip.objects.all()
+        # Additional filters
+        route_filter = request.GET.get('routeFilter', None)
+        trip_type_filter = request.GET.get('tripTypeFilter', None)
+        shift_time_filter = request.GET.get('shiftTimeFilter', None)
+        date_range = request.GET.get('dateRange', None)
 
-    if date_range:
-        try:
-            start_date, end_date = date_range.split(' - ')
-            start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
-            end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
-            driver_trips = driver_trips.filter(date__range=(start_date, end_date))
-        except ValueError as e:
-            driver_trips = driver_trips.none()
+        driver_trips = DriverTrip.objects.all()
 
-    if route_filter:
-        driver_trips = DriverTrip.objects.filter(route_name__icontains=route_filter)
+        if search_value:
+            driver_trips = driver_trips.filter(
+                Q(driver__staff_id__icontains=search_value) |
+                Q(driver__driver_name__icontains=search_value) |
+                Q(duty_card__duty_card_no__icontains=search_value) |
+                Q(route_name__icontains=search_value) |
+                Q(trip_type__icontains=search_value)
+            )
 
-    if shift_time_filter:
-        try:
-            parsed_shift_time = datetime.strptime(shift_time_filter, '%H:%M').time()
-            driver_trips = driver_trips.filter(shift_time=parsed_shift_time)
-        except ValueError:
-            driver_trips = driver_trips.none()
+        if route_filter:
+            driver_trips = driver_trips.filter(route_name__icontains=route_filter)
+        if trip_type_filter:
+            driver_trips = driver_trips.filter(trip_type__iexact=trip_type_filter)
+        if shift_time_filter:
+            try:
+                parsed_shift_time = datetime.strptime(shift_time_filter, '%H:%M').time()
+                driver_trips = driver_trips.filter(shift_time=parsed_shift_time)
+            except ValueError:
+                pass
 
-    if trip_type_filter:
-        driver_trips = driver_trips.filter(trip_type__iexact=trip_type_filter)
+        if date_range:
+            try:
+                start_date, end_date = date_range.split(' - ')
+                start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+                end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+                driver_trips = driver_trips.filter(date__range=(start_date, end_date))
+            except ValueError:
+                pass
 
-    routes = driver_trips.values_list('route_name', flat=True).distinct()
-    shift_times = driver_trips.values_list('shift_time', flat=True).distinct()
+        order_column_index = int(request.GET.get('order[0][column]', 8))  # Order by date as default
+        order_direction = request.GET.get('order[0][dir]', 'asc')
+        orderable_fields = ['driver__staff_id', 'driver__driver_name', 'duty_card__duty_card_no', 'route_name', 'pick_up_time', 'drop_off_time', 'shift_time', 'trip_type', 'date', 'head_count']
+        order_column = orderable_fields[order_column_index]
+        if order_direction == 'desc':
+            order_column = f'-{order_column}'
+        driver_trips = driver_trips.order_by(order_column)
+
+        paginator = Paginator(driver_trips, length)
+        page_obj = paginator.get_page((start // length) + 1)
+
+        data = [{
+            'staff_id': trip.driver.staff_id,
+            'driver_name': trip.driver.driver_name,
+            'duty_card_no': trip.duty_card.duty_card_no,
+            'route_name': trip.route_name,
+            'pick_up_time': trip.pick_up_time.strftime('%H:%M') if trip.pick_up_time else '',
+            'drop_off_time': trip.drop_off_time.strftime('%H:%M') if trip.drop_off_time else '',
+            'shift_time': trip.shift_time.strftime('%H:%M') if trip.shift_time else '',
+            'trip_type': trip.trip_type,
+            'date': trip.date.strftime('%Y-%m-%d'),
+            'head_count': trip.head_count
+        } for trip in page_obj]
+
+        return JsonResponse({
+            'draw': draw,
+            'recordsTotal': driver_trips.count(),
+            'recordsFiltered': driver_trips.count(),
+            'data': data,
+        })
 
     context = {
-        'driver_trips': driver_trips,
-        'routes': routes,
-        'shift_times': shift_times,
+        'title': 'Driver Trip Report',
     }
-
     return render(request, 'duty/report_data.html', context)
 
 
 def download_report(request):
+    """Handle downloading the report as an Excel file."""
     date_range = request.GET.get('daterange')
     route_filter = request.GET.get('route')
     shift_time_filter = request.GET.get('shift_time')
@@ -184,6 +215,7 @@ def download_report(request):
 
     driver_trips = DriverTrip.objects.all()
 
+    # Process date range filter
     if date_range:
         try:
             start_date, end_date = date_range.split(' - ')
@@ -193,6 +225,7 @@ def download_report(request):
         except ValueError:
             driver_trips = driver_trips.none()
 
+    # Apply route, shift time, and trip type filters
     if route_filter:
         driver_trips = driver_trips.filter(route_name=route_filter)
     if shift_time_filter:
@@ -200,26 +233,28 @@ def download_report(request):
     if trip_type_filter:
         driver_trips = driver_trips.filter(trip_type=trip_type_filter)
 
-    data = []
-    for trip in driver_trips:
-        data.append({
-            'Staff ID': trip.driver.staff_id,
-            'Driver Name': trip.driver.driver_name,
-            'Duty Card No': trip.duty_card.duty_card_no,
-            'Route Name': trip.route_name,
-            'Pick Up Time': trip.pick_up_time.strftime("%H:%M"),
-            'Drop Off Time': trip.drop_off_time.strftime("%H:%M"),
-            'Shift Time': trip.shift_time.strftime("%H:%M"),
-            'Trip Type': trip.trip_type,
-            'Date': trip.date.strftime("%Y-%m-%d"),
-            'Head Count': trip.head_count,
-        })
+    # Prepare the data for export
+    data = [{
+        'Staff ID': trip.driver.staff_id,
+        'Driver Name': trip.driver.driver_name,
+        'Duty Card No': trip.duty_card.duty_card_no,
+        'Route Name': trip.route_name,
+        'Pick Up Time': trip.pick_up_time.strftime("%H:%M"),
+        'Drop Off Time': trip.drop_off_time.strftime("%H:%M"),
+        'Shift Time': trip.shift_time.strftime("%H:%M"),
+        'Trip Type': trip.trip_type,
+        'Date': trip.date.strftime("%Y-%m-%d"),
+        'Head Count': trip.head_count,
+    } for trip in driver_trips]
 
+    # Create DataFrame for Excel export
     df = pd.DataFrame(data)
 
+    # Prepare the HTTP response for Excel download
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     response['Content-Disposition'] = f'attachment; filename=driver_trip_report_{date_range}.xlsx'
 
+    # Write the data to the Excel file using pandas
     with pd.ExcelWriter(response, engine='xlsxwriter') as writer:
         df.to_excel(writer, sheet_name='Driver Trips', index=False)
 
