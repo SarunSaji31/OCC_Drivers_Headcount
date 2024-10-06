@@ -3,6 +3,7 @@ from django.forms import formset_factory
 from .models import DriverTrip, DriverImportLog
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm
+from .models import DelayData, BreakdownData, AccidentsData
 
 # Form for handling driver trip entries
 class DriverTripForm(forms.ModelForm):
@@ -17,10 +18,16 @@ class DriverTripForm(forms.ModelForm):
             'pick_up_time': forms.TimeInput(attrs={'class': 'form-control', 'placeholder': 'HH:MM'}),
             'drop_off_time': forms.TimeInput(attrs={'class': 'form-control', 'placeholder': 'HH:MM'}),
             'shift_time': forms.TimeInput(attrs={'class': 'form-control', 'placeholder': 'HH:MM'}),
-            'head_count': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Enter Head Count'}),
+            'head_count': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Enter Head Count', 'min': 0, 'max': 47}),
             'trip_type': forms.Select(attrs={'class': 'form-control'}),
             'date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
         }
+
+    def clean_head_count(self):
+        head_count = self.cleaned_data.get('head_count')
+        if head_count is None or head_count < 0 or head_count > 47:
+            raise forms.ValidationError("Head count must be between 0 and 47.")
+        return head_count
 
 # Formset for handling multiple driver trip entries
 DriverTripFormSet = formset_factory(DriverTripForm, extra=1)
@@ -76,3 +83,22 @@ class SetNewPasswordForm(forms.Form):
         if new_password != confirm_password:
             raise forms.ValidationError("Passwords do not match.")
         return cleaned_data
+    
+
+# Form for Delay Data
+class DelayDataForm(forms.ModelForm):
+    class Meta:
+        model = DelayData
+        fields = ['route', 'in_out', 'std', 'atd', 'sta', 'ata', 'delay', 'staff_count', 'remarks']
+
+# Form for Breakdown Data
+class BreakdownDataForm(forms.ModelForm):
+    class Meta:
+        model = BreakdownData
+        fields = ['route', 'in_out', 'breakdown_time', 'breakdown_location', 'bus_no', 'issue', 'driver_name', 'staff_id', 'staff_count', 'replacement_driver', 'replacement_bus', 'report_to_ek']
+
+# Form for Accident Data
+class AccidentsDataForm(forms.ModelForm):
+    class Meta:
+        model = AccidentsData
+        fields = ['route', 'in_out', 'accident_time', 'accident_location', 'bus_no', 'accident_issue', 'driver_name', 'staff_id', 'staff_count', 'replacement_driver', 'replacement_bus', 'report_to_ek']

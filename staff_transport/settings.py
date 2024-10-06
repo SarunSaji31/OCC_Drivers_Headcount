@@ -148,6 +148,13 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 SESSION_COOKIE_AGE = 300  # 5 minutes
 SESSION_SAVE_EVERY_REQUEST = True
 
-# Redirect to the home page after login
-LOGIN_REDIRECT_URL = '/'
-LOGOUT_REDIRECT_URL = '/'  # Redirect to the home page after logout
+
+
+# Email backend settings for sending emails through Outlook
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.office365.com'  # Outlook SMTP server
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'sarun58874@et.ae'  # Your Outlook email address
+EMAIL_HOST_PASSWORD = 'Kalyani@1996'  # Use the correct email password or App Password
+DEFAULT_FROM_EMAIL = 'sarun.ts@et.ae'  # Same as your Outlook email address
