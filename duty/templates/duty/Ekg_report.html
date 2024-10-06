@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ekg Report</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Arial', sans-serif;
+        }
+        .container {
+            max-width: 1200px; /* Limit width for large screens */
+            margin-top: 50px;
+            margin-bottom: 50px;
+        }
+        .form-section {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* Softer shadow for a professional look */
+            margin-bottom: 30px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .form-section:hover {
+            transform: translateY(-5px); /* Slight hover effect for interactivity */
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+        }
+        .form-section h2 {
+            color: #343a40;
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+        }
+        .btn {
+            width: 100%;
+            padding: 12px;
+            font-size: 1rem;
+            font-weight: bold;
+        }
+        .horizontal-form-container {
+            display: flex;
+            justify-content: space-between;
+            gap: 15px; /* Consistent space between the forms */
+        }
+
+        /* Responsive behavior: Forms stack vertically on smaller screens */
+        @media (max-width: 991px) {
+            .horizontal-form-container {
+                flex-direction: column;
+            }
+            .form-section {
+                margin-bottom: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    
+    <div class="container">
+        <div class="text-center mb-5">
+            <h1 class="display-4">Operational Reports</h1>
+            <p class="lead">Submit your Delay, Breakdown, or Accident reports below</p>
+        </div>
+
+        <!-- Horizontal layout container for all forms -->
+        <div class="horizontal-form-container">
+
+            <!-- Form for Delay Report -->
+            <div class="form-section col-lg-4">
+                <h2>Submit Delay Report</h2>
+                <form method="POST">
+                    {% csrf_token %}
+                    {{ delay_form.as_p }}
+                    <button type="submit" class="btn btn-primary mt-3" name="submit" value="submit">Submit Delay Report</button>
+                    <button type="submit" class="btn btn-warning mt-3" name="broadcast" value="broadcast">Broadcast Delay Message to EK</button>
+                </form>
+            </div>
+            
+            <!-- Form for Breakdown Report -->
+            <div class="form-section col-lg-4">
+                <h2>Submit Breakdown Report</h2>
+                <form method="POST">
+                    {% csrf_token %}
+                    {{ breakdown_form.as_p }}
+                    <button type="submit" class="btn btn-secondary mt-3">Submit Breakdown Report</button>
+                </form>
+            </div>
+
+            <!-- Form for Accident Report -->
+            <div class="form-section col-lg-4">
+                <h2>Submit Accident Report</h2>
+                <form method="POST">
+                    {% csrf_token %}
+                    {{ accident_form.as_p }}
+                    <button type="submit" class="btn btn-danger mt-3">Submit Accident Report</button>
+                </form>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Bootstrap JS (for responsive and interactive components) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+
+</body>
+</html>

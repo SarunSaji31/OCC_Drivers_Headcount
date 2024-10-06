@@ -2,6 +2,7 @@ from django.urls import path, include
 from . import views
 from django.conf import settings
 from django.conf.urls.static import static
+from .views import add_reports
 
 urlpatterns = [
     # Root URL (home page)
@@ -41,9 +42,13 @@ urlpatterns = [
     path('password_reset/', views.password_reset_request, name='password_reset'),
     path('set_new_password/<int:user_id>/', views.set_new_password, name='set_new_password'),
 
-    path('dashboard/', views.admin_dashboard, name='dashboard'),  # For rendering the page
-    path('dashboard/data/', views.dashboard_data, name='dashboard_data')
-    
+    # Dashboard URLs
+    path('dashboard/', views.admin_dashboard, name='dashboard'),  
+    path('dashboard/data/', views.dashboard_data, name='dashboard_data'),
+    path('dashboard/duty-card-submission-data/', views.duty_card_submission_data, name='duty_card_submission_data'), 
+
+    # EKG Report
+    path('ekg-report/', add_reports, name='ekg_report'),  # For the EKG report page
 ]
 
 # Serve static files during development

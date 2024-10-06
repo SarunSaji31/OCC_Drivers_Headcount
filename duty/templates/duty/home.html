@@ -40,9 +40,9 @@
             margin-bottom: 20px;
         }
 
+        /* Increased size of the logo image */
         .header-section img {
-            max-width: 100px;
-            width: 100%;
+            max-width: 150px;
             height: auto;
             margin-bottom: 20px;
         }
@@ -88,13 +88,15 @@
             margin: 0;
         }
 
+        /* Improved the staff-name with more professional styling */
         .staff-name {
             position: absolute;
+            top: -10px; /* Moved up */
             left: 20px;
-            top: 20px;
-            font-size: 1.2rem;
+            font-size: 1.4rem;
             font-weight: bold;
-            color: white;
+            color: #f1f1f1;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.4);
         }
 
         @media (max-width: 768px) {
@@ -112,6 +114,13 @@
 
             .card-container {
                 padding: 0 10px;
+            }
+
+            /* Adjust for smaller screens */
+            .staff-name {
+                font-size: 1.2rem;
+                top: -5px;
+                left: 15px;
             }
         }
 
@@ -144,6 +153,9 @@
                     <a class="nav-link" href="{% url 'report' %}">Reports</a>
                 </li>
                 <li class="nav-item">
+                    <a class="nav-link" href="{% url 'ekg_report' %}">EKG Reports</a> 
+                </li>
+                <li class="nav-item">
                     <a class="nav-link" href="{% url 'dashboard' %}">Dashboard</a>
                 </li>
                 <li class="nav-item">
@@ -154,7 +166,9 @@
     </nav>
 
     <div class="header-section">
+        <!-- Staff name moved up slightly and with better styling -->
         <span class="staff-name">Welcome, {{ staff_name }}!</span>
+        <!-- Increased size of logo -->
         <img src="https://et.ae/wp-content/uploads/2020/03/Logo.svg" alt="Logo">
         <h1>Welcome to OCC-EKG project</h1>
         <p>Manage and track driver details and trip information efficiently.</p>
