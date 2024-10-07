@@ -10,16 +10,14 @@ from django.urls import reverse
 from django.utils import timezone
 from django.core.mail import send_mail
 from django.core.paginator import Paginator
-from django.db.models import Q
-from .forms import DelayDataForm, BreakdownDataForm, AccidentsDataForm
-from datetime import datetime,date
+from django.db.models import Q, Sum
+from .forms import DelayDataForm, BreakdownDataForm, AccidentsDataForm, DriverTripFormSet, CustomUserCreationForm, PasswordResetRequestForm, SetNewPasswordForm
+from .models import DriverTrip, DriverImportLog, DutyCardTrip
+from .decorators import user_in_driverimportlog_required
+from datetime import datetime, date
 import pandas as pd
 import logging
 from functools import wraps
-from django.db.models import Sum
-from .forms import DriverTripFormSet, CustomUserCreationForm, PasswordResetRequestForm, SetNewPasswordForm
-from .models import DriverTrip, DriverImportLog, DutyCardTrip
-from .decorators import user_in_driverimportlog_required
 
 # Setup logger
 logger = logging.getLogger(__name__)
@@ -111,10 +109,10 @@ def success(request):
 
 
 def user_in_driverimportlog_required(view_func):
-    """Custom decorator to deny access to users in DriverImportLog."""
+    """Custom decorator to allow access only to users in DriverImportLog."""
     @wraps(view_func)
     def _wrapped_view(request, *args, **kwargs):
-        if DriverImportLog.objects.filter(staff_id=request.user.username).exists():
+        if not DriverImportLog.objects.filter(staff_id=request.user.username).exists():
             return render(request, 'duty/access_denied.html')
         return view_func(request, *args, **kwargs)
     return _wrapped_view
@@ -166,7 +164,7 @@ def report_view(request):
                 end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
                 driver_trips = driver_trips.filter(date__range=(start_date, end_date))
             except ValueError:
-                pass
+                return HttpResponse("Invalid date range format", status=400)
 
         order_column_index = int(request.GET.get('order[0][column]', 8))  # Order by date as default
         order_direction = request.GET.get('order[0][dir]', 'asc')
@@ -222,7 +220,7 @@ def download_report(request):
             end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
             driver_trips = driver_trips.filter(date__range=(start_date, end_date))
         except ValueError:
-            driver_trips = driver_trips.none()
+            return HttpResponse("Invalid date range format", status=400)
 
     # Apply route, shift time, and trip type filters
     if route_filter:
@@ -288,7 +286,6 @@ def duty_card_no_autocomplete(request):
 def get_duty_card_details(request):
     if 'duty_card_no' in request.GET:
         duty_card_no = request.GET.get('duty_card_no')
-        #print(f"Received duty_card_no: {duty_card_no}")
 
         # Fetching trips from the database
         trips = DutyCardTrip.objects.filter(duty_card_no=duty_card_no)
@@ -310,14 +307,12 @@ def get_duty_card_details(request):
                 'date': trip.date.strftime("%Y-%m-%d") if hasattr(trip, 'date') else datetime.today().strftime("%Y-%m-%d"),
                 'head_count': trip.head_count if hasattr(trip, 'head_count') else 0  # Add other fields as needed
             }
-            #print(f"Processed trip: {trip_info}")
             trip_details.append(trip_info)
 
-        #print(f"Returning trip details: {trip_details}")
         return JsonResponse({'trips': trip_details}, safe=False)
 
-    print("No duty_card_no provided in request.")
     return JsonResponse({'error': 'Duty card number not provided'}, status=400)
+
 
 @login_required
 def route_autocomplete(request):
@@ -332,12 +327,11 @@ def shift_time_autocomplete(request):
     if 'term' in request.GET:
         shift_time_term = request.GET.get('term')
 
-        # Ensure the term is in a valid time format like "HH:MM"
         try:
             # Check if the term is in "HH:MM" format
             parsed_time = datetime.strptime(shift_time_term, "%H:%M").time()
             qs = DriverTrip.objects.filter(shift_time__startswith=parsed_time)
-            shift_times = new_func(qs)
+            shift_times = list(qs.values_list('shift_time', flat=True).distinct())
             shift_times = [time.strftime("%H:%M") for time in shift_times]
         except ValueError:
             shift_times = []
@@ -346,9 +340,6 @@ def shift_time_autocomplete(request):
     
     return JsonResponse([], safe=False)
 
-def new_func(qs):
-    shift_times = list(qs.values_list('shift_time', flat=True).distinct())
-    return shift_times
 
 def signup(request):
     if request.method == 'POST':
@@ -359,12 +350,13 @@ def signup(request):
             messages.success(request, 'Your account has been created successfully! Please log in.')
             return redirect('login')  # Redirect to the login page
         else:
+            messages.error(request, 'There were errors in your form. Please fix them.')
             logger.warning("Form is not valid.")
     else:
-        logger.debug("GET request, rendering signup form.")
         form = CustomUserCreationForm()
     
     return render(request, 'registration/signup.html', {'form': form})
+
 
 def user_logout(request):
     logout(request)
@@ -380,7 +372,6 @@ def password_reset_request(request):
             email = form.cleaned_data['email']
             try:
                 user = User.objects.get(username=staff_id)
-                # Check if email matches the one associated with the user
                 if user.email == email:
                     # Redirect to a password reset form
                     return redirect(reverse('set_new_password', args=[user.id]))
@@ -392,6 +383,7 @@ def password_reset_request(request):
         form = PasswordResetRequestForm()
     
     return render(request, 'registration/password_reset_request.html', {'form': form})
+
 
 def set_new_password(request, user_id):
     user = get_object_or_404(User, id=user_id)
@@ -409,6 +401,7 @@ def set_new_password(request, user_id):
 
     return render(request, 'registration/set_new_password.html', {'form': form})
 
+
 def login_view(request):
     if request.method == "POST":
         form = AuthenticationForm(request, data=request.POST)
@@ -418,7 +411,7 @@ def login_view(request):
             user = authenticate(username=username, password=password)
             if user is not None:
                 login(request, user)
-                
+
                 # Check if "Remember Me" was checked
                 if request.POST.get('remember_me'):
                     request.session.set_expiry(1209600)  # 2 weeks
@@ -437,11 +430,10 @@ def login_view(request):
 
     return render(request, "login.html", {"form": form})
 
+
 @user_in_driverimportlog_required  # Apply custom decorator
 def dashboard_data(request):
-    """
-    Returns staff load data based on filters like date, shift time, and type.
-    """
+    """Returns staff load data based on filters like date, shift time, and type."""
     date_filter = request.GET.get('date')
     shift_filter = request.GET.get('shift')
     type_filter = request.GET.get('type')
@@ -475,30 +467,25 @@ def dashboard_data(request):
 
     return JsonResponse(data)
 
+
 def duty_card_submission_data(request):
-    # Get the date filter from the request or default to today's date
+    """Returns duty card submission data as a JSON response."""
     date_filter = request.GET.get('date', datetime.today().strftime('%Y-%m-%d'))
 
-    # Check if the user requested an Excel download
     if request.GET.get('download') == 'xlsx':
         return download_duty_card_data_as_excel(date_filter)
 
-    # Create aware datetime range for the selected date
     date_filter_start = timezone.make_aware(datetime.combine(datetime.strptime(date_filter, '%Y-%m-%d'), datetime.min.time()))
     date_filter_end = timezone.make_aware(datetime.combine(datetime.strptime(date_filter, '%Y-%m-%d'), datetime.max.time()))
 
-    # Fetch all unique duty cards from DutyCardTrip (total duty cards)
     duty_card_trips = DutyCardTrip.objects.values('duty_card_no').distinct()
     total_duty_cards = duty_card_trips.count()
 
-    # Fetch all unique submitted duty cards from DriverTrip (submitted duty cards)
     submitted_duty_cards = DriverTrip.objects.filter(date__range=(date_filter_start, date_filter_end)).values('duty_card').distinct()
     submitted_cards = submitted_duty_cards.count()
 
-    # Calculate pending cards
     pending_cards = total_duty_cards - submitted_cards if total_duty_cards > submitted_cards else 0
 
-    # Return the data for the chart
     data = {
         'total_duty_cards': total_duty_cards,
         'submitted_cards': submitted_cards,
@@ -509,34 +496,26 @@ def duty_card_submission_data(request):
 
 
 def download_duty_card_data_as_excel(date_filter):
-    # Create aware datetime range for the selected date
+    """Download duty card data as an Excel file."""
     date_filter_start = timezone.make_aware(datetime.combine(datetime.strptime(date_filter, '%Y-%m-%d'), datetime.min.time()))
     date_filter_end = timezone.make_aware(datetime.combine(datetime.strptime(date_filter, '%Y-%m-%d'), datetime.max.time()))
 
-    # Fetch all unique duty cards from DutyCardTrip
     duty_card_trips = DutyCardTrip.objects.values('duty_card_no').distinct()
-
-    # Fetch submitted duty cards from DriverTrip (based on the selected date)
     submitted_duty_cards = DriverTrip.objects.filter(date__range=(date_filter_start, date_filter_end)).values('duty_card__duty_card_no').distinct()
 
-    # Prepare data for Excel
     data = []
     for duty_card in duty_card_trips:
         duty_card_no = duty_card['duty_card_no']
-
-        # Check if the duty card was submitted by looking at the submitted duty cards
         is_submitted = submitted_duty_cards.filter(duty_card__duty_card_no=duty_card_no).exists()
 
         data.append({
             'Duty Card No': duty_card_no,
             'Submission Status': 'Submitted' if is_submitted else 'Pending',
-            'Date': date_filter  # We use the provided date as there's no date in DutyCardTrip
+            'Date': date_filter
         })
 
-    # Create DataFrame
     df = pd.DataFrame(data)
 
-    # Generate the Excel file
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     response['Content-Disposition'] = f'attachment; filename=duty_card_details_{date_filter}.xlsx'
 
@@ -545,12 +524,15 @@ def download_duty_card_data_as_excel(date_filter):
 
     return response
 
-@user_in_driverimportlog_required
+
 @login_required
 def admin_dashboard(request):
+    """Render the admin dashboard."""
     return render(request, 'duty/admin_dashboard.html')
 
+
 def add_reports(request):
+    """Handles adding delay, breakdown, and accident reports."""
     if request.method == 'POST':
         delay_form = DelayDataForm(request.POST, prefix='delay')
         breakdown_form = BreakdownDataForm(request.POST, prefix='breakdown')
@@ -576,14 +558,21 @@ def add_reports(request):
         'accident_form': accident_form
     })
 
+
+import logging
+from django.core.mail import send_mail
+from django.http import HttpResponse
+from django.shortcuts import render, redirect
+from .forms import DelayDataForm
+
+# Setup logger
+logger = logging.getLogger(__name__)
+
 def add_delay_report(request):
     if request.method == 'POST':
         delay_form = DelayDataForm(request.POST, prefix='delay')
         
         if delay_form.is_valid():
-            # Save the form data to the database
-            delay_form.save()
-            
             # Extract the form data
             route = delay_form.cleaned_data['route']
             in_out = delay_form.cleaned_data['in_out']
@@ -618,7 +607,7 @@ def add_delay_report(request):
                     Regards,
                     Sarun
                     """
-                    from_email = 'sarun.ts@et.ae'
+                    from_email = 'occekg@gmail.com'
                     recipient_list = ['sarun.ts@et.ae']
 
                     # Send email
@@ -630,15 +619,13 @@ def add_delay_report(request):
                     })
 
                 except Exception as e:
-                    # Handle email sending failure
+                    logger.error(f"Failed to send email: {str(e)}")
                     return HttpResponse(f"Failed to send email: {str(e)}")
-            
-            # If only form submission without broadcast
+
             return render(request, 'duty/success.html', {
                 'success_message': 'The delay report has been successfully submitted.'
             })
-    
-    # For GET requests
+
     else:
         delay_form = DelayDataForm(prefix='delay')
 
