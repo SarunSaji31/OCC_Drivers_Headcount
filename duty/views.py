@@ -559,35 +559,24 @@ def add_reports(request):
     })
 
 
-import logging
-from django.core.mail import send_mail
-from django.http import HttpResponse
-from django.shortcuts import render, redirect
-from .forms import DelayDataForm
-
-# Setup logger
-logger = logging.getLogger(__name__)
 
 def add_delay_report(request):
     if request.method == 'POST':
         delay_form = DelayDataForm(request.POST, prefix='delay')
-        
+
         if delay_form.is_valid():
-            # Extract the form data
             route = delay_form.cleaned_data['route']
             in_out = delay_form.cleaned_data['in_out']
             std = delay_form.cleaned_data['std']
             atd = delay_form.cleaned_data['atd']
             sta = delay_form.cleaned_data['sta']
             ata = delay_form.cleaned_data['ata']
-            delay = delay_form.cleaned_data['delay']
+            delay = delay_form.cleaned_data.get('delay', 0)  # Handle empty delay field
             staff_count = delay_form.cleaned_data['staff_count']
             remarks = delay_form.cleaned_data['remarks']
-            
-            # Check if the broadcast button was clicked
+
             if 'broadcast' in request.POST:
                 try:
-                    # Construct email content
                     subject = f"Delay {route} {sta.strftime('%H:%M')}"
                     message = f"""
                     Dear Teams,
@@ -610,23 +599,27 @@ def add_delay_report(request):
                     from_email = 'occekg@gmail.com'
                     recipient_list = ['sarun.ts@et.ae']
 
-                    # Send email
+                    # Send the email
                     send_mail(subject, message, from_email, recipient_list, fail_silently=False)
 
-                    # Redirect to success page with email sent message
-                    return render(request, 'duty/success.html', {
-                        'success_message': 'The delay email has been broadcast successfully.'
-                    })
+                    # Log the success
+                    logger.info(f"Broadcast message sent successfully for route {route}")
+
+                    # Return a success message via JSON
+                    return JsonResponse({'status': 'success', 'message': 'Broadcast message sent successfully.'})
 
                 except Exception as e:
-                    logger.error(f"Failed to send email: {str(e)}")
-                    return HttpResponse(f"Failed to send email: {str(e)}")
+                    # Log the error for debugging
+                    logger.error(f"Failed to send broadcast message for route {route}: {str(e)}")
+                    
+                    # Return an error message via JSON
+                    return JsonResponse({'status': 'error', 'message': f'Failed to send email: {str(e)}'})
+        else:
+            # Log form validation errors for debugging
+            logger.warning(f"Invalid form data: {delay_form.errors}")
 
-            return render(request, 'duty/success.html', {
-                'success_message': 'The delay report has been successfully submitted.'
-            })
+            # Handle form validation errors and return them via JSON
+            return JsonResponse({'status': 'error', 'message': 'Invalid form data. Please correct the errors.', 'errors': delay_form.errors})
 
-    else:
-        delay_form = DelayDataForm(prefix='delay')
-
-    return render(request, 'duty/Ekg_report.html', {'delay_form': delay_form})
+    # Log invalid request method
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method.'})
