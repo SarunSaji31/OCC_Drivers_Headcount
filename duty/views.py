@@ -558,68 +558,106 @@ def add_reports(request):
         'accident_form': accident_form
     })
 
-
+logger = logging.getLogger(__name__)
 
 def add_delay_report(request):
-    if request.method == 'POST':
-        delay_form = DelayDataForm(request.POST, prefix='delay')
+    logger.info("add_delay_report view called")  # Check if the view is being called
 
+    if request.method == 'POST':
+        logger.info("POST request detected")
+
+        delay_form = DelayDataForm(request.POST, prefix='delay')
         if delay_form.is_valid():
+            logger.info("Delay form is valid")
+
+            # Extract the form data
             route = delay_form.cleaned_data['route']
             in_out = delay_form.cleaned_data['in_out']
             std = delay_form.cleaned_data['std']
             atd = delay_form.cleaned_data['atd']
             sta = delay_form.cleaned_data['sta']
             ata = delay_form.cleaned_data['ata']
-            delay = delay_form.cleaned_data.get('delay', 0)  # Handle empty delay field
+            delay = delay_form.cleaned_data['delay']
             staff_count = delay_form.cleaned_data['staff_count']
             remarks = delay_form.cleaned_data['remarks']
 
+            # Check if the broadcast button was clicked
             if 'broadcast' in request.POST:
+                logger.info("Broadcast button clicked")
                 try:
-                    subject = f"Delay {route} {sta.strftime('%H:%M')}"
+                    subject = f"Delay {route}, {sta.strftime('%H:%M')} Shift"
+
+                    # Construct HTML message with adjusted table format
                     message = f"""
-                    Dear Teams,
-
-                    Please see the delay details below:
-
-                    - Route: {route}
-                    - In/Out: {in_out}
-                    - Scheduled Time of Departure (STD): {std.strftime('%H:%M')}
-                    - Actual Time of Departure (ATD): {atd.strftime('%H:%M')}
-                    - Scheduled Time of Arrival (STA): {sta.strftime('%H:%M')}
-                    - Actual Time of Arrival (ATA): {ata.strftime('%H:%M')}
-                    - Delay: {delay} minutes
-                    - Staff Count: {staff_count}
-                    - Remarks: {remarks}
-
-                    Regards,
-                    Sarun
+                    <html>
+                    <body>
+                    <p>Dear Team,</p>
+                    <p>Please see the delay details below:</p>
+                    <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; width: 100%; font-size: 14px; text-align: center; border-color: #ddd;">
+                        <thead>
+                            <tr style="background-color: #f2f2f2; font-weight: bold;">
+                                <th style="width: 10%;">DATE</th>
+                                <th style="width: 10%;">ROUTE</th>
+                                <th style="width: 10%;">IN/OUT</th>
+                                <th style="width: 10%;">STD</th>
+                                <th style="width: 10%;">ATD</th>
+                                <th style="width: 10%;">STA</th>
+                                <th style="width: 10%;">ATA</th>
+                                <th style="width: 10%;">DELAY (min)</th>
+                                <th style="width: 10%;">STAFF COUNT</th>
+                                <!-- Remarks column dynamic size based on content -->
+                                <th style="min-width: 200px; max-width: 400px; word-wrap: break-word;">REMARKS</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>{datetime.now().strftime('%Y-%m-%d')}</td>
+                                <td>{route}</td>
+                                <td>{in_out}</td>
+                                <td>{std.strftime('%H:%M')}</td>
+                                <td>{atd.strftime('%H:%M')}</td>
+                                <td>{sta.strftime('%H:%M')}</td>
+                                <td>{ata.strftime('%H:%M')}</td>
+                                <td>{delay}</td>
+                                <td>{staff_count}</td>
+                                <!-- Format remarks with proper formatting and spacing -->
+                                <td style="text-align: left; white-space: break-word;">{remarks}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <br>
+                    <p>Regards,<br>Sarun</p>
+                    </body>
+                    </html>
                     """
+
                     from_email = 'occekg@gmail.com'
                     recipient_list = ['sarun.ts@et.ae']
 
-                    # Send the email
-                    send_mail(subject, message, from_email, recipient_list, fail_silently=False)
+                    logger.info("Attempting to send email")
 
-                    # Log the success
-                    logger.info(f"Broadcast message sent successfully for route {route}")
+                    # Send the email with HTML content
+                    send_mail(
+                        subject=subject,
+                        message='',  # You can provide a plain text fallback
+                        from_email=from_email,
+                        recipient_list=recipient_list,
+                        fail_silently=False,
+                        html_message=message  # HTML content
+                    )
 
-                    # Return a success message via JSON
-                    return JsonResponse({'status': 'success', 'message': 'Broadcast message sent successfully.'})
+                    logger.info("Email sent successfully")
+                    return JsonResponse({'status': 'success', 'message': 'The delay email has been broadcast successfully.'})
 
                 except Exception as e:
-                    # Log the error for debugging
-                    logger.error(f"Failed to send broadcast message for route {route}: {str(e)}")
-                    
-                    # Return an error message via JSON
-                    return JsonResponse({'status': 'error', 'message': f'Failed to send email: {str(e)}'})
+                    logger.error(f"Failed to send email: {str(e)}")
+                    return JsonResponse({'status': 'error', 'message': f"Failed to send email: {str(e)}"})
+            else:
+                logger.info("Form submitted without broadcast")
+                return JsonResponse({'status': 'error', 'message': 'Broadcast option not selected.'})
         else:
-            # Log form validation errors for debugging
-            logger.warning(f"Invalid form data: {delay_form.errors}")
-
-            # Handle form validation errors and return them via JSON
+            logger.error("Delay form is not valid")
             return JsonResponse({'status': 'error', 'message': 'Invalid form data. Please correct the errors.', 'errors': delay_form.errors})
 
-    # Log invalid request method
-    return JsonResponse({'status': 'error', 'message': 'Invalid request method.'})
+    # Render form for GET requests
+    return render(request, 'duty/Ekg_report.html', {'delay_form': DelayDataForm(prefix='delay')})
