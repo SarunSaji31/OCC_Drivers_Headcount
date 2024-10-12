@@ -11,14 +11,14 @@ from django.utils import timezone
 from django.core.mail import send_mail
 from django.core.paginator import Paginator
 from django.db.models import Q, Sum
-from .forms import DelayDataForm,DriverTripFormSet, CustomUserCreationForm, PasswordResetRequestForm, SetNewPasswordForm
+from .forms import DelayDataForm,DriverTripFormSet, CustomUserCreationForm, PasswordResetRequestForm, SetNewPasswordForm,formset_factory
 from .models import DriverTrip, DriverImportLog, DutyCardTrip
 from .decorators import user_in_driverimportlog_required
 from datetime import datetime, date
 import pandas as pd
 import logging
 from functools import wraps
-from datetime import datetime, timedelta
+from datetime import datetime,time
 
 
 # Setup logger
@@ -532,88 +532,122 @@ def admin_dashboard(request):
     """Render the admin dashboard."""
     return render(request, 'duty/admin_dashboard.html')
 
-
-
-
 logger = logging.getLogger(__name__)
 
 def add_reports(request):
-    """Handles adding delay reports."""
+    """Handles adding multiple delay reports."""
+    # Create a formset for multiple delay forms
+    DelayDataFormSet = formset_factory(DelayDataForm, extra=1)
+
     if request.method == 'POST':
         logger.info("Processing the POST request")
 
-        # Bind the form data to the delay form only
-        delay_form = DelayDataForm(request.POST)
+        # Bind the form data to the formset
+        formset = DelayDataFormSet(request.POST)
 
-        # Check if the delay form is valid and save
-        if delay_form.is_valid():
-            logger.info("Delay form is valid, saving data")
-            delay_form.save()
+        if formset.is_valid():
+            logger.info("All delay forms are valid, saving data")
+            for form in formset:
+                form.save()  # Save each form
             return redirect('success')
         else:
-            # If the form is not valid, print the errors for debugging
-            logger.error(f"Form validation failed: {delay_form.errors}")
+            # If any form is not valid, print the errors for debugging
+            for form in formset:
+                logger.error(f"Form validation failed: {form.errors}")
 
-    # Handle GET request, initialize empty form
+    # Handle GET request, initialize an empty formset
     else:
-        delay_form = DelayDataForm()
+        formset = DelayDataFormSet()
 
-    # Render the form
+    # Render the formset
     return render(request, 'duty/Ekg_report.html', {
-        'delay_form': delay_form
+        'formset': formset
     })
 
-
-from datetime import timedelta, time
+logger = logging.getLogger(__name__)
 
 def add_delay_report(request):
     logger.info("add_delay_report view called")
 
+    # Create a formset for multiple delay forms
+    DelayDataFormSet = formset_factory(DelayDataForm, extra=1)
+
     if request.method == 'POST':
         logger.info("POST request detected")
+    
+        formset = DelayDataFormSet(request.POST)
 
-        delay_form = DelayDataForm(request.POST)
-        if delay_form.is_valid():
-            logger.info("Delay form is valid")
+        if formset.is_valid():
+            logger.info("All delay forms are valid")
 
-            # Extract the form data
-            date = delay_form.cleaned_data.get('date')
-            route = delay_form.cleaned_data.get('route')
-            in_out = delay_form.cleaned_data.get('in_out')
-            std = delay_form.cleaned_data.get('std')
-            atd = delay_form.cleaned_data.get('atd')
-            sta = delay_form.cleaned_data.get('sta')
-            ata = delay_form.cleaned_data.get('ata')
-            staff_count = delay_form.cleaned_data.get('staff_count')
-            remarks = delay_form.cleaned_data.get('remarks')
+            # Get the number of forms
+            form_count = len(formset)
 
-            # Calculate delay as a timedelta and then convert to time (HH:MM:SS)
-            if sta and ata:
-                sta_time = datetime.combine(datetime.today(), sta)
-                ata_time = datetime.combine(datetime.today(), ata)
-                delay = ata_time - sta_time  # Result is timedelta
-                delay_seconds = int(delay.total_seconds())
-                delay_hours, remainder = divmod(delay_seconds, 3600)
-                delay_minutes, _ = divmod(remainder, 60)
-                
-                # Convert to time object (HH:MM:SS)
-                delay_time = time(hour=int(delay_hours), minute=int(delay_minutes))
-                logger.info(f"Calculated delay: {delay_time}")
+            # Loop through each form in the formset and process
+            delay_entries = []
+            for form in formset:
+                # Extract the form data
+                date = form.cleaned_data.get('date')
+                route = form.cleaned_data.get('route')
+                in_out = form.cleaned_data.get('in_out')
+                std = form.cleaned_data.get('std')
+                atd = form.cleaned_data.get('atd')
+                sta = form.cleaned_data.get('sta')
+                ata = form.cleaned_data.get('ata')
+                staff_count = form.cleaned_data.get('staff_count')
+                remarks = form.cleaned_data.get('remarks')
+
+                # Check if date is None and log a warning or assign a default value
+                if date is None:
+                    logger.warning("Date is missing in form data. Using today's date as fallback.")
+                    date = datetime.today()
+
+                # Calculate delay as a timedelta and then convert to time (HH:MM:SS)
+                if sta and ata:
+                    sta_time = datetime.combine(datetime.today(), sta)
+                    ata_time = datetime.combine(datetime.today(), ata)
+                    delay = ata_time - sta_time  # Result is timedelta
+                    delay_seconds = int(delay.total_seconds())
+                    delay_hours, remainder = divmod(delay_seconds, 3600)
+                    delay_minutes, _ = divmod(remainder, 60)
+
+                    # Convert to time object (HH:MM:SS)
+                    delay_time = time(hour=int(delay_hours), minute=int(delay_minutes))
+                    logger.info(f"Calculated delay: {delay_time}")
+                else:
+                    delay_time = time(0, 0, 0)  # Default to 00:00:00 if STA or ATA is missing
+                    logger.warning("STA or ATA is missing; delay set to 00:00:00")
+
+                # Save form data with delay as a time object
+                delay_instance = form.save(commit=False)
+                delay_instance.delay = delay_time
+                delay_instance.save()
+
+                # Collect details for email
+                delay_entries.append({
+                    'date': date.strftime('%Y-%m-%d'),  # Ensure the date is not None here
+                    'route': route,
+                    'in_out': in_out,
+                    'std': std.strftime('%H:%M'),
+                    'atd': atd.strftime('%H:%M'),
+                    'sta': sta.strftime('%H:%M') if sta else 'N/A',
+                    'ata': ata.strftime('%H:%M') if ata else 'N/A',
+                    'delay': delay_time,
+                    'staff_count': staff_count,
+                    'remarks': remarks,
+                })
+
+            # Set the subject based on the number of forms submitted
+            if form_count == 1:
+                subject = f"Delay {route}, {sta.strftime('%H:%M')} Shift" if sta else f"Delay {route}, Unknown Shift Time"
             else:
-                delay_time = time(0, 0, 0)  # Default to 00:00:00 if STA or ATA is missing
-                logger.warning("STA or ATA is missing; delay set to 00:00:00")
-
-            # Save form data with delay as a time object
-            delay_instance = delay_form.save(commit=False)
-            delay_instance.delay = delay_time
-            delay_instance.save()
+                subject = "Delay update"
 
             # Handle email broadcasting if the broadcast button was clicked
             if 'broadcast' in request.POST:
                 logger.info("Broadcast button clicked")
                 try:
-                    subject = f"Delay {route}, {sta.strftime('%H:%M')} Shift" if sta else f"Delay {route}, Unknown Shift Time"
-                    message = f"""
+                    message = """
                     <html>
                     <body>
                     <p>Dear Team,</p>
@@ -634,18 +668,23 @@ def add_delay_report(request):
                             </tr>
                         </thead>
                         <tbody>
+                    """
+                    for entry in delay_entries:
+                        message += f"""
                             <tr>
-                                <td>{datetime.now().strftime('%Y-%m-%d')}</td>
-                                <td>{route}</td>
-                                <td>{in_out}</td>
-                                <td>{std.strftime('%H:%M')}</td>
-                                <td>{atd.strftime('%H:%M')}</td>
-                                <td>{sta.strftime('%H:%M') if sta else 'N/A'}</td>
-                                <td>{ata.strftime('%H:%M') if ata else 'N/A'}</td>
-                                <td>{delay_time}</td>
-                                <td>{staff_count}</td>
-                                <td style="text-align: left; white-space: break-word;">{remarks}</td>
+                                <td>{entry['date']}</td>
+                                <td>{entry['route']}</td>
+                                <td>{entry['in_out']}</td>
+                                <td>{entry['std']}</td>
+                                <td>{entry['atd']}</td>
+                                <td>{entry['sta']}</td>
+                                <td>{entry['ata']}</td>
+                                <td>{entry['delay']}</td>
+                                <td>{entry['staff_count']}</td>
+                                <td>{entry['remarks']}</td>
                             </tr>
+                        """
+                    message += """
                         </tbody>
                     </table>
                     <br>
@@ -653,6 +692,7 @@ def add_delay_report(request):
                     </body>
                     </html>
                     """
+
                     send_mail(subject=subject, message='', from_email='occekg@gmail.com', recipient_list=['sarun.ts@et.ae'], html_message=message)
                     logger.info("Email sent successfully")
                     return JsonResponse({'status': 'success', 'message': 'The delay email has been broadcast successfully.'})
@@ -664,8 +704,5 @@ def add_delay_report(request):
                 return JsonResponse({'status': 'error', 'message': 'Broadcast option not selected.'})
 
         else:
-            logger.error("Delay form is not valid")
-            return JsonResponse({'status': 'error', 'message': 'Invalid form data. Please correct the errors.', 'errors': delay_form.errors})
-
-    # Handle GET requests
-    return render(request, 'duty/Ekg_report.html', {'delay_form': DelayDataForm()})
+            logger.error("Formset validation failed")
+            return JsonResponse({'status': 'error', 'message': 'Invalid form data. Please correct the errors.', 'errors': formset.errors})
