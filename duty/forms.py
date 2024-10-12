@@ -3,7 +3,7 @@ from django.forms import formset_factory
 from .models import DriverTrip, DriverImportLog
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm
-from .models import DelayData, BreakdownData, AccidentsData
+from .models import DelayData
 
 # Form for handling driver trip entries
 class DriverTripForm(forms.ModelForm):
@@ -85,20 +85,8 @@ class SetNewPasswordForm(forms.Form):
         return cleaned_data
     
 
-# Form for Delay Data
+# forms.py
 class DelayDataForm(forms.ModelForm):
     class Meta:
         model = DelayData
-        fields = ['route', 'in_out', 'std', 'atd', 'sta', 'ata', 'delay', 'staff_count', 'remarks']
-
-# Form for Breakdown Data
-class BreakdownDataForm(forms.ModelForm):
-    class Meta:
-        model = BreakdownData
-        fields = ['route', 'in_out', 'breakdown_time', 'breakdown_location', 'bus_no', 'issue', 'driver_name', 'staff_id', 'staff_count', 'replacement_driver', 'replacement_bus', 'report_to_ek']
-
-# Form for Accident Data
-class AccidentsDataForm(forms.ModelForm):
-    class Meta:
-        model = AccidentsData
-        fields = ['route', 'in_out', 'accident_time', 'accident_location', 'bus_no', 'accident_issue', 'driver_name', 'staff_id', 'staff_count', 'replacement_driver', 'replacement_bus', 'report_to_ek']
+        fields = ['route', 'in_out', 'std', 'atd', 'sta', 'ata', 'staff_count', 'remarks']  
