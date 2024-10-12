@@ -566,6 +566,10 @@ def add_reports(request):
 
 logger = logging.getLogger(__name__)
 
+from django.db import IntegrityError
+
+from django.db import IntegrityError
+
 def add_delay_report(request):
     logger.info("add_delay_report view called")
 
@@ -580,9 +584,6 @@ def add_delay_report(request):
         if formset.is_valid():
             logger.info("All delay forms are valid")
 
-            # Get the number of forms
-            form_count = len(formset)
-
             # Loop through each form in the formset and process
             delay_entries = []
             for form in formset:
@@ -596,6 +597,11 @@ def add_delay_report(request):
                 ata = form.cleaned_data.get('ata')
                 staff_count = form.cleaned_data.get('staff_count')
                 remarks = form.cleaned_data.get('remarks')
+
+                # Check for missing required fields before saving
+                if std is None or atd is None or sta is None or ata is None:
+                    logger.error("Missing required field: std, atd, sta, or ata")
+                    return JsonResponse({'status': 'error', 'message': 'Required fields are missing'})
 
                 # Check if date is None and log a warning or assign a default value
                 if date is None:
@@ -619,34 +625,34 @@ def add_delay_report(request):
                     logger.warning("STA or ATA is missing; delay set to 00:00:00")
 
                 # Save form data with delay as a time object
-                delay_instance = form.save(commit=False)
-                delay_instance.delay = delay_time
-                delay_instance.save()
+                try:
+                    delay_instance = form.save(commit=False)
+                    delay_instance.delay = delay_time
+                    delay_instance.save()
 
-                # Collect details for email
-                delay_entries.append({
-                    'date': date.strftime('%Y-%m-%d'),  # Ensure the date is not None here
-                    'route': route,
-                    'in_out': in_out,
-                    'std': std.strftime('%H:%M'),
-                    'atd': atd.strftime('%H:%M'),
-                    'sta': sta.strftime('%H:%M') if sta else 'N/A',
-                    'ata': ata.strftime('%H:%M') if ata else 'N/A',
-                    'delay': delay_time,
-                    'staff_count': staff_count,
-                    'remarks': remarks,
-                })
+                    # Collect details for email
+                    delay_entries.append({
+                        'date': date.strftime('%Y-%m-%d'),  # Ensure the date is not None here
+                        'route': route,
+                        'in_out': in_out,
+                        'std': std.strftime('%H:%M'),
+                        'atd': atd.strftime('%H:%M'),
+                        'sta': sta.strftime('%H:%M') if sta else 'N/A',
+                        'ata': ata.strftime('%H:%M') if ata else 'N/A',
+                        'delay': delay_time,
+                        'staff_count': staff_count,
+                        'remarks': remarks,
+                    })
 
-            # Set the subject based on the number of forms submitted
-            if form_count == 1:
-                subject = f"Delay {route}, {sta.strftime('%H:%M')} Shift" if sta else f"Delay {route}, Unknown Shift Time"
-            else:
-                subject = "Delay update"
+                except IntegrityError as e:
+                    logger.error(f"Database error occurred: {str(e)}")
+                    return JsonResponse({'status': 'error', 'message': 'Database error occurred while saving the delay report'})
 
             # Handle email broadcasting if the broadcast button was clicked
             if 'broadcast' in request.POST:
                 logger.info("Broadcast button clicked")
                 try:
+                    subject = f"Delay {route}, {sta.strftime('%H:%M')} Shift" if sta else f"Delay {route}, Unknown Shift Time"
                     message = """
                     <html>
                     <body>
@@ -706,3 +712,5 @@ def add_delay_report(request):
         else:
             logger.error("Formset validation failed")
             return JsonResponse({'status': 'error', 'message': 'Invalid form data. Please correct the errors.', 'errors': formset.errors})
+
+
