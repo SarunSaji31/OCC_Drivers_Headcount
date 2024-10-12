@@ -11,13 +11,15 @@ from django.utils import timezone
 from django.core.mail import send_mail
 from django.core.paginator import Paginator
 from django.db.models import Q, Sum
-from .forms import DelayDataForm, BreakdownDataForm, AccidentsDataForm, DriverTripFormSet, CustomUserCreationForm, PasswordResetRequestForm, SetNewPasswordForm
+from .forms import DelayDataForm,DriverTripFormSet, CustomUserCreationForm, PasswordResetRequestForm, SetNewPasswordForm
 from .models import DriverTrip, DriverImportLog, DutyCardTrip
 from .decorators import user_in_driverimportlog_required
 from datetime import datetime, date
 import pandas as pd
 import logging
 from functools import wraps
+from datetime import datetime, timedelta
+
 
 # Setup logger
 logger = logging.getLogger(__name__)
@@ -531,63 +533,86 @@ def admin_dashboard(request):
     return render(request, 'duty/admin_dashboard.html')
 
 
-def add_reports(request):
-    """Handles adding delay, breakdown, and accident reports."""
-    if request.method == 'POST':
-        delay_form = DelayDataForm(request.POST, prefix='delay')
-        breakdown_form = BreakdownDataForm(request.POST, prefix='breakdown')
-        accident_form = AccidentsDataForm(request.POST, prefix='accident')
 
-        if delay_form.is_valid():
-            delay_form.save()
-            return redirect('success')
-        elif breakdown_form.is_valid():
-            breakdown_form.save()
-            return redirect('success')
-        elif accident_form.is_valid():
-            accident_form.save()
-            return redirect('success')
-    else:
-        delay_form = DelayDataForm(prefix='delay')
-        breakdown_form = BreakdownDataForm(prefix='breakdown')
-        accident_form = AccidentsDataForm(prefix='accident')
-
-    return render(request, 'duty/Ekg_report.html', {
-        'delay_form': delay_form,
-        'breakdown_form': breakdown_form,
-        'accident_form': accident_form
-    })
 
 logger = logging.getLogger(__name__)
 
+def add_reports(request):
+    """Handles adding delay reports."""
+    if request.method == 'POST':
+        logger.info("Processing the POST request")
+
+        # Bind the form data to the delay form only
+        delay_form = DelayDataForm(request.POST)
+
+        # Check if the delay form is valid and save
+        if delay_form.is_valid():
+            logger.info("Delay form is valid, saving data")
+            delay_form.save()
+            return redirect('success')
+        else:
+            # If the form is not valid, print the errors for debugging
+            logger.error(f"Form validation failed: {delay_form.errors}")
+
+    # Handle GET request, initialize empty form
+    else:
+        delay_form = DelayDataForm()
+
+    # Render the form
+    return render(request, 'duty/Ekg_report.html', {
+        'delay_form': delay_form
+    })
+
+
+from datetime import timedelta, time
+
 def add_delay_report(request):
-    logger.info("add_delay_report view called")  # Check if the view is being called
+    logger.info("add_delay_report view called")
 
     if request.method == 'POST':
         logger.info("POST request detected")
 
-        delay_form = DelayDataForm(request.POST, prefix='delay')
+        delay_form = DelayDataForm(request.POST)
         if delay_form.is_valid():
             logger.info("Delay form is valid")
 
             # Extract the form data
-            route = delay_form.cleaned_data['route']
-            in_out = delay_form.cleaned_data['in_out']
-            std = delay_form.cleaned_data['std']
-            atd = delay_form.cleaned_data['atd']
-            sta = delay_form.cleaned_data['sta']
-            ata = delay_form.cleaned_data['ata']
-            delay = delay_form.cleaned_data['delay']
-            staff_count = delay_form.cleaned_data['staff_count']
-            remarks = delay_form.cleaned_data['remarks']
+            date = delay_form.cleaned_data.get('date')
+            route = delay_form.cleaned_data.get('route')
+            in_out = delay_form.cleaned_data.get('in_out')
+            std = delay_form.cleaned_data.get('std')
+            atd = delay_form.cleaned_data.get('atd')
+            sta = delay_form.cleaned_data.get('sta')
+            ata = delay_form.cleaned_data.get('ata')
+            staff_count = delay_form.cleaned_data.get('staff_count')
+            remarks = delay_form.cleaned_data.get('remarks')
 
-            # Check if the broadcast button was clicked
+            # Calculate delay as a timedelta and then convert to time (HH:MM:SS)
+            if sta and ata:
+                sta_time = datetime.combine(datetime.today(), sta)
+                ata_time = datetime.combine(datetime.today(), ata)
+                delay = ata_time - sta_time  # Result is timedelta
+                delay_seconds = int(delay.total_seconds())
+                delay_hours, remainder = divmod(delay_seconds, 3600)
+                delay_minutes, _ = divmod(remainder, 60)
+                
+                # Convert to time object (HH:MM:SS)
+                delay_time = time(hour=int(delay_hours), minute=int(delay_minutes))
+                logger.info(f"Calculated delay: {delay_time}")
+            else:
+                delay_time = time(0, 0, 0)  # Default to 00:00:00 if STA or ATA is missing
+                logger.warning("STA or ATA is missing; delay set to 00:00:00")
+
+            # Save form data with delay as a time object
+            delay_instance = delay_form.save(commit=False)
+            delay_instance.delay = delay_time
+            delay_instance.save()
+
+            # Handle email broadcasting if the broadcast button was clicked
             if 'broadcast' in request.POST:
                 logger.info("Broadcast button clicked")
                 try:
-                    subject = f"Delay {route}, {sta.strftime('%H:%M')} Shift"
-
-                    # Construct HTML message with adjusted table format
+                    subject = f"Delay {route}, {sta.strftime('%H:%M')} Shift" if sta else f"Delay {route}, Unknown Shift Time"
                     message = f"""
                     <html>
                     <body>
@@ -603,9 +628,8 @@ def add_delay_report(request):
                                 <th style="width: 10%;">ATD</th>
                                 <th style="width: 10%;">STA</th>
                                 <th style="width: 10%;">ATA</th>
-                                <th style="width: 10%;">DELAY (min)</th>
+                                <th style="width: 10%;">DELAY (HH:MM:SS)</th>
                                 <th style="width: 10%;">STAFF COUNT</th>
-                                <!-- Remarks column dynamic size based on content -->
                                 <th style="min-width: 200px; max-width: 400px; word-wrap: break-word;">REMARKS</th>
                             </tr>
                         </thead>
@@ -616,11 +640,10 @@ def add_delay_report(request):
                                 <td>{in_out}</td>
                                 <td>{std.strftime('%H:%M')}</td>
                                 <td>{atd.strftime('%H:%M')}</td>
-                                <td>{sta.strftime('%H:%M')}</td>
-                                <td>{ata.strftime('%H:%M')}</td>
-                                <td>{delay}</td>
+                                <td>{sta.strftime('%H:%M') if sta else 'N/A'}</td>
+                                <td>{ata.strftime('%H:%M') if ata else 'N/A'}</td>
+                                <td>{delay_time}</td>
                                 <td>{staff_count}</td>
-                                <!-- Format remarks with proper formatting and spacing -->
                                 <td style="text-align: left; white-space: break-word;">{remarks}</td>
                             </tr>
                         </tbody>
@@ -630,22 +653,7 @@ def add_delay_report(request):
                     </body>
                     </html>
                     """
-
-                    from_email = 'occekg@gmail.com'
-                    recipient_list = ['sarun.ts@et.ae']
-
-                    logger.info("Attempting to send email")
-
-                    # Send the email with HTML content
-                    send_mail(
-                        subject=subject,
-                        message='',  # You can provide a plain text fallback
-                        from_email=from_email,
-                        recipient_list=recipient_list,
-                        fail_silently=False,
-                        html_message=message  # HTML content
-                    )
-
+                    send_mail(subject=subject, message='', from_email='occekg@gmail.com', recipient_list=['sarun.ts@et.ae'], html_message=message)
                     logger.info("Email sent successfully")
                     return JsonResponse({'status': 'success', 'message': 'The delay email has been broadcast successfully.'})
 
@@ -653,11 +661,11 @@ def add_delay_report(request):
                     logger.error(f"Failed to send email: {str(e)}")
                     return JsonResponse({'status': 'error', 'message': f"Failed to send email: {str(e)}"})
             else:
-                logger.info("Form submitted without broadcast")
                 return JsonResponse({'status': 'error', 'message': 'Broadcast option not selected.'})
+
         else:
             logger.error("Delay form is not valid")
             return JsonResponse({'status': 'error', 'message': 'Invalid form data. Please correct the errors.', 'errors': delay_form.errors})
 
-    # Render form for GET requests
-    return render(request, 'duty/Ekg_report.html', {'delay_form': DelayDataForm(prefix='delay')})
+    # Handle GET requests
+    return render(request, 'duty/Ekg_report.html', {'delay_form': DelayDataForm()})
