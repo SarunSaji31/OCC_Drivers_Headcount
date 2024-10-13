@@ -14,116 +14,104 @@
 
     <style>
         body {
-            background-color: #f8f9fa;
+            background-color: #f5f7fa;
             font-family: 'Arial', sans-serif;
         }
 
         .container {
-            max-width: 1400px;
-            margin-top: 30px;
-            margin-bottom: 30px;
+            max-width: 1200px;
+            margin-top: 50px;
+            margin-bottom: 50px;
+            background-color: #ffffff;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
 
-        h1, p {
+        h1 {
             color: #333;
-        }
-
-        .form-control {
-            font-size: 14px;
-            height: 38px;
+            font-weight: 700;
+            margin-bottom: 20px;
         }
 
         .form-container {
-            background-color: #fff;
-            padding: 30px;
-            border: 1px solid #ddd;
-            border-radius: 10px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-        }
-
-        .form-container div {
-            margin-bottom: 15px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            margin-bottom: 30px;
         }
 
         .form-container label {
-            font-weight: bold;
-            color: #555;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-container .form-control {
+            font-size: 15px;
         }
 
         .remarks-column textarea {
             resize: none;
-            font-size: 14px;
-            word-wrap: break-word;
-            white-space: pre-wrap;
-            overflow: hidden;
-        }
-
-        .btn {
-            font-size: 16px;
-            padding: 10px 20px;
-            width: 100%;
-        }
-
-        .remarks-column {
-            width: 100%;
-            grid-column: span 4;
-        }
-
-        .remarks-column textarea {
-            min-height: 100px;
-        }
-
-        @media (max-width: 992px) {
-            .remarks-column {
-                grid-column: span 2;
-            }
-        }
-
-        .button-container {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 20px;
-        }
-
-        .btn-primary {
-            width: 48%;
-        }
-
-        .btn-warning {
-            width: 48%;
-        }
-
-        .form-control-sm {
-            font-size: 14px;
-            height: 36px;
-        }
-
-        .error-message {
-            color: red;
-            font-size: 12px;
-            display: none;
+            font-size: 15px;
+            height: 100px;
         }
 
         .action-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            margin-top: 10px;
         }
 
-        .remove-button {
-            color: red;
+        .remove-button,
+        .clear-button {
             cursor: pointer;
-            font-size: 16px;
-            flex: 1;
-            text-align: left;
+            font-weight: bold;
+            padding: 5px 15px;
+            border: none;
+            background-color: transparent;
+            color: #dc3545;
+            text-align: center;
         }
 
         .clear-button {
-            color: blue;
-            cursor: pointer;
-            font-size: 16px;
-            flex: 1;
+            color: #007bff;
             text-align: right;
+        }
+
+        .btn-warning {
+            background-color: #ffcc00;
+            border-color: #ffcc00;
+            color: #fff;
+        }
+
+        .btn-warning:hover {
+            background-color: #e6b800;
+            border-color: #e6b800;
+        }
+
+        .button-container {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+        .error-message {
+            color: red;
+            font-size: 13px;
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .button-container {
+                justify-content: center;
+            }
+
+            .remove-button,
+            .clear-button {
+                font-size: 14px;
+            }
         }
     </style>
 </head>
@@ -131,13 +119,13 @@
 <body>
 
     <div class="container">
-        <div class="text-center mb-5">
-            <h1 class="display-5">Submit Delay Report</h1>
-            <p class="lead">Fill out the form below to submit multiple delay reports</p>
+        <div class="text-center">
+            <h1>Submit Delay Report</h1>
+            <p class="lead">Complete the form below to submit multiple delay reports.</p>
         </div>
 
-        <!-- Form container for DelayDataForm -->
-        <form id="DelayDataFormSet" method="POST" class="form-container">
+         <!-- Form container for DelayDataForm -->
+         <form id="DelayDataFormSet" method="POST" class="form-container">
             {% csrf_token %}
             <input type="hidden" name="form-TOTAL_FORMS" id="id_form-TOTAL_FORMS" value="1">
             <input type="hidden" name="form-INITIAL_FORMS" id="id_form-INITIAL_FORMS" value="0">
@@ -213,11 +201,12 @@
             </div>
 
             <!-- Button to add a new form -->
-            <button type="button" class="btn btn-secondary mb-3" id="addFormButton">Add New Delay Report</button>
+            <div class="text-right">
+                <button type="button" class="btn btn-secondary mb-3" id="addFormButton">Add New Delay Report</button>
+            </div>
 
             <div class="button-container">
-                <button type="submit" class="btn btn-primary">Submit Report</button>
-                <button type="button" class="btn btn-warning" id="broadcastButton">Broadcast Delay Message to EK</button>
+                <button type="button" class="btn btn-warning" id="broadcastButton">Broadcast and Save</button>
             </div>
         </form>
 
