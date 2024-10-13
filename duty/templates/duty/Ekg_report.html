@@ -124,8 +124,8 @@
             <p class="lead">Complete the form below to submit multiple delay reports.</p>
         </div>
 
-         <!-- Form container for DelayDataForm -->
-         <form id="DelayDataFormSet" method="POST" class="form-container">
+        <!-- Form container for DelayDataForm -->
+        <form id="DelayDataFormSet" method="POST" class="form-container">
             {% csrf_token %}
             <input type="hidden" name="form-TOTAL_FORMS" id="id_form-TOTAL_FORMS" value="1">
             <input type="hidden" name="form-INITIAL_FORMS" id="id_form-INITIAL_FORMS" value="0">
@@ -208,6 +208,12 @@
             <div class="button-container">
                 <button type="button" class="btn btn-warning" id="broadcastButton">Broadcast and Save</button>
             </div>
+
+            <!-- Back Button -->
+            <div class="text-left mt-3">
+                <a href="{% url 'home' %}" class="btn btn-secondary">Back to Home</a>
+            </div>
+
         </form>
 
         <div id="broadcastMessage" class="mt-3"></div>
