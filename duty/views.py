@@ -112,10 +112,10 @@ def success(request):
 
 
 def user_in_driverimportlog_required(view_func):
-    """Custom decorator to allow access only to users in DriverImportLog."""
+    """Custom decorator to deny access to users in DriverImportLog."""
     @wraps(view_func)
     def _wrapped_view(request, *args, **kwargs):
-        if not DriverImportLog.objects.filter(staff_id=request.user.username).exists():
+        if DriverImportLog.objects.filter(staff_id=request.user.username).exists():
             return render(request, 'duty/access_denied.html')
         return view_func(request, *args, **kwargs)
     return _wrapped_view
@@ -527,8 +527,8 @@ def download_duty_card_data_as_excel(date_filter):
 
     return response
 
-
 @login_required
+@user_in_driverimportlog_required
 def admin_dashboard(request):
     """Render the admin dashboard."""
     return render(request, 'duty/admin_dashboard.html')
@@ -561,7 +561,7 @@ def add_reports(request):
         formset = DelayDataFormSet()
 
     # Render the formset
-    return render(request, 'duty/Ekg_report.html', {
+    return render(request, 'duty/ekg_report.html', {
         'formset': formset
     })
 
@@ -656,6 +656,7 @@ def add_delay_report(request):
                     'status': 'error',
                     'message': 'No valid forms submitted. Please provide valid delay data.'
                 })
+            
 
             # Handle email broadcasting if the broadcast button was clicked
             if 'broadcast' in request.POST:
