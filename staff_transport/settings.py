@@ -103,6 +103,19 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'occekg@gmail.com' 
+EMAIL_HOST_PASSWORD = 'ebnm qalt gchy srll' 
+DEFAULT_FROM_EMAIL = 'occekg@gmail.com'
+EMAIL_USE_LOCALTIME = True  # Optional, if necessary
+
+# Enable debugging for emails
+EMAIL_DEBUG = True
+
 # Internationalization settings
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = config('TIME_ZONE', default='UTC')
@@ -128,33 +141,25 @@ LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
     'handlers': {
-        'file': {
-            'level': 'DEBUG',
-            'class': 'logging.FileHandler',
-            'filename': os.path.join(BASE_DIR, 'debug.log'),
+        'console': {
+            'class': 'logging.StreamHandler',
         },
     },
     'loggers': {
         'django': {
-            'handlers': ['file'],
-            'level': 'DEBUG',
+            'handlers': ['console'],
+            'level': 'INFO',  # Change this to WARNING or ERROR to reduce verbosity
+        },
+        'django.request': {
+            'handlers': ['console'],
+            'level': 'ERROR',
             'propagate': True,
         },
     },
 }
-
 # Session settings for auto-logout
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 SESSION_COOKIE_AGE = 300  # 5 minutes
 SESSION_SAVE_EVERY_REQUEST = True
 
-
-
-# Email backend settings for sending emails through Outlook
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.office365.com'  # Outlook SMTP server
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'sarun58874@et.ae'  # Your Outlook email address
-EMAIL_HOST_PASSWORD = 'Kalyani@1996'  # Use the correct email password or App Password
-DEFAULT_FROM_EMAIL = 'sarun.ts@et.ae'  # Same as your Outlook email address
+LOGIN_REDIRECT_URL = '/'

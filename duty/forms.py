@@ -3,7 +3,8 @@ from django.forms import formset_factory
 from .models import DriverTrip, DriverImportLog
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm
-from .models import DelayData, BreakdownData, AccidentsData
+from .models import DelayData
+from .models import BreakdownReport
 
 # Form for handling driver trip entries
 class DriverTripForm(forms.ModelForm):
@@ -85,20 +86,45 @@ class SetNewPasswordForm(forms.Form):
         return cleaned_data
     
 
-# Form for Delay Data
+# forms.py
 class DelayDataForm(forms.ModelForm):
     class Meta:
         model = DelayData
-        fields = ['route', 'in_out', 'std', 'atd', 'sta', 'ata', 'delay', 'staff_count', 'remarks']
+        fields = ['route', 'in_out', 'std', 'atd', 'sta', 'ata', 'staff_count', 'remarks']  
 
-# Form for Breakdown Data
-class BreakdownDataForm(forms.ModelForm):
-    class Meta:
-        model = BreakdownData
-        fields = ['route', 'in_out', 'breakdown_time', 'breakdown_location', 'bus_no', 'issue', 'driver_name', 'staff_id', 'staff_count', 'replacement_driver', 'replacement_bus', 'report_to_ek']
 
-# Form for Accident Data
-class AccidentsDataForm(forms.ModelForm):
+
+
+class DelayDataForm(forms.ModelForm):
     class Meta:
-        model = AccidentsData
-        fields = ['route', 'in_out', 'accident_time', 'accident_location', 'bus_no', 'accident_issue', 'driver_name', 'staff_id', 'staff_count', 'replacement_driver', 'replacement_bus', 'report_to_ek']
+        model = DelayData
+        fields = ['route', 'in_out', 'std', 'atd', 'sta', 'ata', 'staff_count', 'remarks']  
+
+class BreakdownReportForm(forms.ModelForm):
+    class Meta:
+        model = BreakdownReport
+        fields = [
+            'reported_datetime',  # Matches "Date and Time of Report" in the front-end
+            'breakdown_datetime',  # Matches "Breakdown Date and Time"
+            'location',  # Matches "Breakdown Location with the nearest landmark"
+            'route_number',  # Matches "Route #"
+            'trip_work_order',  # Matches "Trip Work Order #"
+            'passengers_involved',  # Matches "No. of passengers involved"
+            'non_ek_passenger_details',  # Matches "Non-EK Passenger Details"
+            'injured_passengers',  # Matches "No. of injured passengers"
+            'action_taken_for_injured',  # Matches "Action taken for injured passenger"
+            'vehicle_damage',  # Matches "Damage to the vehicle(s)" (Yes/No)
+            'driver_name',  # Matches "Driver Name"
+            'driver_id',  # Matches "Driver ID"
+            'driver_shift',  # Matches "Driver Shift"
+            'breakdown_description',  # Matches "Description of the Breakdown"
+            'ek_vehicles_involved',  # Matches "No. of EK vehicles involved"
+            'vehicle_make_plate',  # Matches "Vehicle Make and Plate #"
+            'replacement_vehicle',  # Matches "Replacement vehicle #"
+            'reported_to_person',  # Matches "Reported to person at EK"
+        ]
+        widgets = {
+            'reported_datetime': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
+            'breakdown_datetime': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
+            'vehicle_damage': forms.Select(choices=[('yes', 'Yes'), ('no', 'No')]),  # Dropdown for Yes/No
+        }
