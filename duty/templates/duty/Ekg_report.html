@@ -1,110 +1,348 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ekg Report</title>
+    <title>Submit Delay Report</title>
 
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- jQuery first, then Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <!-- Bootstrap 4 CSS -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
 
     <style>
         body {
-            background-color: #f8f9fa;
+            background-color: #f5f7fa;
             font-family: 'Arial', sans-serif;
         }
+
         .container {
-            max-width: 1200px; /* Limit width for large screens */
+            max-width: 1200px;
             margin-top: 50px;
             margin-bottom: 50px;
-        }
-        .form-section {
             background-color: #ffffff;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* Softer shadow for a professional look */
-            margin-bottom: 30px;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        .form-section:hover {
-            transform: translateY(-5px); /* Slight hover effect for interactivity */
-            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
-        }
-        .form-section h2 {
-            color: #343a40;
-            font-size: 1.5rem;
-            margin-bottom: 20px;
-        }
-        .btn {
-            width: 100%;
-            padding: 12px;
-            font-size: 1rem;
-            font-weight: bold;
-        }
-        .horizontal-form-container {
-            display: flex;
-            justify-content: space-between;
-            gap: 15px; /* Consistent space between the forms */
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
 
-        /* Responsive behavior: Forms stack vertically on smaller screens */
-        @media (max-width: 991px) {
-            .horizontal-form-container {
-                flex-direction: column;
+        h1 {
+            color: #333;
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+
+        .form-container {
+            padding: 20px;
+            background-color: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+
+        .form-container label {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-container .form-control {
+            font-size: 15px;
+        }
+
+        .remarks-column textarea {
+            resize: none;
+            font-size: 15px;
+            height: 100px;
+        }
+
+        .action-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+        }
+
+        .remove-button,
+        .clear-button {
+            cursor: pointer;
+            font-weight: bold;
+            padding: 5px 15px;
+            border: none;
+            background-color: transparent;
+            color: #dc3545;
+            text-align: center;
+        }
+
+        .clear-button {
+            color: #007bff;
+            text-align: right;
+        }
+
+        .btn-warning {
+            background-color: #ffcc00;
+            border-color: #ffcc00;
+            color: #fff;
+        }
+
+        .btn-warning:hover {
+            background-color: #e6b800;
+            border-color: #e6b800;
+        }
+
+        .button-container {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+        .error-message {
+            color: red;
+            font-size: 13px;
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .button-container {
+                justify-content: center;
             }
-            .form-section {
-                margin-bottom: 20px;
+
+            .remove-button,
+            .clear-button {
+                font-size: 14px;
             }
         }
     </style>
 </head>
+
 <body>
-    
+
     <div class="container">
-        <div class="text-center mb-5">
-            <h1 class="display-4">Operational Reports</h1>
-            <p class="lead">Submit your Delay, Breakdown, or Accident reports below</p>
+        <div class="text-center">
+            <h1>Submit Delay Report</h1>
+            <p class="lead">Complete the form below to submit multiple delay reports.</p>
         </div>
 
-        <!-- Horizontal layout container for all forms -->
-        <div class="horizontal-form-container">
+        <!-- Form container for DelayDataForm -->
+        <form id="DelayDataFormSet" method="POST" class="form-container">
+            {% csrf_token %}
+            <input type="hidden" name="form-TOTAL_FORMS" id="id_form-TOTAL_FORMS" value="1">
+            <input type="hidden" name="form-INITIAL_FORMS" id="id_form-INITIAL_FORMS" value="0">
+            <input type="hidden" name="form-MIN_NUM_FORMS" id="id_form-MIN_NUM_FORMS" value="0">
+            <input type="hidden" name="form-MAX_NUM_FORMS" id="id_form-MAX_NUM_FORMS" value="1000">
+            <div id="formset-container">
+                <!-- First delay report form -->
+                <div class="delay-form">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label for="reportDate">DATE</label>
+                            <input type="date" class="form-control form-control-sm" name="form-0-date" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="route">ROUTE</label>
+                            <input type="text" class="form-control form-control-sm" name="form-0-route" required>
+                            <div class="error-message" id="routeError">Route is required</div>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="in_out">IN/OUT</label>
+                            <select class="form-control form-control-sm" name="form-0-in_out" required>
+                                <option value="">Select</option>
+                                <option value="IN">IN</option>
+                                <option value="OUT">OUT</option>
+                            </select>
+                            <div class="error-message" id="inOutError">In/Out is required</div>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="staff_count">STAFF COUNT</label>
+                            <input type="number" class="form-control form-control-sm" name="form-0-staff_count" required>
+                            <div class="error-message" id="staffCountError">Staff count is required</div>
+                        </div>
+                    </div>
 
-            <!-- Form for Delay Report -->
-            <div class="form-section col-lg-4">
-                <h2>Submit Delay Report</h2>
-                <form method="POST">
-                    {% csrf_token %}
-                    {{ delay_form.as_p }}
-                    <button type="submit" class="btn btn-primary mt-3" name="submit" value="submit">Submit Delay Report</button>
-                    <button type="submit" class="btn btn-warning mt-3" name="broadcast" value="broadcast">Broadcast Delay Message to EK</button>
-                </form>
-            </div>
-            
-            <!-- Form for Breakdown Report -->
-            <div class="form-section col-lg-4">
-                <h2>Submit Breakdown Report</h2>
-                <form method="POST">
-                    {% csrf_token %}
-                    {{ breakdown_form.as_p }}
-                    <button type="submit" class="btn btn-secondary mt-3">Submit Breakdown Report</button>
-                </form>
+                    <div class="row">
+                        <div class="col-md-2">
+                            <label for="std">STD</label>
+                            <input type="time" class="form-control form-control-sm" name="form-0-std" required>
+                            <div class="error-message" id="stdError">STD is required</div>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="atd">ATD</label>
+                            <input type="time" class="form-control form-control-sm" name="form-0-atd" required>
+                            <div class="error-message" id="atdError">ATD is required</div>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="sta">STA</label>
+                            <input type="time" class="form-control form-control-sm" name="form-0-sta" required>
+                            <div class="error-message" id="staError">STA is required</div>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="ata">ATA</label>
+                            <input type="time" class="form-control form-control-sm" name="form-0-ata" required>
+                            <div class="error-message" id="ataError">ATA is required</div>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="delay">DELAY (min)</label>
+                            <input type="number" class="form-control form-control-sm" name="form-0-delay" readonly>
+                        </div>
+                    </div>
+
+                    <div class="remarks-column">
+                        <label for="remarks">REMARKS</label>
+                        <textarea class="form-control" name="form-0-remarks" rows="3" placeholder="Provide detailed description..."></textarea>
+                    </div>
+
+                    <div class="action-row">
+                        <span class="remove-button">Remove</span>
+                        <span class="clear-button">Clear</span> <!-- Clear button aligned with Remove button -->
+                    </div>
+                    <hr>
+                </div>
             </div>
 
-            <!-- Form for Accident Report -->
-            <div class="form-section col-lg-4">
-                <h2>Submit Accident Report</h2>
-                <form method="POST">
-                    {% csrf_token %}
-                    {{ accident_form.as_p }}
-                    <button type="submit" class="btn btn-danger mt-3">Submit Accident Report</button>
-                </form>
+            <!-- Button to add a new form -->
+            <div class="text-right">
+                <button type="button" class="btn btn-secondary mb-3" id="addFormButton">Add New Delay Report</button>
             </div>
 
-        </div>
+            <div class="button-container">
+                <button type="button" class="btn btn-warning" id="broadcastButton">Broadcast and Save</button>
+            </div>
+
+            <!-- Back Button -->
+            <div class="text-left mt-3">
+                <a href="{% url 'subcategory_selection' %}" class="btn btn-secondary">Back to Subcategory</a>
+            </div>
+
+        </form>
+
+        <div id="broadcastMessage" class="mt-3"></div>
     </div>
 
-    <!-- Bootstrap JS (for responsive and interactive components) -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Bootstrap 4 JS -->
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const formsetContainer = document.getElementById('formset-container');
+            const addFormButton = document.getElementById('addFormButton');
+            const templateForm = document.querySelector('.delay-form').cloneNode(true); // Store the template
+            let formCount = 1; // Tracks the number of forms
+
+            // Set the default date to today for the initial form
+            const today = new Date().toISOString().split('T')[0];
+            document.querySelectorAll('input[name="form-0-date"]').forEach(input => input.value = today);
+
+            // Function to add a new delay form
+            function addNewDelayForm() {
+                const newForm = templateForm.cloneNode(true); // Use the stored template
+                newForm.querySelectorAll('input').forEach(input => input.value = '');
+                newForm.querySelectorAll('textarea').forEach(textarea => textarea.value = '');
+                newForm.querySelectorAll('.error-message').forEach(error => error.style.display = 'none');
+                newForm.querySelectorAll('input[name="form-0-date"]').forEach(input => input.value = today);
+
+                // Update the form field names for the new form
+                newForm.querySelectorAll('input, select, textarea').forEach(function (input) {
+                    input.name = input.name.replace('form-0-', `form-${formCount}-`);
+                });
+
+                formsetContainer.appendChild(newForm);
+
+                // Add event listener for calculating delay in the new form
+                newForm.querySelector('input[name^="form-"][name$="sta"]').addEventListener('change', calculateDelay);
+                newForm.querySelector('input[name^="form-"][name$="ata"]').addEventListener('change', calculateDelay);
+
+                // Add event listener for removing form
+                newForm.querySelector('.remove-button').addEventListener('click', function () {
+                    formsetContainer.removeChild(newForm);
+                });
+
+                formCount++;
+
+                // Update TOTAL_FORMS value to match the new number of forms
+                document.getElementById('id_form-TOTAL_FORMS').value = formCount;
+            }
+
+            // Add event listener to "Add New Delay Report" button
+            addFormButton.addEventListener('click', addNewDelayForm);
+
+            // Function to calculate time difference in minutes for delay
+            function calculateDelay() {
+                const form = this.closest('.delay-form');
+                const staInput = form.querySelector('input[name^="form-"][name$="sta"]').value;
+                const ataInput = form.querySelector('input[name^="form-"][name$="ata"]').value;
+
+                if (staInput && ataInput) {
+                    const staTime = new Date(`1970-01-01T${staInput}:00`);
+                    const ataTime = new Date(`1970-01-01T${ataInput}:00`);
+
+                    const delayMinutes = Math.floor((ataTime - staTime) / 60000); // convert milliseconds to minutes
+
+                    if (!isNaN(delayMinutes)) {
+                        form.querySelector('input[name^="form-"][name$="delay"]').value = delayMinutes >= 0 ? delayMinutes : '0';
+                    }
+                }
+            }
+
+            // Add event listeners to the initial form
+            document.querySelector('input[name="form-0-sta"]').addEventListener('change', calculateDelay);
+            document.querySelector('input[name="form-0-ata"]').addEventListener('change', calculateDelay);
+
+            // Handle the broadcast button click event
+            document.querySelector('#broadcastButton').addEventListener('click', function (event) {
+                event.preventDefault();
+
+                const form = document.querySelector('#DelayDataFormSet');
+                const formData = new FormData(form);
+                formData.append('broadcast', true);
+
+                fetch("{% url 'ekg_report' %}", {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': formData.get('csrfmiddlewaretoken'),
+                    }
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        const messageDiv = document.querySelector('#broadcastMessage');
+                        if (data.status === 'success') {
+                            messageDiv.innerHTML = `<div class="alert alert-success">Broadcast message sent successfully.</div>`;
+                            clearForm(); // Clear form after success
+                        } else {
+                            messageDiv.innerHTML = `<div class="alert alert-danger">Error: ${data.message}</div>`;
+                        }
+                    })
+                    .catch(error => {
+                        document.querySelector('#broadcastMessage').innerHTML = '<div class="alert alert-danger">An error occurred while sending the broadcast message.</div>';
+                    });
+            });
+
+            // Function to clear all forms
+            function clearForm() {
+                formsetContainer.innerHTML = ''; // Remove all forms
+                addNewDelayForm(); // Add a new empty form after clearing
+                formCount = 1; // Reset form count
+                document.getElementById('id_form-TOTAL_FORMS').value = formCount; // Update TOTAL_FORMS
+            }
+
+            // Add event listener to the "Clear" button
+            document.addEventListener('click', function (e) {
+                if (e.target.classList.contains('clear-button')) {
+                    clearForm();
+                }
+            });
+
+            // Remove form event for the initial form
+            document.querySelector('.remove-button').addEventListener('click', function () {
+                const form = this.closest('.delay-form');
+                if (formsetContainer.children.length > 1) {
+                    formsetContainer.removeChild(form);
+                }
+            });
+        });
+    </script>
 
 </body>
+
 </html>

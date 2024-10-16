@@ -40,7 +40,6 @@
             margin-bottom: 20px;
         }
 
-        /* Increased size of the logo image */
         .header-section img {
             max-width: 150px;
             height: auto;
@@ -88,10 +87,9 @@
             margin: 0;
         }
 
-        /* Improved the staff-name with more professional styling */
         .staff-name {
             position: absolute;
-            top: -10px; /* Moved up */
+            top: -10px;
             left: 20px;
             font-size: 1.4rem;
             font-weight: bold;
@@ -116,7 +114,6 @@
                 padding: 0 10px;
             }
 
-            /* Adjust for smaller screens */
             .staff-name {
                 font-size: 1.2rem;
                 top: -5px;
@@ -153,9 +150,6 @@
                     <a class="nav-link" href="{% url 'report' %}">Reports</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="{% url 'ekg_report' %}">EKG Reports</a> 
-                </li>
-                <li class="nav-item">
                     <a class="nav-link" href="{% url 'dashboard' %}">Dashboard</a>
                 </li>
                 <li class="nav-item">
@@ -166,9 +160,7 @@
     </nav>
 
     <div class="header-section">
-        <!-- Staff name moved up slightly and with better styling -->
         <span class="staff-name">Welcome, {{ staff_name }}!</span>
-        <!-- Increased size of logo -->
         <img src="https://et.ae/wp-content/uploads/2020/03/Logo.svg" alt="Logo">
         <h1>Welcome to OCC-EKG project</h1>
         <p>Manage and track driver details and trip information efficiently.</p>
@@ -176,6 +168,7 @@
 
     <div class="container">
         <div class="card-container">
+            <!-- First Card: Driver Headcount -->
             <div class="card">
                 <img class="card-img-top" src="{% static 'OCC.jpg' %}" alt="OCC">
                 <div class="card-body">
@@ -184,12 +177,24 @@
                     <a href="{% url 'enter_head_count' %}" class="btn btn-primary">Go to form</a>
                 </div>
             </div>
+
+            <!-- Second Card: Report Views -->
             <div class="card">
                 <img class="card-img-top" src="{% static 'occreport.jpg' %}" alt="occreport">
                 <div class="card-body">
                     <h5 class="card-title">Report Views</h5>
                     <p class="card-text">Add and manage driver details with ease.</p>
                     <a href="{% url 'report' %}" class="btn btn-primary">Go to Reports</a>
+                </div>
+            </div>
+
+            <!-- Third card: STM-EKG -->
+            <div class="card">
+                <img class="card-img-top" src="{% static 'new_image.jpg' %}" alt="STM-EKG">
+                <div class="card-body">
+                    <h5 class="card-title">STM-EKG</h5>
+                    <p class="card-text">Add and manage EKSTM project daily activity</p>
+                    <a href="{% url 'subcategory_selection' %}" class="btn btn-primary">Go to Page</a>
                 </div>
             </div>
         </div>

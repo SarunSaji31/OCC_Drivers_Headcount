@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EKG Breakdown Report</title>
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Google Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <!-- Custom CSS for enhanced design -->
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f7f9fc;
+            padding: 0;
+            margin: 0;
+        }
+
+        .container {
+            background-color: #ffffff;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+            max-width: 800px;
+            margin: 80px auto;
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: #343a40;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .form-label {
+            font-weight: 500;
+            font-size: 16px;
+        }
+
+        .form-control {
+            border-radius: 8px;
+            padding: 10px;
+        }
+
+        .submit-btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 8px;
+            transition: background-color 0.3s ease;
+        }
+
+        .submit-btn:hover {
+            background-color: #0056b3;
+        }
+
+        .alert {
+            display: none;
+            margin-top: 20px;
+            padding: 15px;
+        }
+
+        .alert-success {
+            color: #155724;
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+        }
+
+        .alert-danger {
+            color: #721c24;
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            .submit-btn {
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Breakdown Report Form</h1>
+
+    <form id="BreakdownReportForm" method="post" action="{% url 'ekg_breakdown' %}">
+        {% csrf_token %}
+        <div class="row mb-3">
+            <label class="form-label col-md-4" for="reported_datetime">Date and Time of Report</label>
+            <div class="col-md-8">
+                <input type="datetime-local" class="form-control" name="reported_datetime" required>
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <label class="form-label col-md-4" for="breakdown_datetime">Breakdown Date and Time</label>
+            <div class="col-md-8">
+                <input type="datetime-local" class="form-control" name="breakdown_datetime" required>
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <label class="form-label col-md-4" for="location">Breakdown Location</label>
+            <div class="col-md-8">
+                <input type="text" class="form-control" name="location" placeholder="Enter location" required>
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <label class="form-label col-md-4" for="route_number">Route #</label>
+            <div class="col-md-8">
+                <input type="text" class="form-control" name="route_number" placeholder="Enter Route #" required>
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <label class="form-label col-md-4" for="trip_work_order">Trip Work Order #</label>
+            <div class="col-md-8">
+                <input type="text" class="form-control" name="trip_work_order" placeholder="Enter Work Order #" required>
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <label class="form-label col-md-4" for="passengers_involved">No. of passengers involved</label>
+            <div class="col-md-8">
+                <input type="number" class="form-control" name="passengers_involved" required>
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <label class="form-label col-md-4" for="non_ek_passenger_details">Non-EK Passenger Details</label>
+            <div class="col-md-8">
+                <textarea class="form-control" name="non_ek_passenger_details" placeholder="Enter details"></textarea>
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <label class="form-label col-md-4" for="injured_passengers">No. of injured passengers</label>
+            <div class="col-md-8">
+                <input type="number" class="form-control" name="injured_passengers" required>
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <label class="form-label col-md-4" for="action_taken_for_injured">Action taken for injured passenger</label>
+            <div class="col-md-8">
+                <textarea class="form-control" name="action_taken_for_injured" placeholder="Describe action taken"></textarea>
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <label class="form-label col-md-4" for="vehicle_damage">Damage to the vehicle(s)</label>
+            <div class="col-md-8">
+                <select class="form-control" name="vehicle_damage" required>
+                    <option value="yes">Yes</option>
+                    <option value="no">No</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <label class="form-label col-md-4" for="driver_name">Driver Name</label>
+            <div class="col-md-8">
+                <input type="text" class="form-control" name="driver_name" placeholder="Enter Driver Name" required>
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <label class="form-label col-md-4" for="driver_id">Driver ID</label>
+            <div class="col-md-8">
+                <input type="text" class="form-control" name="driver_id" placeholder="Enter Driver ID" required>
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <label class="form-label col-md-4" for="driver_shift">Driver Shift</label>
+            <div class="col-md-8">
+                <input type="text" class="form-control" name="driver_shift" placeholder="Enter Driver Shift" required>
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <label class="form-label col-md-4" for="breakdown_description">Description of the Breakdown</label>
+            <div class="col-md-8">
+                <textarea class="form-control" name="breakdown_description" placeholder="Describe the breakdown" required></textarea>
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <label class="form-label col-md-4" for="ek_vehicles_involved">No. of EK vehicles involved</label>
+            <div class="col-md-8">
+                <input type="number" class="form-control" name="ek_vehicles_involved" required>
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <label class="form-label col-md-4" for="vehicle_make_plate">Vehicle Make and Plate #</label>
+            <div class="col-md-8">
+                <input type="text" class="form-control" name="vehicle_make_plate" placeholder="Enter Vehicle Make and Plate #" required>
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <label class="form-label col-md-4" for="replacement_vehicle">Replacement vehicle #</label>
+            <div class="col-md-8">
+                <input type="text" class="form-control" name="replacement_vehicle" placeholder="Enter Replacement Vehicle #">
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <label class="form-label col-md-4" for="reported_to_person">Reported to person at EK</label>
+            <div class="col-md-8">
+                <input type="text" class="form-control" name="reported_to_person" placeholder="Enter name of EK contact">
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <label class="form-label col-md-4" for="reported_datetime">Reported Date and Time</label>
+            <div class="col-md-8">
+                <input type="datetime-local" class="form-control" name="reported_datetime" required>
+            </div>
+        </div>
+
+        <button type="button" class="submit-btn w-100" id="broadcastButton">Submit and Broadcast Report</button>
+        <div id="broadcastMessage"></div>
+    </form>
+
+    <div class="alert alert-success" id="successMessage">Broadcast message sent successfully.</div>
+    <div class="alert alert-danger" id="errorMessage">An error occurred while sending the broadcast message.</div>
+</div>
+
+<!-- Bootstrap 5 JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelector('#broadcastButton').addEventListener('click', function (event) {
+            event.preventDefault();  // Prevent the form from submitting the traditional way
+
+            const form = document.querySelector('#BreakdownReportForm');
+            const formData = new FormData(form);
+
+            // Get the CSRF token
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+            formData.append('broadcast', true);
+
+            fetch("{% url 'ekg_breakdown' %}", {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    document.getElementById('successMessage').style.display = 'block';
+                    document.getElementById('errorMessage').style.display = 'none';
+                    clearForm();  // Clear form on success
+                } else {
+                    document.getElementById('errorMessage').style.display = 'block';
+                    document.getElementById('successMessage').style.display = 'none';
+                }
+            })
+            .catch(error => {
+                document.getElementById('errorMessage').style.display = 'block';
+                document.getElementById('successMessage').style.display = 'none';
+            });
+        });
+
+        function clearForm() {
+            const inputs = document.querySelectorAll('input, textarea');
+            inputs.forEach(input => input.value = '');
+        }
+    });
+</script>
+
+</body>
+</html>

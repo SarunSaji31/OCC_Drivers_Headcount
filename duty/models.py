@@ -45,52 +45,42 @@ class DriverTrip(models.Model):
         return f"{self.driver.driver_name} - {self.route_name}"
     
 class DelayData(models.Model):
-    date = models.DateField(auto_now_add=True)  # Default current date
+    date = models.DateField(auto_now_add=True)
     route = models.CharField(max_length=255)
     in_out = models.CharField(max_length=50, choices=[('IN', 'IN'), ('OUT', 'OUT')])
-    std = models.TimeField()  # Scheduled Time of Departure
-    atd = models.TimeField()  # Actual Time of Departure
-    sta = models.TimeField()  # Scheduled Time of Arrival
-    ata = models.TimeField()  # Actual Time of Arrival
-    delay = models.IntegerField()  # Consider DurationField if you need more precision
+    std = models.TimeField()  
+    atd = models.TimeField()  
+    sta = models.TimeField()  
+    ata = models.TimeField()  
+    delay = models.CharField(max_length=8)  # Increase the length to accommodate longer delays (HH:MM)
     staff_count = models.IntegerField()
-    remarks = models.TextField(blank=True, null=True)  # Optional remarks
+    remarks = models.TextField(blank=True, null=True) 
 
     def __str__(self):
         return f"Delay on {self.date} for Route {self.route}"
+    
+class BreakdownReport(models.Model):
+   # Section A Fields
+   report_datetime = models.DateTimeField(auto_now_add=True)  # Auto-add the report submission date and time
+   breakdown_datetime = models.DateTimeField()  # Breakdown date and time
+   location = models.CharField(max_length=255)  # Breakdown location
+   route_number = models.CharField(max_length=100)  # Route number
+   trip_work_order = models.CharField(max_length=100)  # Work order number
+   passengers_involved = models.PositiveIntegerField()  # Number of passengers involved
+   ek_staff_numbers = models.TextField(blank=True, null=True)  # EK staff numbers
+   non_ek_passenger_details = models.TextField(blank=True, null=True)  # Details of non-EK passengers
+   injured_passengers = models.PositiveIntegerField(default=0)  # Number of injured passengers
+   action_taken_for_injured = models.TextField(blank=True, null=True)  # Action taken for injured passengers
+   vehicle_damage = models.BooleanField(default=False)  # Whether there was vehicle damage (Yes/No)
+   driver_name = models.CharField(max_length=100)  # Driver's name
+   driver_id = models.CharField(max_length=100)  # Driver's ID number
+   driver_shift = models.CharField(max_length=100)  # Driver's shift
+   breakdown_description = models.TextField()  # Description of the breakdown
+   ek_vehicles_involved = models.PositiveIntegerField(default=0)  # Number of EK vehicles involved
+   vehicle_make_plate = models.CharField(max_length=100)  # Vehicle make and plate number
+   replacement_vehicle = models.CharField(max_length=100, blank=True, null=True)  # Replacement vehicle number (if applicable)
+   reported_to_person = models.CharField(max_length=100)  # Person at EK the incident was reported to
+   reported_datetime = models.DateTimeField()  # Date and time the breakdown was reported
 
-class BreakdownData(models.Model):
-    date = models.DateField(auto_now_add=True)
-    route = models.CharField(max_length=255)
-    in_out = models.CharField(max_length=50, choices=[('IN', 'IN'), ('OUT', 'OUT')])
-    breakdown_time = models.TimeField()
-    breakdown_location = models.CharField(max_length=255)  # Updated to snake_case
-    bus_no = models.CharField(max_length=50)
-    issue = models.TextField()
-    driver_name = models.CharField(max_length=255)
-    staff_id = models.CharField(max_length=100)
-    staff_count = models.IntegerField()
-    replacement_driver = models.CharField(max_length=255, blank=True, null=True)  # Make optional if sometimes there’s no replacement
-    replacement_bus = models.CharField(max_length=50, blank=True, null=True)  # Make optional
-    report_to_ek = models.BooleanField(default=False)
-
-    def __str__(self):
-        return f"Breakdown on {self.date} for Route {self.route}"
-
-class AccidentsData(models.Model):
-    date = models.DateField(auto_now_add=True)
-    route = models.CharField(max_length=255)
-    in_out = models.CharField(max_length=50, choices=[('IN', 'IN'), ('OUT', 'OUT')])
-    accident_time = models.TimeField()
-    accident_location = models.CharField(max_length=255)  # Updated to snake_case
-    bus_no = models.CharField(max_length=50)
-    accident_issue = models.TextField()
-    driver_name = models.CharField(max_length=255)
-    staff_id = models.CharField(max_length=100)
-    staff_count = models.IntegerField()
-    replacement_driver = models.CharField(max_length=255, blank=True, null=True)  # Make optional
-    replacement_bus = models.CharField(max_length=50, blank=True, null=True)  # Make optional
-    report_to_ek = models.BooleanField(default=False)
-
-    def __str__(self):
-        return f"Accident on {self.date} for Route {self.route}"
+   def __str__(self):
+       return f"Breakdown Report {self.id} - {self.breakdown_datetime}"
