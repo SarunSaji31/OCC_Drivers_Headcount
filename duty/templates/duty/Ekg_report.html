@@ -224,14 +224,14 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            const formsetContainer = document.getElementById('formset-container');
-            const addFormButton = document.getElementById('addFormButton');
-            const templateForm = document.querySelector('.delay-form').cloneNode(true); // Store the template
-            let formCount = 1; // Tracks the number of forms
+    const formsetContainer = document.getElementById('formset-container');
+    const addFormButton = document.getElementById('addFormButton');
+    const templateForm = document.querySelector('.delay-form').cloneNode(true); // Store the template
+    let formCount = 1; // Tracks the number of forms
 
-            // Set the default date to today for the initial form
-            const today = new Date().toISOString().split('T')[0];
-            document.querySelectorAll('input[name="form-0-date"]').forEach(input => input.value = today);
+    // Set the default date to today for the initial form
+    const today = new Date().toISOString().split('T')[0];
+    document.querySelectorAll('input[name="form-0-date"]').forEach(input => input.value = today);
 
             // Function to add a new delay form
             function addNewDelayForm() {
@@ -296,7 +296,7 @@
                 const formData = new FormData(form);
                 formData.append('broadcast', true);
 
-                fetch("{% url 'ekg_report' %}", {
+                fetch("{% url 'add_delay_report' %}", {  // Use the correct view name here
                     method: 'POST',
                     body: formData,
                     headers: {
@@ -341,6 +341,7 @@
                 }
             });
         });
+
     </script>
 
 </body>
