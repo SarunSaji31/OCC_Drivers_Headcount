@@ -22,32 +22,41 @@
 
         .container {
             background-color: #fff;
-            padding: 80px;
+            padding: 40px;
             border-radius: 12px;
             box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
-            max-width: 900px;
-            margin: 100px auto;
+            max-width: 800px;
+            margin: 60px auto;
             text-align: center;
         }
 
+        .logout-link {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 16px;
+            font-weight: 500;
+            color: #dc3545;
+        }
+
         h1 {
-            font-size: 36px;
+            font-size: 32px;
             font-weight: 700;
             color: #333;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
         }
 
         p.lead {
             color: #666;
-            font-size: 20px;
-            margin-bottom: 50px;
+            font-size: 18px;
+            margin-bottom: 30px;
         }
 
         .btn-custom {
-            padding: 15px 40px;
-            font-size: 18px;
+            padding: 12px 30px;
+            font-size: 16px;
             font-weight: 600;
-            border-radius: 10px;
+            border-radius: 8px;
             transition: all 0.3s ease;
             letter-spacing: 1px;
             text-transform: uppercase;
@@ -55,51 +64,51 @@
 
         .btn-primary-custom {
             background-color: #007bff;
-            border: 2px solid transparent;
+            border: none;
             color: #fff;
-            box-shadow: 0 5px 15px rgba(13, 110, 253, 0.2);
+            box-shadow: 0 5px 10px rgba(0, 123, 255, 0.2);
         }
 
         .btn-primary-custom:hover {
             background-color: #0056b3;
-            box-shadow: 0 8px 20px rgba(13, 110, 253, 0.3);
+            box-shadow: 0 8px 15px rgba(0, 123, 255, 0.3);
         }
 
         .btn-secondary-custom {
             background-color: #6c757d;
-            border: 2px solid transparent;
+            border: none;
             color: #fff;
-            box-shadow: 0 5px 15px rgba(108, 117, 125, 0.2);
+            box-shadow: 0 5px 10px rgba(108, 117, 125, 0.2);
         }
 
         .btn-secondary-custom:hover {
             background-color: #565e64;
-            box-shadow: 0 8px 20px rgba(108, 117, 125, 0.3);
+            box-shadow: 0 8px 15px rgba(108, 117, 125, 0.3);
         }
 
         .btn-home {
-            margin-top: 40px;
+            margin-top: 30px;
             background-color: #28a745;
-            border: 2px solid transparent;
+            border: none;
             color: #fff;
-            box-shadow: 0 5px 15px rgba(40, 167, 69, 0.2);
+            box-shadow: 0 5px 10px rgba(40, 167, 69, 0.2);
         }
 
         .btn-home:hover {
             background-color: #218838;
-            box-shadow: 0 8px 20px rgba(40, 167, 69, 0.3);
+            box-shadow: 0 8px 15px rgba(40, 167, 69, 0.3);
         }
 
-        /* Button hover and shadow effect */
+        /* Button hover effect */
         .btn-custom:hover {
-            transform: translateY(-4px);
+            transform: translateY(-3px);
             transition: transform 0.3s ease, background-color 0.3s ease;
         }
 
         .footer {
             text-align: center;
             font-size: 16px;
-            margin-top: 60px;
+            margin-top: 40px;
             color: #888;
         }
 
@@ -114,7 +123,7 @@
 
         /* Fade-in animation */
         .container {
-            animation: fadeIn 1s ease-in-out;
+            animation: fadeIn 0.8s ease-in-out;
         }
 
         @keyframes fadeIn {
@@ -130,16 +139,16 @@
 
         @media (max-width: 768px) {
             .container {
-                padding: 40px;
+                padding: 30px;
             }
 
             h1 {
-                font-size: 28px;
+                font-size: 26px;
             }
 
             .btn-custom {
-                padding: 12px 25px;
-                font-size: 16px;
+                padding: 10px 20px;
+                font-size: 14px;
             }
 
             p.lead {
@@ -150,16 +159,22 @@
 </head>
 <body>
 
+<!-- Logout link -->
+<a href="{% url 'logout' %}" class="logout-link">Logout</a>
+
 <div class="container">
     <h1>Select Subcategory</h1>
     <p class="lead">Please choose a subcategory to proceed with.</p>
 
-    <div class="d-grid gap-3 d-md-block">
+    <div class="d-grid gap-3 d-md-flex justify-content-center">
         <!-- Button to go to EKG Report page -->
         <a href="{% url 'ekg_report' %}" class="btn btn-primary-custom btn-custom">EKG Delay Report</a>
 
         <!-- Button to go to EKG Breakdown page -->
         <a href="{% url 'ekg_breakdown' %}" class="btn btn-secondary-custom btn-custom">EKG Breakdown</a>
+
+        <!-- Button to go to STM Dashboard page -->
+        <a href="{% url 'stm_dashboard' %}" class="btn btn-primary-custom btn-custom">STM Dashboard</a>
     </div>
 
     <!-- Back to Home Button -->
@@ -170,9 +185,8 @@
     <p>&copy; 2024 Emirates General Transport. <a href="#">Privacy Policy</a></p>
 </div>
 
-<!-- Bootstrap 5 JS (Optional) -->
+<!-- Bootstrap 5 JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
 
 </body>
 </html>
-   

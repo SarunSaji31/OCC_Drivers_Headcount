@@ -30,7 +30,13 @@ from docx.shared import Pt
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
+from .models import DelayData, BreakdownReport
 
+import openpyxl
+from openpyxl.utils import get_column_letter
+from django.http import HttpResponse
+from .models import DelayData, BreakdownReport
+from django.utils.timezone import now
 
 # Setup logger
 logger = logging.getLogger(__name__)
@@ -574,6 +580,7 @@ def add_reports(request):
     return render(request, 'duty/ekg_report.html', {
         'formset': formset
     })
+
 @login_required
 def add_delay_report(request):
     logger.info("add_delay_report view called")
@@ -593,84 +600,82 @@ def add_delay_report(request):
             delay_entries = []
             total_valid_forms = 0  # To count how many forms are processed
             for i, form in enumerate(formset):
-                # Extract the form data
-                date = form.cleaned_data.get('date')
-                route = form.cleaned_data.get('route')
-                in_out = form.cleaned_data.get('in_out')
-                std = form.cleaned_data.get('std')
-                atd = form.cleaned_data.get('atd')
-                sta = form.cleaned_data.get('sta')
-                ata = form.cleaned_data.get('ata')
-                staff_count = form.cleaned_data.get('staff_count')
-                remarks = form.cleaned_data.get('remarks')
+                if form.is_valid():
+                    # Extract the form data
+                    date = form.cleaned_data.get('date')
+                    route = form.cleaned_data.get('route')
+                    in_out = form.cleaned_data.get('in_out')
+                    std = form.cleaned_data.get('std')
+                    atd = form.cleaned_data.get('atd')
+                    sta = form.cleaned_data.get('sta')
+                    ata = form.cleaned_data.get('ata')
+                    staff_count = form.cleaned_data.get('staff_count')
+                    remarks = form.cleaned_data.get('remarks')
 
-                # Skip forms missing essential fields
-                if not route or not std or not atd or not sta or not ata:
-                    logger.warning(f"Form {i + 1} is missing required fields. Skipping this form.")
-                    continue  # Skip the current form and move to the next
+                    # Skip forms missing essential fields
+                    if not route or not std or not atd or not sta or not ata:
+                        logger.warning(f"Form {i + 1} is missing required fields. Skipping this form.")
+                        continue  # Skip the current form and move to the next
 
-                # Count the valid form
-                total_valid_forms += 1
+                    total_valid_forms += 1
 
-                # Check if date is None and log a warning or assign a default value
-                if date is None:
-                    logger.warning(f"Date is missing in form {i + 1}. Using today's date as fallback.")
-                    date = timezone.now().date()
+                    if date is None:
+                        logger.warning(f"Date is missing in form {i + 1}. Using today's date as fallback.")
+                        date = timezone.now().date()
 
-                # Calculate delay as a timedelta and then convert to time (HH:MM:SS)
-                if sta and ata:
-                    sta_time = datetime.combine(date, sta)
-                    ata_time = datetime.combine(date, ata)
-                    delay = ata_time - sta_time  # Result is timedelta
-                    delay_seconds = int(delay.total_seconds())
-                    delay_hours, remainder = divmod(delay_seconds, 3600)
-                    delay_minutes, _ = divmod(remainder, 60)
+                    # Calculate delay as a timedelta and then convert to time (HH:MM:SS)
+                    if sta and ata:
+                        sta_time = datetime.combine(date, sta)
+                        ata_time = datetime.combine(date, ata)
+                        delay = ata_time - sta_time
+                        delay_seconds = int(delay.total_seconds())
+                        delay_hours, remainder = divmod(delay_seconds, 3600)
+                        delay_minutes, _ = divmod(remainder, 60)
+                        delay_time = time(hour=int(delay_hours), minute=int(delay_minutes))
+                        logger.info(f"Calculated delay for form {i + 1}: {delay_time}")
+                    else:
+                        delay_time = time(0, 0, 0)
+                        logger.warning(f"STA or ATA is missing in form {i + 1}; delay set to 00:00:00")
 
-                    # Convert to time object (HH:MM:SS)
-                    delay_time = time(hour=int(delay_hours), minute=int(delay_minutes))
-                    logger.info(f"Calculated delay for form {i + 1}: {delay_time}")
-                else:
-                    delay_time = time(0, 0, 0)  # Default to 00:00:00 if STA or ATA is missing
-                    logger.warning(f"STA or ATA is missing in form {i + 1}; delay set to 00:00:00")
+                    # Save form data with delay as a time object
+                    try:
+                        delay_instance = form.save(commit=False)
+                        delay_instance.delay = delay_time
+                        delay_instance.save()
 
-                # Save form data with delay as a time object
-                try:
-                    delay_instance = form.save(commit=False)
-                    delay_instance.delay = delay_time
-                    delay_instance.save()
+                        # Collect details for email
+                        delay_entries.append({
+                            'date': date.strftime('%Y-%m-%d'),
+                            'route': route,
+                            'in_out': in_out,
+                            'std': std.strftime('%H:%M'),
+                            'atd': atd.strftime('%H:%M'),
+                            'sta': sta.strftime('%H:%M') if sta else 'N/A',
+                            'ata': ata.strftime('%H:%M') if ata else 'N/A',
+                            'delay': delay_time.strftime('%H:%M:%S'),
+                            'staff_count': staff_count,
+                            'remarks': remarks,
+                        })
 
-                    # Collect details for email
-                    delay_entries.append({
-                        'date': date.strftime('%Y-%m-%d'),
-                        'route': route,
-                        'in_out': in_out,
-                        'std': std.strftime('%H:%M'),
-                        'atd': atd.strftime('%H:%M'),
-                        'sta': sta.strftime('%H:%M') if sta else 'N/A',
-                        'ata': ata.strftime('%H:%M') if ata else 'N/A',
-                        'delay': delay_time.strftime('%H:%M:%S'),
-                        'staff_count': staff_count,
-                        'remarks': remarks,
-                    })
+                    except IntegrityError as e:
+                        logger.error(f"Database error occurred while saving form {i + 1}: {str(e)}")
+                        return JsonResponse({
+                            'status': 'error',
+                            'message': f"Database error occurred while saving form {i + 1}: {str(e)}"
+                        })
 
-                except IntegrityError as e:
-                    logger.error(f"Database error occurred while saving form {i + 1}: {str(e)}")
-                    return JsonResponse({
-                        'status': 'error',
-                        'message': f"Database error occurred while saving form {i + 1}: {str(e)}"
-                    })
-
-            # Check if no valid forms were submitted
+            # If no valid forms were submitted
             if total_valid_forms == 0:
+                logger.error("No valid forms submitted.")
                 return JsonResponse({
                     'status': 'error',
                     'message': 'No valid forms submitted. Please provide valid delay data.'
                 })
-            
 
             # Handle email broadcasting if the broadcast button was clicked
             if 'broadcast' in request.POST:
                 logger.info("Broadcast button clicked")
+
                 try:
                     # Set the subject based on the number of forms submitted
                     if total_valid_forms == 1:
@@ -725,8 +730,18 @@ def add_delay_report(request):
                     </html>
                     """
 
+                    # Log the message content before sending (for debugging)
+                    logger.debug(f"Email content: {message}")
+
                     # Send the email
-                    send_mail(subject=subject, message='', from_email='occekg@gmail.com', recipient_list=['sarun.ts@et.ae'], html_message=message)
+                    send_mail(
+                        subject=subject,
+                        message='',  # Empty plain text message since we're sending HTML
+                        from_email='occekg@gmail.com',
+                        recipient_list=['sarun.ts@et.ae'],
+                        html_message=message
+                    )
+
                     logger.info("Email sent successfully")
                     return JsonResponse({'status': 'success', 'message': 'The delay email has been broadcast successfully.'})
 
@@ -736,7 +751,9 @@ def add_delay_report(request):
                         'status': 'error',
                         'message': f"Failed to send email: {str(e)}"
                     })
+
             else:
+                logger.warning("Broadcast option not selected")
                 return JsonResponse({
                     'status': 'error',
                     'message': 'Broadcast option not selected.'
@@ -744,19 +761,24 @@ def add_delay_report(request):
 
         else:
             logger.error("Formset validation failed")
+            logger.error(formset.errors)  # Log detailed formset errors for debugging
             return JsonResponse({
                 'status': 'error',
                 'message': 'Invalid form data. Please correct the errors.',
                 'errors': formset.errors
             })
 
+    return render(request, 'duty/add_delay_report.html', {'formset': DelayDataFormSet()})
+
+@login_required
+@user_in_driverimportlog_required
 # Define the subcategory selection view
 def subcategory_selection(request):
     return render(request, 'duty/subcategory_selection.html')
 
 
 logger = logging.getLogger(__name__)
-
+@login_required
 # View for EKG Breakdown Report Submission
 def ekg_breakdown(request):
    if request.method == 'POST':
@@ -800,7 +822,7 @@ def set_cell_border(cell, **kwargs):
             element.set(qn('w:space'), str(edge_data.get("space", 0)))
             element.set(qn('w:color'), edge_data.get("color", "000000"))
             tcPr.append(element)
-
+@login_required
 def send_breakdown_report_email(breakdown_report):
     try:
         # Create the Word document with report details
@@ -932,3 +954,118 @@ def send_breakdown_report_email(breakdown_report):
 
     # If the request method is incorrect
     return JsonResponse({'status': 'error', 'message': 'Invalid request method.'})
+
+
+@login_required
+def stm_dashboard(request):
+    """
+    Renders the STM dashboard.
+    """
+    return render(request, 'duty/STM_dashboard.html')
+
+
+logger = logging.getLogger(__name__)
+
+def fleet_counts_api(request):
+    """
+    API to return daily, monthly, and total delay and breakdown counts.
+    """
+    today = timezone.now().date()
+    month_start = today.replace(day=1)
+
+    # Query daily and monthly delay counts
+    daily_delay_count = DelayData.objects.filter(date=today).count()
+    monthly_delay_count = DelayData.objects.filter(date__gte=month_start).count()
+
+    # Query daily and monthly breakdown counts
+    daily_breakdown_count = BreakdownReport.objects.filter(breakdown_datetime__date=today).count()
+    monthly_breakdown_count = BreakdownReport.objects.filter(breakdown_datetime__date__gte=month_start).count()
+
+    # Query total delay and breakdown counts (for the entire dataset)
+    total_delay_count = DelayData.objects.all().count()
+    total_breakdown_count = BreakdownReport.objects.all().count()
+
+    # Prepare the response data
+    data = {
+        'daily_delay_count': daily_delay_count,
+        'monthly_delay_count': monthly_delay_count,
+        'daily_breakdown_count': daily_breakdown_count,
+        'monthly_breakdown_count': monthly_breakdown_count,
+        'total_delay_count': total_delay_count,
+        'total_breakdown_count': total_breakdown_count
+    }
+
+    return JsonResponse(data)
+
+
+def download_fleet_report(request):
+    """
+    Function to download fleet delay or breakdown reports as XLSX.
+    """
+    # Get request parameters
+    report_type = request.GET.get('report_type')  # daily, monthly, or total
+    report_category = request.GET.get('report_category')  # delay or breakdown
+
+    # Define the query based on the report type
+    today = timezone.now().date()
+    month_start = today.replace(day=1)
+    
+    if report_type == 'daily':
+        if report_category == 'delay':
+            queryset = DelayData.objects.filter(date=today)
+        elif report_category == 'breakdown':
+            queryset = BreakdownReport.objects.filter(breakdown_datetime__date=today)
+    elif report_type == 'monthly':
+        if report_category == 'delay':
+            queryset = DelayData.objects.filter(date__gte=month_start)
+        elif report_category == 'breakdown':
+            queryset = BreakdownReport.objects.filter(breakdown_datetime__date__gte=month_start)
+    elif report_type == 'total':
+        if report_category == 'delay':
+            queryset = DelayData.objects.all()
+        elif report_category == 'breakdown':
+            queryset = BreakdownReport.objects.all()
+
+    # Create an Excel workbook
+    workbook = openpyxl.Workbook()
+    worksheet = workbook.active
+
+    # Define headers for the Excel sheet
+    if report_category == 'delay':
+        headers = ['Date', 'Route', 'STA', 'ATA', 'Remarks', 'Staff Count']  # Removed 'shift_time'
+        worksheet.append(headers)
+        # Add data to Excel rows
+        for delay in queryset:
+            worksheet.append([
+                delay.date, 
+                delay.route,  # Correct field name for route
+                delay.sta.strftime('%H:%M') if delay.sta else None,
+                delay.ata.strftime('%H:%M') if delay.ata else None,
+                delay.remarks, 
+                delay.staff_count
+            ])
+
+    elif report_category == 'breakdown':
+        headers = ['Report Date', 'Breakdown Date', 'Location', 'Route #', 'Trip Work Order', 'Injured Passengers', 'Driver Name', 'Remarks']
+        worksheet.append(headers)
+        # Add data to Excel rows
+        for breakdown in queryset:
+            worksheet.append([
+                breakdown.reported_datetime.strftime('%Y-%m-%d %H:%M'),
+                breakdown.breakdown_datetime.strftime('%Y-%m-%d %H:%M'),
+                breakdown.location,
+                breakdown.route_number,
+                breakdown.trip_work_order,
+                breakdown.injured_passengers,
+                breakdown.driver_name,
+                breakdown.breakdown_description
+            ])
+
+    # Prepare the response as an XLSX file
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename="{report_category}_{report_type}_report.xlsx"'
+    
+    # Save workbook to the response
+    workbook.save(response)
+    
+    return response
