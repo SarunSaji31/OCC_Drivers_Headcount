@@ -80,6 +80,29 @@
             border-color: #f5c6cb;
         }
 
+        /* Back link style */
+        .back-link {
+            display: inline-block;
+            color: #007bff;
+            font-weight: 500;
+            text-decoration: none;
+            padding: 10px 20px;
+            background-color: #f1f1f1;
+            border-radius: 5px;
+            transition: background-color 0.3s ease, box-shadow 0.3s ease;
+            margin-bottom: 20px;
+        }
+
+        .back-link:hover {
+            background-color: #e0e0e0;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+            text-decoration: none;
+        }
+
+        .back-link i {
+            margin-right: 8px;
+        }
+
         @media (max-width: 768px) {
             .container {
                 padding: 20px;
@@ -92,12 +115,22 @@
             .submit-btn {
                 font-size: 14px;
             }
+
+            .back-link {
+                font-size: 16px;
+                padding: 8px 15px;
+            }
         }
     </style>
 </head>
 <body>
 
 <div class="container">
+    <!-- Link to go back to Subcategory Page -->
+    <a href="/subcategory/" class="back-link">
+        <i class="fas fa-arrow-left"></i> Back to Subcategory
+    </a>
+
     <h1>Breakdown Report Form</h1>
 
     <form id="BreakdownReportForm" method="post" action="{% url 'ekg_breakdown' %}">

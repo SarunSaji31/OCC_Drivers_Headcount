@@ -4,6 +4,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from .views import add_reports, add_delay_report  # Import both views
 from .views import send_breakdown_report_email
+from .views import stm_dashboard, fleet_counts_api,download_fleet_report
 
 urlpatterns = [
    # Root URL (home page)
@@ -58,6 +59,11 @@ urlpatterns = [
    # EKG Breakdown Page (To be implemented)
    path('ekg-breakdown/', views.ekg_breakdown, name='ekg_breakdown'), 
    path('send-breakdown-report/', send_breakdown_report_email, name='send_breakdown_report'),
+
+   # STM Dashboard
+    path('stm-dashboard/', stm_dashboard, name='stm_dashboard'),
+    path('api/fleet-counts/', fleet_counts_api, name='fleet_counts_api'),
+    path('download_fleet_report/', download_fleet_report, name='download_fleet_report'),
 ]
 
 # Serve static files during development
