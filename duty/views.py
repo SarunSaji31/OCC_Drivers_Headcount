@@ -547,7 +547,6 @@ def admin_dashboard(request):
     return render(request, 'duty/admin_dashboard.html')
 
 logger = logging.getLogger(__name__)
-@login_required
 def add_reports(request):
     """Handles adding multiple delay reports."""
     # Create a formset for multiple delay forms
@@ -578,7 +577,7 @@ def add_reports(request):
         'formset': formset
     })
 
-@login_required
+
 def add_delay_report(request):
     logger.info("add_delay_report view called")
 
@@ -767,15 +766,13 @@ def add_delay_report(request):
 
     return render(request, 'duty/add_delay_report.html', {'formset': DelayDataFormSet()})
 
-@login_required
-@user_in_driverimportlog_required
 # Define the subcategory selection view
+@user_in_driverimportlog_required
 def subcategory_selection(request):
     return render(request, 'duty/subcategory_selection.html')
 
 
 logger = logging.getLogger(__name__)
-@login_required
 # View for EKG Breakdown Report Submission
 def ekg_breakdown(request):
    if request.method == 'POST':
@@ -953,7 +950,7 @@ def send_breakdown_report_email(breakdown_report):
     return JsonResponse({'status': 'error', 'message': 'Invalid request method.'})
 
 
-@login_required
+
 def stm_dashboard(request):
     """
     Renders the STM dashboard.
