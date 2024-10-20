@@ -819,7 +819,7 @@ def set_cell_border(cell, **kwargs):
             element.set(qn('w:space'), str(edge_data.get("space", 0)))
             element.set(qn('w:color'), edge_data.get("color", "000000"))
             tcPr.append(element)
-@login_required
+
 def send_breakdown_report_email(breakdown_report):
     try:
         # Create the Word document with report details
@@ -1029,21 +1029,28 @@ def download_fleet_report(request):
 
     # Define headers for the Excel sheet
     if report_category == 'delay':
-        headers = ['Date', 'Route', 'STA', 'ATA', 'Remarks', 'Staff Count']  # Removed 'shift_time'
+        headers = ['Date', 'Route', 'In/Out', 'STD', 'STA', 'ATD', 'ATA', 'Delay', 'Remarks', 'Staff Count']  # Added missing fields
         worksheet.append(headers)
         # Add data to Excel rows
         for delay in queryset:
             worksheet.append([
                 delay.date, 
                 delay.route,  # Correct field name for route
-                delay.sta.strftime('%H:%M') if delay.sta else None,
+                delay.in_out,  # Added 'in_out'
+                delay.std.strftime('%H:%M') if delay.std else None,  # Added 'std'
+                delay.sta.strftime('%H:%M') if delay.sta else None, 
+                delay.atd.strftime('%H:%M') if delay.atd else None,  # Added 'atd'
                 delay.ata.strftime('%H:%M') if delay.ata else None,
+                delay.delay,  # Added 'delay'
                 delay.remarks, 
                 delay.staff_count
             ])
 
     elif report_category == 'breakdown':
-        headers = ['Report Date', 'Breakdown Date', 'Location', 'Route #', 'Trip Work Order', 'Injured Passengers', 'Driver Name', 'Remarks']
+        headers = ['Report Date', 'Breakdown Date', 'Location', 'Route #', 'Trip Work Order', 'Passengers Involved', 
+                   'EK Staff Numbers', 'Non-EK Passenger Details', 'Injured Passengers', 'Action Taken for Injured',
+                   'Vehicle Damage', 'Driver Name', 'Driver ID', 'Driver Shift', 'Breakdown Description', 
+                   'EK Vehicles Involved', 'Vehicle Make and Plate', 'Replacement Vehicle', 'Reported To', 'Reported Date']
         worksheet.append(headers)
         # Add data to Excel rows
         for breakdown in queryset:
@@ -1053,9 +1060,21 @@ def download_fleet_report(request):
                 breakdown.location,
                 breakdown.route_number,
                 breakdown.trip_work_order,
+                breakdown.passengers_involved,
+                breakdown.ek_staff_numbers,
+                breakdown.non_ek_passenger_details,
                 breakdown.injured_passengers,
+                breakdown.action_taken_for_injured,
+                breakdown.vehicle_damage,
                 breakdown.driver_name,
-                breakdown.breakdown_description
+                breakdown.driver_id,
+                breakdown.driver_shift,
+                breakdown.breakdown_description,
+                breakdown.ek_vehicles_involved,
+                breakdown.vehicle_make_plate,
+                breakdown.replacement_vehicle,
+                breakdown.reported_to_person,
+                breakdown.reported_datetime.strftime('%Y-%m-%d %H:%M')
             ])
 
     # Prepare the response as an XLSX file
