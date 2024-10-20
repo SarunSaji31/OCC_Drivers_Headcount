@@ -31,11 +31,8 @@ from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 from .models import DelayData, BreakdownReport
-
 import openpyxl
 from openpyxl.utils import get_column_letter
-from django.http import HttpResponse
-from .models import DelayData, BreakdownReport
 from django.utils.timezone import now
 
 # Setup logger
