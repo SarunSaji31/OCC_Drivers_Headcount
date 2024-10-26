@@ -1,0 +1,3 @@
+2024-10-26 07:55:14,062 - ERROR - Error at row 2: StmRoute C02 does not exist. Skipping...
+2024-10-26 07:55:14,062 - ERROR - Invalid time value 'X' at row 3. Replacing with '00:00:00'
+2024-10-26 07:58:05,618 - ERROR - Invalid time value 'X' at row 2. Replacing with '00:00:00'

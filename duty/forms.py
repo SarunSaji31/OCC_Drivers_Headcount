@@ -92,9 +92,6 @@ class DelayDataForm(forms.ModelForm):
         model = DelayData
         fields = ['route', 'in_out', 'std', 'atd', 'sta', 'ata', 'staff_count', 'remarks']  
 
-
-
-
 class DelayDataForm(forms.ModelForm):
     class Meta:
         model = DelayData

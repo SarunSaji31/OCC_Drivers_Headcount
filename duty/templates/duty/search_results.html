@@ -1,0 +1,46 @@
+<!-- templates/search_results.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Results</title>
+    <!-- Add your styles and Bootstrap links here if needed -->
+</head>
+<body>
+    <h1>Search Results</h1>
+
+    {% if routes %}
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Route Code</th>
+                    <th>Type</th>
+                    <th>Shift Time</th>
+                    <th>Pickup Points</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for route in routes %}
+                <tr>
+                    <td>{{ route.route_code }}</td>
+                    <td>{{ route.route_type }}</td>
+                    <td>
+                        {% for shift in route.shift_set.all %}
+                            {{ shift.shift_time }}<br>
+                        {% endfor %}
+                    </td>
+                    <td>
+                        {% for point in route.pickuppoint_set.all %}
+                            {{ point.pick_up_point }} ({{ point.work_hub }})<br>
+                        {% endfor %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No routes found for your search criteria.</p>
+    {% endif %}
+</body>
+</html>

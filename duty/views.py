@@ -31,12 +31,12 @@ from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 from .models import DelayData, BreakdownReport
-
 import openpyxl
 from openpyxl.utils import get_column_letter
-from django.http import HttpResponse
-from .models import DelayData, BreakdownReport
 from django.utils.timezone import now
+from django.http import HttpResponseRedirect
+from django.core.management.base import BaseCommand
+from duty.models import StmRoute, StmPickupPoint, StmShiftTime
 
 # Setup logger
 logger = logging.getLogger(__name__)
@@ -550,7 +550,6 @@ def admin_dashboard(request):
     return render(request, 'duty/admin_dashboard.html')
 
 logger = logging.getLogger(__name__)
-@login_required
 def add_reports(request):
     """Handles adding multiple delay reports."""
     # Create a formset for multiple delay forms
@@ -577,11 +576,11 @@ def add_reports(request):
         formset = DelayDataFormSet()
 
     # Render the formset
-    return render(request, 'duty/ekg_report.html', {
+    return render(request, 'duty/Ekg_report.html', {
         'formset': formset
     })
+logger = logging.getLogger(__name__)
 
-@login_required
 def add_delay_report(request):
     logger.info("add_delay_report view called")
 
@@ -743,7 +742,7 @@ def add_delay_report(request):
                     )
 
                     logger.info("Email sent successfully")
-                    return JsonResponse({'status': 'success', 'message': 'The delay email has been broadcast successfully.'})
+                    return HttpResponseRedirect(reverse('add_delay_report'))  # Refresh the page after success
 
                 except Exception as e:
                     logger.error(f"Failed to send email: {str(e)}")
@@ -751,13 +750,6 @@ def add_delay_report(request):
                         'status': 'error',
                         'message': f"Failed to send email: {str(e)}"
                     })
-
-            else:
-                logger.warning("Broadcast option not selected")
-                return JsonResponse({
-                    'status': 'error',
-                    'message': 'Broadcast option not selected.'
-                })
 
         else:
             logger.error("Formset validation failed")
@@ -768,17 +760,14 @@ def add_delay_report(request):
                 'errors': formset.errors
             })
 
-    return render(request, 'duty/add_delay_report.html', {'formset': DelayDataFormSet()})
+    return render(request, 'duty/Ekg_report.html', {'formset': DelayDataFormSet()})
 
-@login_required
-@user_in_driverimportlog_required
 # Define the subcategory selection view
+@user_in_driverimportlog_required
 def subcategory_selection(request):
     return render(request, 'duty/subcategory_selection.html')
 
-
 logger = logging.getLogger(__name__)
-@login_required
 # View for EKG Breakdown Report Submission
 def ekg_breakdown(request):
    if request.method == 'POST':
@@ -822,7 +811,7 @@ def set_cell_border(cell, **kwargs):
             element.set(qn('w:space'), str(edge_data.get("space", 0)))
             element.set(qn('w:color'), edge_data.get("color", "000000"))
             tcPr.append(element)
-@login_required
+
 def send_breakdown_report_email(breakdown_report):
     try:
         # Create the Word document with report details
@@ -955,8 +944,6 @@ def send_breakdown_report_email(breakdown_report):
     # If the request method is incorrect
     return JsonResponse({'status': 'error', 'message': 'Invalid request method.'})
 
-
-@login_required
 def stm_dashboard(request):
     """
     Renders the STM dashboard.
@@ -997,7 +984,6 @@ def fleet_counts_api(request):
 
     return JsonResponse(data)
 
-
 def download_fleet_report(request):
     """
     Function to download fleet delay or breakdown reports as XLSX.
@@ -1032,21 +1018,28 @@ def download_fleet_report(request):
 
     # Define headers for the Excel sheet
     if report_category == 'delay':
-        headers = ['Date', 'Route', 'STA', 'ATA', 'Remarks', 'Staff Count']  # Removed 'shift_time'
+        headers = ['Date', 'Route', 'In/Out', 'STD', 'STA', 'ATD', 'ATA', 'Delay', 'Remarks', 'Staff Count']  # Added missing fields
         worksheet.append(headers)
         # Add data to Excel rows
         for delay in queryset:
             worksheet.append([
                 delay.date, 
                 delay.route,  # Correct field name for route
-                delay.sta.strftime('%H:%M') if delay.sta else None,
+                delay.in_out,  # Added 'in_out'
+                delay.std.strftime('%H:%M') if delay.std else None,  # Added 'std'
+                delay.sta.strftime('%H:%M') if delay.sta else None, 
+                delay.atd.strftime('%H:%M') if delay.atd else None,  # Added 'atd'
                 delay.ata.strftime('%H:%M') if delay.ata else None,
+                delay.delay,  # Added 'delay'
                 delay.remarks, 
                 delay.staff_count
             ])
 
     elif report_category == 'breakdown':
-        headers = ['Report Date', 'Breakdown Date', 'Location', 'Route #', 'Trip Work Order', 'Injured Passengers', 'Driver Name', 'Remarks']
+        headers = ['Report Date', 'Breakdown Date', 'Location', 'Route #', 'Trip Work Order', 'Passengers Involved', 
+                   'EK Staff Numbers', 'Non-EK Passenger Details', 'Injured Passengers', 'Action Taken for Injured',
+                   'Vehicle Damage', 'Driver Name', 'Driver ID', 'Driver Shift', 'Breakdown Description', 
+                   'EK Vehicles Involved', 'Vehicle Make and Plate', 'Replacement Vehicle', 'Reported To', 'Reported Date']
         worksheet.append(headers)
         # Add data to Excel rows
         for breakdown in queryset:
@@ -1056,9 +1049,21 @@ def download_fleet_report(request):
                 breakdown.location,
                 breakdown.route_number,
                 breakdown.trip_work_order,
+                breakdown.passengers_involved,
+                breakdown.ek_staff_numbers,
+                breakdown.non_ek_passenger_details,
                 breakdown.injured_passengers,
+                breakdown.action_taken_for_injured,
+                breakdown.vehicle_damage,
                 breakdown.driver_name,
-                breakdown.breakdown_description
+                breakdown.driver_id,
+                breakdown.driver_shift,
+                breakdown.breakdown_description,
+                breakdown.ek_vehicles_involved,
+                breakdown.vehicle_make_plate,
+                breakdown.replacement_vehicle,
+                breakdown.reported_to_person,
+                breakdown.reported_datetime.strftime('%Y-%m-%d %H:%M')
             ])
 
     # Prepare the response as an XLSX file
@@ -1069,3 +1074,35 @@ def download_fleet_report(request):
     workbook.save(response)
     
     return response
+
+def ajax_search_route(request):
+    if request.method == 'GET':
+        route_code = request.GET.get('route', '').strip()
+        route_type = request.GET.get('type', '').strip()
+        shift_time = request.GET.get('shift_time', '').strip()
+
+        query = Q()
+        if route_code:
+            query &= Q(route__icontains=route_code)
+        if route_type:
+            query &= Q(route_type__icontains=route_type)
+        if shift_time:
+            query &= Q(shift_times__shift_time=shift_time)  # Correct related name here
+
+        routes = StmRoute.objects.filter(query).distinct()
+
+        # Prepare the data to return in JSON format
+        route_data = []
+        for route in routes:
+            route_data.append({
+                'route_code': route.route,
+                'route_type': route.route_type,
+                'shift_times': [shift.shift_time.strftime('%H:%M') for shift in route.shift_times.all()]
+            })
+
+        return JsonResponse({
+            'routes': route_data,
+            'display_type': bool(route_type)  # Display the type column only if type is provided
+        }, status=200)
+
+    return JsonResponse({'error': 'Invalid request'}, status=400)

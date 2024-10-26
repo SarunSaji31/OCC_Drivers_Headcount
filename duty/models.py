@@ -84,3 +84,36 @@ class BreakdownReport(models.Model):
 
    def __str__(self):
        return f"Breakdown Report {self.id} - {self.breakdown_datetime}"
+
+# StmRoute model
+class StmRoute(models.Model):
+    route_id = models.CharField(max_length=50, unique=True, db_column='R_id')  # R_id, unique route ID
+    route = models.CharField(max_length=50, db_column='Route')  # Route name/code
+    route_type = models.CharField(max_length=50, db_column='Type')  # Type of route (Inbound/Outbound)
+    operating_days_1 = models.CharField(max_length=7, db_column='Operating_days_1')  # Operating days 1, e.g., smtwtfa
+    operating_days_2 = models.CharField(max_length=7, blank=True, null=True, db_column='Operating_days_2')  # Optional operating days 2
+    work_hub = models.CharField(max_length=255, db_column='Work_Hub')  # Work hub for the route
+
+    def __str__(self):
+        return f'{self.route} ({self.route_type})'
+
+    class Meta:
+        db_table = 'Stm_Routes'
+
+class StmPickupPoint(models.Model):
+    R_id = models.CharField(max_length=100)  # Route ID
+    Stop_Id = models.CharField(max_length=100)  # Stop ID
+    Pick_Up_Point = models.CharField(max_length=255)  # Pickup Point
+
+    def __str__(self):
+        return f"Route {self.R_id} - Stop {self.Stop_Id} - {self.Pick_Up_Point}"
+
+class StmShiftTime(models.Model):
+    R_id = models.CharField(max_length=100)
+    Time = models.TimeField(null=True, blank=True)
+    Special_Time = models.TimeField(null=True, blank=True)
+    Shift_time = models.TimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"R_id: {self.R_id}, Shift Time: {self.Shift_time}"
+
