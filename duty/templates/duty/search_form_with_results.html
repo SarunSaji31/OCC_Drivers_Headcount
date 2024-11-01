@@ -9,32 +9,45 @@
 <body>
 <div class="container mt-5">
     <h1>Search Route</h1>
-    
-    <!-- Search Form (without submit button) -->
-    <form id="search-form" method="GET" action="#">
-        <div class="mb-3">
-            <label for="route" class="form-label">Route Code</label>
-            <input type="text" id="route" name="route" class="form-control" placeholder="Enter Route Code">
+    <div class="row">
+        <!-- Search Area -->
+        <div class="col-md-6">
+            <form id="search-form">
+                <div class="mb-3">
+                    <label for="route" class="form-label">Route Code</label>
+                    <input type="text" id="route" name="route" class="form-control" placeholder="Enter Route Code">
+                </div>
+                <div class="mb-3">
+                    <label for="type" class="form-label">Route Type</label>
+                    <select id="type" name="type" class="form-select">
+                        <option value="">Select Type</option>
+                        <option value="Inbound">Inbound</option>
+                        <option value="Outbound">Outbound</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="work_hub" class="form-label">Work Hub</label>
+                    <input type="text" id="work_hub" name="work_hub" class="form-control" placeholder="Enter Work Hub">
+                </div>
+                <div class="mb-3">
+                    <label for="pick_up_point" class="form-label">Pick Up Point</label>
+                    <input type="text" id="pick_up_point" name="pick_up_point" class="form-control" placeholder="Enter Pick Up Point">
+                </div>
+                <div class="mb-3">
+                    <label for="stop_id" class="form-label">Stop ID</label>
+                    <input type="text" id="stop_id" name="stop_id" class="form-control" placeholder="Enter Stop ID">
+                </div>
+                <div class="mb-3">
+                    <label for="shift_time" class="form-label">Shift Time</label>
+                    <input type="time" id="shift_time" name="shift_time" class="form-control">
+                </div>
+            </form>
         </div>
 
-        <div class="mb-3">
-            <label for="type" class="form-label">Type</label>
-            <select id="type" name="type" class="form-select">
-                <option value="">Select Type</option>
-                <option value="Inbound">Inbound</option>
-                <option value="Outbound">Outbound</option>
-            </select>
+        <!-- Results Area -->
+        <div class="col-md-6" id="search-results">
+            <!-- Results will be dynamically injected here -->
         </div>
-
-        <div class="mb-3">
-            <label for="shift_time" class="form-label">Shift Time</label>
-            <input type="time" id="shift_time" name="shift_time" class="form-control">
-        </div>
-    </form>
-
-    <!-- Search Results Container -->
-    <div id="search-results" class="mt-5">
-        <!-- Results will be dynamically injected here -->
     </div>
 </div>
 
@@ -43,32 +56,45 @@
 document.addEventListener('DOMContentLoaded', function() {
     const routeInput = document.getElementById('route');
     const typeInput = document.getElementById('type');
+    const workHubInput = document.getElementById('work_hub');
+    const pickUpPointInput = document.getElementById('pick_up_point');
+    const stopIdInput = document.getElementById('stop_id');
     const shiftTimeInput = document.getElementById('shift_time');
     const resultContainer = document.getElementById('search-results');
 
-    // Function to update the search results area
+    // Update the search results area based on fetched data
     function updateResults(data) {
-        let html = '';
-        if (data.routes.length > 0) {
-            html += `<h2 class="mt-5">Search Results</h2>
-                     <table class="table table-striped">
+        let html = '<h2 class="mt-5">Search Results</h2>';
+        if (data.routes && data.routes.length > 0) {
+            html += `<table class="table table-striped">
                         <thead>
                             <tr>
-                                <th>Route Code</th>
-                                <th>Shift Time</th>`;
-            if (data.display_type) {
-                html += `<th>Type</th>`;
-            }
-            html += `</tr></thead><tbody>`;
-
+                                <th>Route</th>
+                                <th>Type</th>
+                                <th>Operating Days 1</th>
+                                <th>Operating Days 2</th>
+                                <th>Work Hub</th>
+                                <th>Stop ID</th>
+                                <th>Pick Up Point</th>
+                                <th>Time</th>
+                                <th>Special Time</th>
+                                <th>Shift Time</th>
+                            </tr>
+                        </thead>
+                        <tbody>`;
             data.routes.forEach(route => {
                 html += `<tr>
-                            <td>${route.route_code}</td>
-                            <td>${route.shift_times.join('<br>')}</td>`;
-                if (data.display_type) {
-                    html += `<td>${route.route_type}</td>`;
-                }
-                html += `</tr>`;
+                            <td>${route.route_code || '-'}</td>
+                            <td>${route.route_type || '-'}</td>
+                            <td>${route.operating_days_1 || '-'}</td>
+                            <td>${route.operating_days_2 || '-'}</td>
+                            <td>${route.work_hub || '-'}</td>
+                            <td>${route.stop_id || '-'}</td>
+                            <td>${route.pick_up_point || '-'}</td>
+                            <td>${route.time || '-'}</td>
+                            <td>${route.special_time || '-'}</td>
+                            <td>${route.shift_time || '-'}</td>
+                        </tr>`;
             });
             html += `</tbody></table>`;
         } else {
@@ -77,44 +103,40 @@ document.addEventListener('DOMContentLoaded', function() {
         resultContainer.innerHTML = html;
     }
 
-    // Function to send AJAX request
+    // Function to send AJAX request to fetch results
     function fetchResults() {
-        const route = routeInput.value.trim();
-        const type = typeInput.value.trim();
-        const shift_time = shiftTimeInput.value;
-
-        // Check if any fields are filled before making the request
-        if (!route && !type && !shift_time) {
-            resultContainer.innerHTML = '';  // Clear results if all fields are empty
-            return;
-        }
-
         const params = new URLSearchParams({
-            route: route,
-            type: type,
-            shift_time: shift_time
+            route: routeInput.value.trim(),
+            type: typeInput.value.trim(),
+            work_hub: workHubInput.value.trim(),
+            pick_up_point: pickUpPointInput.value.trim(),
+            stop_id: stopIdInput.value.trim(),
+            shift_time: shiftTimeInput.value,
         });
 
-        fetch(`/ajax/search_route/?${params.toString()}`, {
+        fetch(`/search/?${params.toString()}`, {  // Adjusted URL path here
             method: 'GET',
             headers: {
                 'X-Requested-With': 'XMLHttpRequest'
             }
         })
-        .then(response => response.json())
-        .then(data => {
-            updateResults(data);
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
         })
+        .then(data => updateResults(data))
         .catch(error => {
             console.error('Error:', error);
-            resultContainer.innerHTML = `<p class="text-danger">An error occurred while fetching results.</p>`;
+            resultContainer.innerHTML = `<p class="text-danger">An error occurred while fetching results. Please try again later.</p>`;
         });
     }
 
-    // Add event listeners to input fields
-    routeInput.addEventListener('input', fetchResults);
-    typeInput.addEventListener('input', fetchResults);
-    shiftTimeInput.addEventListener('input', fetchResults);
+    // Add event listeners to input fields to trigger the fetch function
+    [routeInput, typeInput, workHubInput, pickUpPointInput, stopIdInput, shiftTimeInput].forEach(input => {
+        input.addEventListener('input', fetchResults);
+    });
 });
 </script>
 
