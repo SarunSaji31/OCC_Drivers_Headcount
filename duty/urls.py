@@ -69,6 +69,7 @@ urlpatterns = [
     path('search/', views.ajax_search_route, name='search_route'),
     path('ajax/search_route/', views.ajax_search_route, name='ajax_search_route'),
     
+    
 ]
 
 # Serve static files during development
