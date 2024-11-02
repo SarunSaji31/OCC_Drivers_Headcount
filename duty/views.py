@@ -1048,17 +1048,15 @@ def download_fleet_report(request):
     
     return response
 
-
 from .models import StmRoute, StmPickupPoint, StmShiftTime
-
 from django.shortcuts import render
 from django.http import JsonResponse
 from django.db.models import Q
-from .models import StmRoute, StmPickupPoint, StmShiftTime
-import datetime  # Import datetime module
+import datetime
 
 def ajax_search_route(request):
     if request.method == 'GET':
+        # Retrieve filter inputs
         route_code = request.GET.get('route', '').strip()
         route_type = request.GET.get('type', '').strip()
         work_hub = request.GET.get('work_hub', '').strip()
@@ -1066,42 +1064,55 @@ def ajax_search_route(request):
         stop_id = request.GET.get('stop_id', '').strip()
         shift_time = request.GET.get('shift_time', '').strip()
 
+        # Construct query with exact match
         query = Q()
         if route_code:
-            query &= Q(route__icontains=route_code)
+            query &= Q(route__iexact=route_code)
         if route_type:
-            query &= Q(route_type__icontains=route_type)
+            query &= Q(route_type__iexact=route_type)
         if work_hub:
-            query &= Q(work_hub__icontains=work_hub)
-        if shift_time:
-            query &= Q(shift_times__shift_time=shift_time)
+            query &= Q(work_hub__iexact=work_hub)
 
+        print("Constructed Query:", query)
+
+        # Retrieve filtered routes
         routes = StmRoute.objects.filter(query).distinct()
+        print("Routes Found:", routes)
 
         route_data = []
         for route in routes:
-            pickup_points = StmPickupPoint.objects.filter(route=route)
+            pickup_points = route.pickup_points.all()
+            shift_times = route.shift_times.all()
 
-            for shift in route.shift_times.all():
-                for pickup_point in pickup_points:
-                    if (not pick_up_point or pick_up_point in pickup_point.pick_up_point) and \
-                       (not stop_id or stop_id == pickup_point.stop_id):
-                        # Apply .strftime only if the value is a datetime.time or datetime.datetime instance
-                        route_data.append({
-                            'route_code': route.route,
-                            'route_type': route.route_type,
-                            'operating_days_1': route.operating_days_1,
-                            'operating_days_2': route.operating_days_2,
-                            'work_hub': route.work_hub,
-                            'stop_id': pickup_point.stop_id,
-                            'pick_up_point': pickup_point.pick_up_point,
-                            'time': shift.time.strftime('%H:%M') if isinstance(shift.time, datetime.time) else shift.time,
-                            'special_time': shift.special_time.strftime('%H:%M') if isinstance(shift.special_time, datetime.time) else shift.special_time,
-                            'shift_time': shift.shift_time.strftime('%H:%M') if isinstance(shift.shift_time, datetime.time) else shift.shift_time,
-                        })
+            # Filter based on optional parameters
+            if pick_up_point or stop_id:
+                pickup_points = pickup_points.filter(
+                    Q(pick_up_point__iexact=pick_up_point) if pick_up_point else Q(),
+                    Q(stop_id=stop_id) if stop_id else Q()
+                )
 
-        # Return an HTML page with the data
+            if shift_time:
+                shift_times = shift_times.filter(shift_time=shift_time)
+
+            # Build the final route data for JSON response
+            for pickup_point in pickup_points:
+                for shift in shift_times:
+                    route_data.append({
+                        'route_code': route.route,
+                        'route_type': route.route_type,
+                        'work_hub': route.work_hub,
+                        'stop_id': pickup_point.stop_id,
+                        'pick_up_point': pickup_point.pick_up_point,
+                        'shift_time': shift.shift_time.strftime('%H:%M') if shift.shift_time else '-',
+                    })
+
+        print("Final Route Data:", route_data)
+
+        # Check if the request is an AJAX request and return JSON data
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'routes': route_data})
+
+        # Otherwise, render the HTML page
         return render(request, 'duty/search_form_with_results.html', {'routes': route_data})
 
-    # Handle invalid requests or errors by redirecting to a general error page or returning a default HTML
     return render(request, 'error_page.html', {'error': 'Invalid request'})
