@@ -2,8 +2,7 @@ from django.urls import path, include
 from . import views
 from django.conf import settings
 from django.conf.urls.static import static
-from .views import add_reports, add_delay_report  # Import both views
-from .views import send_breakdown_report_email
+from .views import add_reports, add_delay_report, send_breakdown_report_email
 from .views import stm_dashboard, fleet_counts_api, download_fleet_report
 
 urlpatterns = [
@@ -50,13 +49,13 @@ urlpatterns = [
     path('dashboard/duty-card-submission-data/', views.duty_card_submission_data, name='duty_card_submission_data'), 
 
     # EKG Report and Delay Report
-    path('ekg-report/', add_reports, name='ekg_report'),  # For the EKG report page
-    path('add_delay_report/', add_delay_report, name='add_delay_report'),  # For handling delay report submission
+    path('ekg-report/', add_reports, name='ekg_report'),  
+    path('add_delay_report/', add_delay_report, name='add_delay_report'),  
     
     # Subcategory Selection Page
-    path('subcategory/', views.subcategory_selection, name='subcategory_selection'),  # Add a subcategory selection view
+    path('subcategory/', views.subcategory_selection, name='subcategory_selection'),  
     
-    # EKG Breakdown Page (To be implemented)
+    # EKG Breakdown Page
     path('ekg-breakdown/', views.ekg_breakdown, name='ekg_breakdown'), 
     path('send-breakdown-report/', send_breakdown_report_email, name='send_breakdown_report'),
 
@@ -65,10 +64,11 @@ urlpatterns = [
     path('api/fleet-counts/', fleet_counts_api, name='fleet_counts_api'),
     path('download_fleet_report/', download_fleet_report, name='download_fleet_report'),
 
-
+    # Search and Route Details URLs
     path('search/', views.ajax_search_route, name='search_route'),
     path('ajax/search_route/', views.ajax_search_route, name='ajax_search_route'),
-    
+    path('route-details/', views.route_details, name='route_details'),  # New route details page
+    path('route-details/pdf/', views.route_details_pdf, name='route_details_pdf'), 
 ]
 
 # Serve static files during development

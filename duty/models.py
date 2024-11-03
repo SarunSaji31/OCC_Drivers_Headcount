@@ -84,6 +84,7 @@ class BreakdownReport(models.Model):
 
    def __str__(self):
        return f"Breakdown Report {self.id} - {self.breakdown_datetime}"
+   
 
 # StmRoute model
 class StmRoute(models.Model):
@@ -100,20 +101,33 @@ class StmRoute(models.Model):
     class Meta:
         db_table = 'Stm_Routes'
 
+
+from django.db import models
+
 class StmPickupPoint(models.Model):
-    R_id = models.CharField(max_length=100)  # Route ID
-    Stop_Id = models.CharField(max_length=100)  # Stop ID
-    Pick_Up_Point = models.CharField(max_length=255)  # Pickup Point
+    route = models.ForeignKey(StmRoute, on_delete=models.CASCADE, db_column='R_id', related_name='pickup_points')  # ForeignKey to StmRoute
+    stop_id = models.CharField(max_length=100, db_column='Stop_Id')  # Stop ID
+    pick_up_point = models.CharField(max_length=255, db_column='Pick_Up_Point')  # Pickup Point
+    pick_up_point_order_id = models.IntegerField(db_column='Pick_Up_Point_Order_Id')  # Order ID for pickup point
 
     def __str__(self):
-        return f"Route {self.R_id} - Stop {self.Stop_Id} - {self.Pick_Up_Point}"
+        return f"Route {self.route.route} - Stop {self.stop_id} - {self.pick_up_point}"
 
+    class Meta:
+        db_table = 'Stm_Pickup_Points'
+        ordering = ['pick_up_point_order_id']  # Ensures pickup points are ordered by pick_up_point_order_id
+
+        
 class StmShiftTime(models.Model):
-    R_id = models.CharField(max_length=100)
-    Time = models.TimeField(null=True, blank=True)
-    Special_Time = models.TimeField(null=True, blank=True)
-    Shift_time = models.TimeField(null=True, blank=True)
+    route = models.ForeignKey(StmRoute, on_delete=models.CASCADE, db_column='R_id', related_name='shift_times')
+    time = models.CharField(max_length=50, null=True, blank=True, db_column='Time')
+    special_time = models.TimeField(null=True, blank=True, db_column='Special_Time')
+    shift_time = models.TimeField(null=True, blank=True, db_column='Shift_time')
+    stop_order = models.PositiveIntegerField(default=0)  # Order of pickup points
 
     def __str__(self):
-        return f"R_id: {self.R_id}, Shift Time: {self.Shift_time}"
+        return f"Route {self.route.route}, Shift Time: {self.shift_time}"
 
+    class Meta:
+        db_table = 'Stm_ShiftTime'
+        ordering = ['stop_order', 'time']  # Orders by stop_order and then by time

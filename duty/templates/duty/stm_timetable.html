@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Route Details</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        /* Additional styling for PDF print */
+        body {
+            background-color: #f8f9fa;
+        }
+        .container {
+            max-width: 800px;
+        }
+        @media print {
+            .btn-download {
+                display: none; /* Hide the download button in PDF */
+            }
+        }
+    </style>
+</head>
+<body class="bg-light">
+
+<div class="container py-5">
+    <div class="row">
+        <div class="col text-center">
+            <h1 class="display-6 mb-4">Route Details</h1>
+            <!-- PDF Download Button -->
+            <a href="{% url 'route_details_pdf' %}?route={{ route_data.route_name }}&type={{ route_data.route_type }}&shift_time={{ route_data.shift_time }}" 
+               class="btn btn-primary btn-download mb-4" role="button">Download as PDF</a>
+        </div>
+    </div>
+
+    {% for route_data in route_data_list %}
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <h2 class="card-title">{{ route_data.route_name }} <span class="fw-light">({{ route_data.route_type }})</span></h2>
+            <hr>
+            <div class="row">
+                <div class="col-md-4 mb-2">
+                    <p class="fw-semibold">Operating Days 1:</p>
+                    <p>{{ route_data.operating_days_1 }}</p>
+                </div>
+                {% if route_data.operating_days_2 %}
+                <div class="col-md-4 mb-2">
+                    <p class="fw-semibold">Operating Days 2:</p>
+                    <p>{{ route_data.operating_days_2 }}</p>
+                </div>
+                {% endif %}
+                <div class="col-md-4 mb-2">
+                    <p class="fw-semibold">Work Hub:</p>
+                    <p>{{ route_data.work_hub }}</p>
+                </div>
+                <div class="col-md-4 mb-2">
+                    <p class="fw-semibold">Shift Time:</p>
+                    <p>{{ route_data.shift_time }}</p>
+                </div>
+            </div>
+
+            <div class="table-responsive mt-4">
+                <table class="table table-bordered table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th scope="col">Stop ID</th>
+                            <th scope="col">Pick Up Point</th>
+                            <th scope="col">Time</th>
+                            <th scope="col">Special Time</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for pickup in route_data.pickup_points %}
+                        <tr>
+                            <td>{{ pickup.stop_id }}</td>
+                            <td>{{ pickup.pick_up_point }}</td>
+                            <td>{% if pickup.time == "X" %}X{% else %}{{ pickup.time }}{% endif %}</td>
+                            <td>{% if pickup.special_time == "X" %}X{% else %}{{ pickup.special_time }}{% endif %}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

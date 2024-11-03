@@ -116,6 +116,9 @@ EMAIL_USE_LOCALTIME = True  # Optional, if necessary
 # Enable debugging for emails
 EMAIL_DEBUG = True
 
+WKHTMLTOPDF_PATH = 'C:/Program Files/wkhtmltopdf/bin/wkhtmltopdf.exe'
+
+
 # Internationalization settings
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = config('TIME_ZONE', default='UTC')
@@ -159,7 +162,7 @@ LOGGING = {
 }
 # Session settings for auto-logout
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
-SESSION_COOKIE_AGE = 300  # 5 minutes
+SESSION_COOKIE_AGE = 1000  
 SESSION_SAVE_EVERY_REQUEST = True
 
 LOGIN_REDIRECT_URL = '/'

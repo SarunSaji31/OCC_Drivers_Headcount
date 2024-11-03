@@ -31,12 +31,10 @@ from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 from .models import DelayData, BreakdownReport
+
 import openpyxl
 from openpyxl.utils import get_column_letter
 from django.utils.timezone import now
-from django.http import HttpResponseRedirect
-from django.core.management.base import BaseCommand
-from duty.models import StmRoute, StmPickupPoint, StmShiftTime
 
 # Setup logger
 logger = logging.getLogger(__name__)
@@ -550,6 +548,7 @@ def admin_dashboard(request):
     return render(request, 'duty/admin_dashboard.html')
 
 logger = logging.getLogger(__name__)
+@login_required
 def add_reports(request):
     """Handles adding multiple delay reports."""
     # Create a formset for multiple delay forms
@@ -579,6 +578,8 @@ def add_reports(request):
     return render(request, 'duty/Ekg_report.html', {
         'formset': formset
     })
+
+
 logger = logging.getLogger(__name__)
 
 def add_delay_report(request):
@@ -591,98 +592,85 @@ def add_delay_report(request):
         logger.info("POST request detected")
 
         formset = DelayDataFormSet(request.POST)
+        delay_entries = []
+        total_valid_forms = 0
+        missing_fields_message = ""
 
         if formset.is_valid():
-            logger.info("All delay forms are valid")
-
-            # Loop through each form in the formset and process
-            delay_entries = []
-            total_valid_forms = 0  # To count how many forms are processed
             for i, form in enumerate(formset):
-                if form.is_valid():
-                    # Extract the form data
-                    date = form.cleaned_data.get('date')
-                    route = form.cleaned_data.get('route')
-                    in_out = form.cleaned_data.get('in_out')
-                    std = form.cleaned_data.get('std')
-                    atd = form.cleaned_data.get('atd')
-                    sta = form.cleaned_data.get('sta')
-                    ata = form.cleaned_data.get('ata')
-                    staff_count = form.cleaned_data.get('staff_count')
-                    remarks = form.cleaned_data.get('remarks')
+                # Use cleaned_data to safely access the form's fields after validation
+                date = form.cleaned_data.get('date')
+                route = form.cleaned_data.get('route')
+                in_out = form.cleaned_data.get('in_out')
+                std = form.cleaned_data.get('std')
+                atd = form.cleaned_data.get('atd')
+                sta = form.cleaned_data.get('sta')
+                ata = form.cleaned_data.get('ata')
+                staff_count = form.cleaned_data.get('staff_count')
+                remarks = form.cleaned_data.get('remarks')
 
-                    # Skip forms missing essential fields
-                    if not route or not std or not atd or not sta or not ata:
-                        logger.warning(f"Form {i + 1} is missing required fields. Skipping this form.")
-                        continue  # Skip the current form and move to the next
+                # If any essential fields are missing, skip the form
+                if not route or not std or not atd or not sta or not ata:
+                    logger.warning(f"Form {i + 1} is missing required fields. Skipping this form.")
+                    missing_fields_message += f"Form {i + 1} is missing required fields.<br>"
+                    continue
 
-                    total_valid_forms += 1
+                total_valid_forms += 1
 
-                    if date is None:
-                        logger.warning(f"Date is missing in form {i + 1}. Using today's date as fallback.")
-                        date = timezone.now().date()
+                # Convert the date string to a datetime.date object if needed
+                date_obj = datetime.strptime(date, "%Y-%m-%d").date() if isinstance(date, str) else date
 
-                    # Calculate delay as a timedelta and then convert to time (HH:MM:SS)
-                    if sta and ata:
-                        sta_time = datetime.combine(date, sta)
-                        ata_time = datetime.combine(date, ata)
-                        delay = ata_time - sta_time
-                        delay_seconds = int(delay.total_seconds())
-                        delay_hours, remainder = divmod(delay_seconds, 3600)
-                        delay_minutes, _ = divmod(remainder, 60)
-                        delay_time = time(hour=int(delay_hours), minute=int(delay_minutes))
-                        logger.info(f"Calculated delay for form {i + 1}: {delay_time}")
-                    else:
-                        delay_time = time(0, 0, 0)
-                        logger.warning(f"STA or ATA is missing in form {i + 1}; delay set to 00:00:00")
+                # Calculate delay
+                sta_time = datetime.combine(date_obj, sta)
+                ata_time = datetime.combine(date_obj, ata)
+                delay = ata_time - sta_time
+                delay_seconds = int(delay.total_seconds())
+                delay_hours, remainder = divmod(delay_seconds, 3600)
+                delay_minutes, _ = divmod(remainder, 60)
+                delay_time = time(hour=int(delay_hours), minute=int(delay_minutes))
 
-                    # Save form data with delay as a time object
-                    try:
-                        delay_instance = form.save(commit=False)
-                        delay_instance.delay = delay_time
-                        delay_instance.save()
+                # Save the form instance with the delay time
+                try:
+                    delay_instance = form.save(commit=False)
+                    delay_instance.delay = delay_time
+                    delay_instance.save()
 
-                        # Collect details for email
-                        delay_entries.append({
-                            'date': date.strftime('%Y-%m-%d'),
-                            'route': route,
-                            'in_out': in_out,
-                            'std': std.strftime('%H:%M'),
-                            'atd': atd.strftime('%H:%M'),
-                            'sta': sta.strftime('%H:%M') if sta else 'N/A',
-                            'ata': ata.strftime('%H:%M') if ata else 'N/A',
-                            'delay': delay_time.strftime('%H:%M:%S'),
-                            'staff_count': staff_count,
-                            'remarks': remarks,
-                        })
+                    # Add form data for the email
+                    delay_entries.append({
+                        'date': date_obj.strftime('%Y-%m-%d'),
+                        'route': route,
+                        'in_out': in_out,
+                        'std': std.strftime('%H:%M'),
+                        'atd': atd.strftime('%H:%M'),
+                        'sta': sta.strftime('%H:%M'),
+                        'ata': ata.strftime('%H:%M'),
+                        'delay': delay_time.strftime('%H:%M:%S'),
+                        'staff_count': staff_count,
+                        'remarks': remarks,
+                    })
 
-                    except IntegrityError as e:
-                        logger.error(f"Database error occurred while saving form {i + 1}: {str(e)}")
-                        return JsonResponse({
-                            'status': 'error',
-                            'message': f"Database error occurred while saving form {i + 1}: {str(e)}"
-                        })
+                except IntegrityError as e:
+                    logger.error(f"Database error occurred while saving form {i + 1}: {str(e)}")
+                    return JsonResponse({
+                        'status': 'error',
+                        'message': f"Database error occurred while saving form {i + 1}: {str(e)}"
+                    })
 
-            # If no valid forms were submitted
+            # If no valid forms are submitted
             if total_valid_forms == 0:
-                logger.error("No valid forms submitted.")
                 return JsonResponse({
                     'status': 'error',
                     'message': 'No valid forms submitted. Please provide valid delay data.'
                 })
 
-            # Handle email broadcasting if the broadcast button was clicked
+            # If broadcast is selected
             if 'broadcast' in request.POST:
                 logger.info("Broadcast button clicked")
 
                 try:
-                    # Set the subject based on the number of forms submitted
-                    if total_valid_forms == 1:
-                        subject = f"Delay {route}, {sta.strftime('%H:%M')} Shift" if sta else f"Delay {route}, Unknown Shift Time"
-                    else:
-                        subject = "Delay updates"
-
-                    # Prepare email message
+                    subject = "Delay updates" if total_valid_forms > 1 else f"Delay {route}, {sta.strftime('%H:%M')}"
+                    
+                    # Construct email message with data
                     message = """
                     <html>
                     <body>
@@ -691,16 +679,16 @@ def add_delay_report(request):
                     <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; width: 100%; font-size: 14px; text-align: center; border-color: #ddd;">
                         <thead>
                             <tr style="background-color: #f2f2f2; font-weight: bold;">
-                                <th style="width: 10%;">DATE</th>
-                                <th style="width: 10%;">ROUTE</th>
-                                <th style="width: 10%;">IN/OUT</th>
-                                <th style="width: 10%;">STD</th>
-                                <th style="width: 10%;">ATD</th>
-                                <th style="width: 10%;">STA</th>
-                                <th style="width: 10%;">ATA</th>
-                                <th style="width: 10%;">DELAY (HH:MM:SS)</th>
-                                <th style="width: 10%;">STAFF COUNT</th>
-                                <th style="min-width: 200px; max-width: 400px; word-wrap: break-word;">REMARKS</th>
+                                <th>DATE</th>
+                                <th>ROUTE</th>
+                                <th>IN/OUT</th>
+                                <th>STD</th>
+                                <th>ATD</th>
+                                <th>STA</th>
+                                <th>ATA</th>
+                                <th>DELAY</th>
+                                <th>STAFF COUNT</th>
+                                <th>REMARKS</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -724,25 +712,21 @@ def add_delay_report(request):
                         </tbody>
                     </table>
                     <br>
-                    <p>Regards,<br>Sarun</p>
+                    <p>Regards,<br>Team</p>
                     </body>
                     </html>
                     """
 
-                    # Log the message content before sending (for debugging)
-                    logger.debug(f"Email content: {message}")
-
-                    # Send the email
+                    # Send email
                     send_mail(
                         subject=subject,
-                        message='',  # Empty plain text message since we're sending HTML
+                        message='',  # Empty plain text message
                         from_email='occekg@gmail.com',
                         recipient_list=['sarun.ts@et.ae'],
                         html_message=message
                     )
 
-                    logger.info("Email sent successfully")
-                    return HttpResponseRedirect(reverse('add_delay_report'))  # Refresh the page after success
+                    return JsonResponse({'status': 'success', 'message': 'The delay email has been broadcast successfully.'})
 
                 except Exception as e:
                     logger.error(f"Failed to send email: {str(e)}")
@@ -752,6 +736,7 @@ def add_delay_report(request):
                     })
 
         else:
+            # Handle formset validation errors
             logger.error("Formset validation failed")
             logger.error(formset.errors)  # Log detailed formset errors for debugging
             return JsonResponse({
@@ -760,14 +745,18 @@ def add_delay_report(request):
                 'errors': formset.errors
             })
 
-    return render(request, 'duty/Ekg_report.html', {'formset': DelayDataFormSet()})
+    # Render the formset for new submissions or validation errors
+    return render(request, 'duty/add_delay_report.html', {'formset': formset})
 
-# Define the subcategory selection view
+@login_required
 @user_in_driverimportlog_required
+# Define the subcategory selection view
 def subcategory_selection(request):
     return render(request, 'duty/subcategory_selection.html')
 
+
 logger = logging.getLogger(__name__)
+@login_required
 # View for EKG Breakdown Report Submission
 def ekg_breakdown(request):
    if request.method == 'POST':
@@ -811,7 +800,7 @@ def set_cell_border(cell, **kwargs):
             element.set(qn('w:space'), str(edge_data.get("space", 0)))
             element.set(qn('w:color'), edge_data.get("color", "000000"))
             tcPr.append(element)
-
+@login_required
 def send_breakdown_report_email(breakdown_report):
     try:
         # Create the Word document with report details
@@ -944,6 +933,8 @@ def send_breakdown_report_email(breakdown_report):
     # If the request method is incorrect
     return JsonResponse({'status': 'error', 'message': 'Invalid request method.'})
 
+
+@login_required
 def stm_dashboard(request):
     """
     Renders the STM dashboard.
@@ -984,6 +975,7 @@ def fleet_counts_api(request):
 
     return JsonResponse(data)
 
+
 def download_fleet_report(request):
     """
     Function to download fleet delay or breakdown reports as XLSX.
@@ -1018,28 +1010,21 @@ def download_fleet_report(request):
 
     # Define headers for the Excel sheet
     if report_category == 'delay':
-        headers = ['Date', 'Route', 'In/Out', 'STD', 'STA', 'ATD', 'ATA', 'Delay', 'Remarks', 'Staff Count']  # Added missing fields
+        headers = ['Date', 'Route', 'STA', 'ATA', 'Remarks', 'Staff Count']  # Removed 'shift_time'
         worksheet.append(headers)
         # Add data to Excel rows
         for delay in queryset:
             worksheet.append([
                 delay.date, 
                 delay.route,  # Correct field name for route
-                delay.in_out,  # Added 'in_out'
-                delay.std.strftime('%H:%M') if delay.std else None,  # Added 'std'
-                delay.sta.strftime('%H:%M') if delay.sta else None, 
-                delay.atd.strftime('%H:%M') if delay.atd else None,  # Added 'atd'
+                delay.sta.strftime('%H:%M') if delay.sta else None,
                 delay.ata.strftime('%H:%M') if delay.ata else None,
-                delay.delay,  # Added 'delay'
                 delay.remarks, 
                 delay.staff_count
             ])
 
     elif report_category == 'breakdown':
-        headers = ['Report Date', 'Breakdown Date', 'Location', 'Route #', 'Trip Work Order', 'Passengers Involved', 
-                   'EK Staff Numbers', 'Non-EK Passenger Details', 'Injured Passengers', 'Action Taken for Injured',
-                   'Vehicle Damage', 'Driver Name', 'Driver ID', 'Driver Shift', 'Breakdown Description', 
-                   'EK Vehicles Involved', 'Vehicle Make and Plate', 'Replacement Vehicle', 'Reported To', 'Reported Date']
+        headers = ['Report Date', 'Breakdown Date', 'Location', 'Route #', 'Trip Work Order', 'Injured Passengers', 'Driver Name', 'Remarks']
         worksheet.append(headers)
         # Add data to Excel rows
         for breakdown in queryset:
@@ -1049,21 +1034,9 @@ def download_fleet_report(request):
                 breakdown.location,
                 breakdown.route_number,
                 breakdown.trip_work_order,
-                breakdown.passengers_involved,
-                breakdown.ek_staff_numbers,
-                breakdown.non_ek_passenger_details,
                 breakdown.injured_passengers,
-                breakdown.action_taken_for_injured,
-                breakdown.vehicle_damage,
                 breakdown.driver_name,
-                breakdown.driver_id,
-                breakdown.driver_shift,
-                breakdown.breakdown_description,
-                breakdown.ek_vehicles_involved,
-                breakdown.vehicle_make_plate,
-                breakdown.replacement_vehicle,
-                breakdown.reported_to_person,
-                breakdown.reported_datetime.strftime('%Y-%m-%d %H:%M')
+                breakdown.breakdown_description
             ])
 
     # Prepare the response as an XLSX file
@@ -1075,34 +1048,223 @@ def download_fleet_report(request):
     
     return response
 
+
+from .models import StmRoute, StmPickupPoint, StmShiftTime
+from django.shortcuts import render
+from django.http import JsonResponse
+from django.db.models import Q
+import datetime
+
 def ajax_search_route(request):
     if request.method == 'GET':
+        # Retrieve filter inputs
         route_code = request.GET.get('route', '').strip()
+        route_name = request.GET.get('route_name', '').strip()  # New field for route name
         route_type = request.GET.get('type', '').strip()
+        work_hub = request.GET.get('work_hub', '').strip()
+        pick_up_point = request.GET.get('pick_up_point', '').strip()
+        stop_id = request.GET.get('stop_id', '').strip()
         shift_time = request.GET.get('shift_time', '').strip()
 
+        # Construct query with partial matching
         query = Q()
         if route_code:
-            query &= Q(route__icontains=route_code)
+            query &= Q(route__icontains=route_code)  # Partial match for route code
+        if route_name:
+            query &= Q(route__icontains=route_name)  # Partial match for route name
         if route_type:
-            query &= Q(route_type__icontains=route_type)
-        if shift_time:
-            query &= Q(shift_times__shift_time=shift_time)  # Correct related name here
+            query &= Q(route_type__icontains=route_type)  # Partial match
+        if work_hub:
+            query &= Q(work_hub__icontains=work_hub)  # Partial match
 
+        # Retrieve filtered routes
         routes = StmRoute.objects.filter(query).distinct()
 
-        # Prepare the data to return in JSON format
+        # Track unique route entries
         route_data = []
+        seen_entries = set()
+
         for route in routes:
-            route_data.append({
-                'route_code': route.route,
-                'route_type': route.route_type,
-                'shift_times': [shift.shift_time.strftime('%H:%M') for shift in route.shift_times.all()]
+            pickup_points = route.pickup_points.all()
+            shift_times = route.shift_times.all()
+
+            # Filter based on optional parameters
+            if pick_up_point or stop_id:
+                pickup_points = pickup_points.filter(
+                    Q(pick_up_point__icontains=pick_up_point) if pick_up_point else Q(),
+                    Q(stop_id__icontains=stop_id) if stop_id else Q()
+                )
+
+            if shift_time:
+                shift_times = shift_times.filter(shift_time=shift_time)
+
+            # Build unique route data for JSON response
+            for shift in shift_times:
+                # Create a unique key for each unique combination of fields
+                entry_key = (
+                    route.route, route.route_type, shift.shift_time, route.work_hub
+                )
+
+                # Only add if the entry hasn't been seen before
+                if entry_key not in seen_entries:
+                    seen_entries.add(entry_key)
+                    route_data.append({
+                        'route_code': route.route,
+                        'route_name': route.route,  # Added route name
+                        'route_type': route.route_type,
+                        'work_hub': route.work_hub,
+                        'shift_time': shift.shift_time.strftime('%H:%M') if shift.shift_time else '-',
+                    })
+
+        # Check if the request is AJAX and return JSON
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'routes': route_data})
+
+        # Otherwise, render the HTML page
+        return render(request, 'duty/search_form_with_results.html', {'routes': route_data})
+
+    return render(request, 'error_page.html', {'error': 'Invalid request'})
+
+
+from django.shortcuts import render, get_list_or_404
+from .models import StmRoute, StmPickupPoint, StmShiftTime
+
+def route_details(request):
+    # Retrieve route name, route type, and shift time from query parameters
+    route_name = request.GET.get('route')
+    route_type = request.GET.get('type')  # Route type is optional
+    shift_time = request.GET.get('shift_time')
+
+    # Step 1: Filter StmRoute by route name and apply route_type filter only if specified
+    if route_type:
+        route_qs = StmRoute.objects.filter(route=route_name, route_type=route_type)
+    else:
+        route_qs = StmRoute.objects.filter(route=route_name)
+
+    # Check if any routes match; if not, return an error
+    if not route_qs.exists():
+        return render(request, 'duty/error_page.html', {'error': 'No matching route found.'})
+
+    # Prepare a list to hold route data
+    route_data_list = []
+
+    # Process each route found in route_qs
+    for route in route_qs:
+        # Step 2: Filter StmShiftTime by route and shift time, ordered by stop_order
+        shift_times = StmShiftTime.objects.filter(route=route, shift_time=shift_time).order_by('stop_order')
+
+        if not shift_times.exists():
+            continue  # Skip this route type if no shift times are found
+
+        # Step 3: Retrieve pickup points ordered by pick_up_point_order_id
+        pickup_points = StmPickupPoint.objects.filter(route=route).order_by('pick_up_point_order_id')
+        route_data = {
+            'route_name': route.route,
+            'route_type': route.route_type,
+            'operating_days_1': route.operating_days_1,
+            'operating_days_2': route.operating_days_2,
+            'work_hub': route.work_hub,
+            'shift_time': shift_time,
+            'pickup_points': [],
+        }
+
+        # Create a mapping for shift times by stop order for efficient lookup
+        stop_order_to_times = {
+            shift.stop_order: {
+                'time': shift.time if isinstance(shift.time, str) else shift.time.strftime('%H:%M') if shift.time else '-',
+                'special_time': shift.special_time if isinstance(shift.special_time, str) else shift.special_time.strftime('%H:%M') if shift.special_time else '-'
+            } for shift in shift_times
+        }
+
+        # Map pickup points with corresponding time based on stop order
+        for point in pickup_points:
+            stop_order = point.pick_up_point_order_id  # Use pick_up_point_order_id for ordering
+            route_data['pickup_points'].append({
+                'stop_id': point.stop_id,
+                'pick_up_point': point.pick_up_point,
+                'time': stop_order_to_times.get(stop_order, {}).get('time', '-'),
+                'special_time': stop_order_to_times.get(stop_order, {}).get('special_time', '-')
             })
 
-        return JsonResponse({
-            'routes': route_data,
-            'display_type': bool(route_type)  # Display the type column only if type is provided
-        }, status=200)
+        # Append the filtered route data to route_data_list
+        route_data_list.append(route_data)
 
-    return JsonResponse({'error': 'Invalid request'}, status=400)
+    # Render the route details page with the data
+    return render(request, 'duty/stm_timetable.html', {'route_data_list': route_data_list})
+
+from django.http import HttpResponse
+from django.template.loader import render_to_string
+from django.shortcuts import render
+from .models import StmRoute, StmPickupPoint, StmShiftTime
+import pdfkit
+
+def render_to_pdf(template_src, context_dict):
+    html_string = render_to_string(template_src, context_dict)
+    # Specify wkhtmltopdf path if pdfkit isn't finding it automatically
+    config = pdfkit.configuration(wkhtmltopdf='C:/Program Files/wkhtmltopdf/bin/wkhtmltopdf.exe')
+    try:
+        pdf = pdfkit.from_string(html_string, False, configuration=config)
+        if pdf:
+            response = HttpResponse(pdf, content_type='application/pdf')
+            response['Content-Disposition'] = 'attachment; filename="route_details.pdf"'
+            return response
+    except Exception as e:
+        print("PDF Generation Error:", e)
+    return None
+
+def route_details_pdf(request):
+    # Get parameters from the request
+    route_name = request.GET.get('route')
+    route_type = request.GET.get('type')
+    shift_time = request.GET.get('shift_time')
+
+    # Fetch data using the same logic as route_details
+    if route_type:
+        route_qs = StmRoute.objects.filter(route=route_name, route_type=route_type)
+    else:
+        route_qs = StmRoute.objects.filter(route=route_name)
+
+    if not route_qs.exists():
+        return render(request, 'duty/error_page.html', {'error': 'No matching route found.'})
+
+    route_data_list = []
+    for route in route_qs:
+        shift_times = StmShiftTime.objects.filter(route=route, shift_time=shift_time).order_by('stop_order')
+        if not shift_times.exists():
+            continue
+
+        # Initialize `stop_order_to_times` to map stop orders
+        stop_order_to_times = {
+            shift.stop_order: {
+                'time': shift.time.strftime('%H:%M') if shift.time and not isinstance(shift.time, str) else shift.time,
+                'special_time': shift.special_time.strftime('%H:%M') if shift.special_time and not isinstance(shift.special_time, str) else shift.special_time or '-'
+            }
+            for shift in shift_times
+        }
+
+        # Prepare pickup points and their corresponding times
+        pickup_points = StmPickupPoint.objects.filter(route=route).order_by('pick_up_point_order_id')
+        route_data = {
+            'route_name': route.route,
+            'route_type': route.route_type,
+            'operating_days_1': route.operating_days_1,
+            'operating_days_2': route.operating_days_2,
+            'work_hub': route.work_hub,
+            'shift_time': shift_time,
+            'pickup_points': [
+                {
+                    'stop_id': point.stop_id,
+                    'pick_up_point': point.pick_up_point,
+                    'time': stop_order_to_times.get(point.pick_up_point_order_id, {}).get('time', '-'),
+                    'special_time': stop_order_to_times.get(point.pick_up_point_order_id, {}).get('special_time', '-')
+                }
+                for point in pickup_points
+            ]
+        }
+        route_data_list.append(route_data)
+
+    # Render the PDF
+    pdf = render_to_pdf('duty/stm_timetable.html', {'route_data_list': route_data_list})
+    if pdf:
+        return pdf
+    return render(request, 'duty/error_page.html', {'error': 'Error generating PDF.'})
