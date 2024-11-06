@@ -1,40 +1,49 @@
-from django.shortcuts import render, redirect, get_object_or_404
-from django.http import JsonResponse, HttpResponse
+from datetime import datetime, date, time
+import logging
+import openpyxl
+import pandas as pd
+from functools import wraps
+from io import BytesIO
+
+from django.conf import settings
+from django.contrib import messages
 from django.contrib.auth import logout, authenticate, login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import User
-from django.contrib import messages
+from django.core.mail import send_mail, EmailMessage
+from django.core.paginator import Paginator
+from django.db import IntegrityError
+from django.db.models import Q, Sum
+from django.http import JsonResponse, HttpResponse
+from django.shortcuts import render, redirect, get_object_or_404
+from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils import timezone
-from django.core.mail import send_mail
-from django.core.paginator import Paginator
-from django.db.models import Q, Sum
-from .forms import DelayDataForm,DriverTripFormSet, CustomUserCreationForm, PasswordResetRequestForm, SetNewPasswordForm,formset_factory
-from .models import DriverTrip, DriverImportLog, DutyCardTrip
-from .decorators import user_in_driverimportlog_required
-from datetime import datetime, date
-import pandas as pd
-from django.db import IntegrityError
-import logging
-from functools import wraps
-from django.conf import settings
-from datetime import datetime,time
-from .forms import BreakdownReportForm 
+from django.utils.timezone import now
+
 from docx import Document
-from io import BytesIO
-from django.template.loader import render_to_string
-from django.core.mail import EmailMessage
-from docx.shared import Pt
+from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
-from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
-from .models import DelayData, BreakdownReport
+from docx.shared import Pt
 
-import openpyxl
 from openpyxl.utils import get_column_letter
-from django.utils.timezone import now
+
+import pdfkit
+
+from .decorators import user_in_driverimportlog_required
+from .forms import (
+    DelayDataForm, DriverTripFormSet, CustomUserCreationForm, 
+    PasswordResetRequestForm, SetNewPasswordForm, formset_factory, 
+    BreakdownReportForm
+)
+from .models import (
+    DriverTrip, DriverImportLog, DutyCardTrip, DelayData, 
+    BreakdownReport, StmRoute, StmPickupPoint, StmShiftTime
+)
+
 
 # Setup logger
 logger = logging.getLogger(__name__)
@@ -1049,11 +1058,6 @@ def download_fleet_report(request):
     return response
 
 
-from .models import StmRoute, StmPickupPoint, StmShiftTime
-from django.shortcuts import render
-from django.http import JsonResponse
-from django.db.models import Q
-import datetime
 
 def ajax_search_route(request):
     if request.method == 'GET':
@@ -1126,82 +1130,12 @@ def ajax_search_route(request):
     return render(request, 'error_page.html', {'error': 'Invalid request'})
 
 
-from django.shortcuts import render, get_list_or_404
-from .models import StmRoute, StmPickupPoint, StmShiftTime
 
-def route_details(request):
-    # Retrieve route name, route type, and shift time from query parameters
-    route_name = request.GET.get('route')
-    route_type = request.GET.get('type')  # Route type is optional
-    shift_time = request.GET.get('shift_time')
-
-    # Step 1: Filter StmRoute by route name and apply route_type filter only if specified
-    if route_type:
-        route_qs = StmRoute.objects.filter(route=route_name, route_type=route_type)
-    else:
-        route_qs = StmRoute.objects.filter(route=route_name)
-
-    # Check if any routes match; if not, return an error
-    if not route_qs.exists():
-        return render(request, 'duty/error_page.html', {'error': 'No matching route found.'})
-
-    # Prepare a list to hold route data
-    route_data_list = []
-
-    # Process each route found in route_qs
-    for route in route_qs:
-        # Step 2: Filter StmShiftTime by route and shift time, ordered by stop_order
-        shift_times = StmShiftTime.objects.filter(route=route, shift_time=shift_time).order_by('stop_order')
-
-        if not shift_times.exists():
-            continue  # Skip this route type if no shift times are found
-
-        # Step 3: Retrieve pickup points ordered by pick_up_point_order_id
-        pickup_points = StmPickupPoint.objects.filter(route=route).order_by('pick_up_point_order_id')
-        route_data = {
-            'route_name': route.route,
-            'route_type': route.route_type,
-            'operating_days_1': route.operating_days_1,
-            'operating_days_2': route.operating_days_2,
-            'work_hub': route.work_hub,
-            'shift_time': shift_time,
-            'pickup_points': [],
-        }
-
-        # Create a mapping for shift times by stop order for efficient lookup
-        stop_order_to_times = {
-            shift.stop_order: {
-                'time': shift.time if isinstance(shift.time, str) else shift.time.strftime('%H:%M') if shift.time else '-',
-                'special_time': shift.special_time if isinstance(shift.special_time, str) else shift.special_time.strftime('%H:%M') if shift.special_time else '-'
-            } for shift in shift_times
-        }
-
-        # Map pickup points with corresponding time based on stop order
-        for point in pickup_points:
-            stop_order = point.pick_up_point_order_id  # Use pick_up_point_order_id for ordering
-            route_data['pickup_points'].append({
-                'stop_id': point.stop_id,
-                'pick_up_point': point.pick_up_point,
-                'time': stop_order_to_times.get(stop_order, {}).get('time', '-'),
-                'special_time': stop_order_to_times.get(stop_order, {}).get('special_time', '-')
-            })
-
-        # Append the filtered route data to route_data_list
-        route_data_list.append(route_data)
-
-    # Render the route details page with the data
-    return render(request, 'duty/stm_timetable.html', {'route_data_list': route_data_list})
-
-from django.http import HttpResponse
-from django.template.loader import render_to_string
-from django.shortcuts import render
-from .models import StmRoute, StmPickupPoint, StmShiftTime
-import pdfkit
 
 def render_to_pdf(template_src, context_dict):
     html_string = render_to_string(template_src, context_dict)
-    # Specify wkhtmltopdf path if pdfkit isn't finding it automatically
-    config = pdfkit.configuration(wkhtmltopdf='C:/Program Files/wkhtmltopdf/bin/wkhtmltopdf.exe')
+    config = pdfkit.configuration(wkhtmltopdf='/usr/bin/wkhtmltopdf')
+
     try:
         pdf = pdfkit.from_string(html_string, False, configuration=config)
         if pdf:
@@ -1210,15 +1144,15 @@ def render_to_pdf(template_src, context_dict):
             return response
     except Exception as e:
         print("PDF Generation Error:", e)
+    
     return None
 
-def route_details_pdf(request):
-    # Get parameters from the request
+def route_details(request):
+    # Render the route details HTML page without generating a PDF
     route_name = request.GET.get('route')
-    route_type = request.GET.get('type')
+    route_type = request.GET.get('type')  # Optional
     shift_time = request.GET.get('shift_time')
 
-    # Fetch data using the same logic as route_details
     if route_type:
         route_qs = StmRoute.objects.filter(route=route_name, route_type=route_type)
     else:
@@ -1233,7 +1167,6 @@ def route_details_pdf(request):
         if not shift_times.exists():
             continue
 
-        # Initialize `stop_order_to_times` to map stop orders
         stop_order_to_times = {
             shift.stop_order: {
                 'time': shift.time.strftime('%H:%M') if shift.time and not isinstance(shift.time, str) else shift.time,
@@ -1242,7 +1175,6 @@ def route_details_pdf(request):
             for shift in shift_times
         }
 
-        # Prepare pickup points and their corresponding times
         pickup_points = StmPickupPoint.objects.filter(route=route).order_by('pick_up_point_order_id')
         route_data = {
             'route_name': route.route,
@@ -1263,8 +1195,5 @@ def route_details_pdf(request):
         }
         route_data_list.append(route_data)
 
-    # Render the PDF
-    pdf = render_to_pdf('duty/stm_timetable.html', {'route_data_list': route_data_list})
-    if pdf:
-        return pdf
-    return render(request, 'duty/error_page.html', {'error': 'Error generating PDF.'})
+    return render(request, 'duty/stm_timetable.html', {'route_data_list': route_data_list})
+
