@@ -1197,7 +1197,7 @@ def route_details(request):
 
     return render(request, 'duty/stm_timetable.html', {'route_data_list': route_data_list})
 
-    from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render
 from .models import StmRoute, StmShiftTime, StmPickupPoint
 
 def stm_timetables(request):
@@ -1211,30 +1211,52 @@ def stm_timetables(request):
     # Validate and fetch data based on route and shift time
     if route_name and shift_time:
         # Use case-insensitive filtering for the route
-        try:
-            route = StmRoute.objects.get(route__iexact=route_name)
-        except StmRoute.DoesNotExist:
+        routes = StmRoute.objects.filter(route__iexact=route_name)
+
+        if not routes.exists():
             return render(request, 'duty/stm_timetable.html', {'error': 'No matching route found.'})
 
-        # Ensure shift time is found and use time parsing if necessary
-        shift = StmShiftTime.objects.filter(route=route, shift_time=shift_time).first()
+        route_data_list = []
+        for route in routes:
+            shift = StmShiftTime.objects.filter(route=route, shift_time=shift_time).first()
 
-        if not shift:
-            print(f"No matching shift time found for route: {route_name} with shift time: {shift_time}")
+            if shift:
+                # Fetch pickup points for the route and order them by pick_up_point_order_id
+                pickup_points = StmPickupPoint.objects.filter(route=route).order_by('pick_up_point_order_id')
+
+                # Create a mapping of stop orders to shift times
+                shift_times = StmShiftTime.objects.filter(route=route).order_by('stop_order')
+                stop_order_to_time = {
+                    shift.stop_order: shift.time if isinstance(shift.time, str) else (shift.time.strftime('%H:%M') if shift.time else '-')
+                    for shift in shift_times
+                }
+
+                # Log the retrieved data for verification
+                print(f"Route: {route}, Shift: {shift}, Number of pickup points: {len(pickup_points)}")
+
+                route_data = {
+                    'route_name': route.route,
+                    'route_type': route.route_type,
+                    'operating_days_1': route.operating_days_1,
+                    'operating_days_2': route.operating_days_2,
+                    'work_hub': route.work_hub,
+                    'shift_time': shift.shift_time if isinstance(shift.shift_time, str) else (shift.shift_time.strftime('%H:%M') if shift.shift_time else 'N/A'),
+                    'pickup_points': [
+                        {
+                            'stop_id': point.stop_id,
+                            'pick_up_point': point.pick_up_point,
+                            'time': stop_order_to_time.get(point.pick_up_point_order_id, '-'),
+                            'special_time': shift.special_time if isinstance(shift.special_time, str) else (shift.special_time.strftime('%H:%M') if shift.special_time else '-')
+                        }
+                        for point in pickup_points
+                    ]
+                }
+                route_data_list.append(route_data)
+
+        if route_data_list:
+            return render(request, 'duty/stm_timetable.html', {'route_data_list': route_data_list})
+        else:
             return render(request, 'duty/stm_timetable.html', {'error': 'No matching shift time found for the selected route.'})
-
-        # Fetch pickup points for the route and order them by pick_up_point_order_id
-        pickup_points = StmPickupPoint.objects.filter(route=route).order_by('pick_up_point_order_id')
-
-        # Log the retrieved data for verification
-        print(f"Route: {route}, Shift: {shift}, Number of pickup points: {len(pickup_points)}")
-
-        context = {
-            'route': route,
-            'shift': shift,
-            'pickup_points': pickup_points,
-        }
-        return render(request, 'duty/stm_timetable.html', context)
     else:
         print("Invalid route or shift time provided")
         return render(request, 'duty/stm_timetable.html', {'error': 'Invalid route or shift time provided'})
