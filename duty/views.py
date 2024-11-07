@@ -1197,3 +1197,44 @@ def route_details(request):
 
     return render(request, 'duty/stm_timetable.html', {'route_data_list': route_data_list})
 
+    from django.shortcuts import render, get_object_or_404
+from .models import StmRoute, StmShiftTime, StmPickupPoint
+
+def stm_timetables(request):
+    # Get route and shift_time from the query parameters
+    route_name = request.GET.get('route')
+    shift_time = request.GET.get('shift_time')
+
+    # Log the received parameters for debugging
+    print(f"Received route: {route_name}, shift time: {shift_time}")
+
+    # Validate and fetch data based on route and shift time
+    if route_name and shift_time:
+        # Use case-insensitive filtering for the route
+        try:
+            route = StmRoute.objects.get(route__iexact=route_name)
+        except StmRoute.DoesNotExist:
+            return render(request, 'duty/stm_timetable.html', {'error': 'No matching route found.'})
+
+        # Ensure shift time is found and use time parsing if necessary
+        shift = StmShiftTime.objects.filter(route=route, shift_time=shift_time).first()
+
+        if not shift:
+            print(f"No matching shift time found for route: {route_name} with shift time: {shift_time}")
+            return render(request, 'duty/stm_timetable.html', {'error': 'No matching shift time found for the selected route.'})
+
+        # Fetch pickup points for the route and order them by pick_up_point_order_id
+        pickup_points = StmPickupPoint.objects.filter(route=route).order_by('pick_up_point_order_id')
+
+        # Log the retrieved data for verification
+        print(f"Route: {route}, Shift: {shift}, Number of pickup points: {len(pickup_points)}")
+
+        context = {
+            'route': route,
+            'shift': shift,
+            'pickup_points': pickup_points,
+        }
+        return render(request, 'duty/stm_timetable.html', context)
+    else:
+        print("Invalid route or shift time provided")
+        return render(request, 'duty/stm_timetable.html', {'error': 'Invalid route or shift time provided'})
