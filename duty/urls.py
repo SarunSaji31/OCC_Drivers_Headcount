@@ -68,7 +68,8 @@ urlpatterns = [
     path('search/', views.ajax_search_route, name='search_route'),
     path('ajax/search_route/', views.ajax_search_route, name='ajax_search_route'),
     path('route-details/', views.route_details, name='route_details'),  # New route details page
-    path('route-details/pdf/', views.route_details_pdf, name='route_details_pdf'), 
+    path('stm_timetables/', views.stm_timetables, name='stm_timetables'), 
+    
 ]
 
 # Serve static files during development
