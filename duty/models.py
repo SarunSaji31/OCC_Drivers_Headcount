@@ -20,10 +20,11 @@ class DutyCardTrip(models.Model):
     pick_up_time = models.TimeField()
     drop_off_time = models.TimeField()
     shift_time = models.TimeField()
+    capacity = models.IntegerField()  # New field for bus seat capacity
     submission_date = models.DateTimeField(null=True, blank=True)  # Track when the card was submitted
-    def __str__(self):
-        return self.duty_card_no
 
+    def __str__(self):
+        return f"{self.duty_card_no} - {self.route_name}"
 
 class DriverTrip(models.Model):
     INBOUND_OUTBOUND_CHOICES = [
