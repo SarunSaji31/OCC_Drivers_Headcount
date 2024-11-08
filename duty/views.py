@@ -55,7 +55,7 @@ def home(request):
     staff_name = DriverImportLog.objects.filter(staff_id=staff_id).values_list('driver_name', flat=True).first() or staff_id
 
     # Fetch driver trips
-    driver_trips = DriverTrip.objects.filter(driver__staff_id=staff_id)
+    driver_trips = DriverTrip.objects.filter(driver__staff_id=staff_id).select_related('duty_card')
     driver_trip_data = [{
         'route_name': trip.route_name,
         'pick_up_time': trip.pick_up_time.strftime('%H:%M:%S'),
@@ -63,7 +63,8 @@ def home(request):
         'shift_time': trip.shift_time.strftime('%H:%M:%S'),
         'head_count': trip.head_count,
         'trip_type': trip.trip_type,
-        'date': trip.date.strftime('%Y-%m-%d')
+        'date': trip.date.strftime('%Y-%m-%d'),
+        'capacity': trip.duty_card.capacity  # Include capacity from the related DutyCardTrip
     } for trip in driver_trips]
 
     context = {
@@ -71,6 +72,7 @@ def home(request):
         'driver_trips': driver_trip_data,
     }
     return render(request, 'duty/home.html', context)
+
 
 
 @login_required
@@ -88,8 +90,15 @@ def enter_head_count(request):
 
     if request.method == 'POST':
         trip_formset = DriverTripFormSet(request.POST, prefix='drivertrip_set')
+
+        # Debug: Print raw POST data
+        print("Raw POST data:", request.POST)
+
+        # Debug: Print initial formset data
+        for i, form in enumerate(trip_formset):
+            print(f"Form {i} initial data:", form.initial)
+
         duty_card_no = request.POST.get('duty_card_no')
-        duty_card = DutyCardTrip.objects.filter(duty_card_no=duty_card_no).first()
 
         if not duty_card_no:
             return render(request, 'duty/enter_head_count.html', {
@@ -98,7 +107,27 @@ def enter_head_count(request):
                 'error_message': "Please fill in the Duty Card No."
             })
 
-        desired_date = datetime.strptime(request.POST.get('drivertrip_set-0-date'), '%Y-%m-%d').date()
+        duty_card = DutyCardTrip.objects.filter(duty_card_no=duty_card_no).first()
+        if not duty_card:
+            return render(request, 'duty/enter_head_count.html', {
+                'trip_formset': trip_formset,
+                'staff_name': staff_name,
+                'error_message': "Invalid Duty Card No. Please check and try again."
+            })
+
+        try:
+            desired_date_str = request.POST.get('drivertrip_set-0-date')
+            if not desired_date_str:
+                raise ValueError("Date field is missing or empty.")
+
+            desired_date = datetime.strptime(desired_date_str, '%Y-%m-%d').date()
+        except (ValueError, TypeError):
+            return render(request, 'duty/enter_head_count.html', {
+                'trip_formset': trip_formset,
+                'staff_name': staff_name,
+                'error_message': "Invalid date format. Please use YYYY-MM-DD."
+            })
+
         if DriverTrip.objects.filter(driver=driver, date=desired_date).exists():
             return render(request, 'duty/enter_head_count.html', {
                 'trip_formset': trip_formset,
@@ -107,14 +136,32 @@ def enter_head_count(request):
             })
 
         if trip_formset.is_valid():
+            # Debug: Print cleaned data for each form in the formset
+            for i, form in enumerate(trip_formset):
+                print(f"Form {i} cleaned data:", form.cleaned_data)
+
             for form in trip_formset:
                 trip = form.save(commit=False)
                 trip.driver = driver
                 trip.duty_card = duty_card
                 trip.save()
             messages.success(request, "Headcount successfully submitted.")
-            return redirect('success')
+            return redirect('success')  # Ensure 'success' is defined in your URL patterns
         else:
+            # Debug: Print errors in the formset to the console
+            print("Formset validation failed.")
+            for i, form in enumerate(trip_formset):
+                if form.errors:
+                    print(f"Form {i} field errors:")
+                    for field, errors in form.errors.items():
+                        print(f"  - {field}: {errors}")
+                    print(f"Form {i} non-field errors:", form.non_field_errors())
+            
+            # Debug: Print raw form data to help identify input issues
+            for i, form in enumerate(trip_formset):
+                print(f"Form {i} raw data:", form.data)
+
+            # Show form errors for better user feedback
             return render(request, 'duty/enter_head_count.html', {
                 'trip_formset': trip_formset,
                 'staff_name': staff_name,
@@ -126,6 +173,7 @@ def enter_head_count(request):
         'trip_formset': trip_formset,
         'staff_name': staff_name,
     })
+
 
 
 @login_required
@@ -1128,9 +1176,6 @@ def ajax_search_route(request):
         return render(request, 'duty/search_form_with_results.html', {'routes': route_data})
 
     return render(request, 'error_page.html', {'error': 'Invalid request'})
-
-
-
 
 def render_to_pdf(template_src, context_dict):
     html_string = render_to_string(template_src, context_dict)
