@@ -203,142 +203,71 @@
   </head>
 
   <body>
-    <!-- Navbar with Transparent Background -->
-    <nav
-      class="navbar navbar-expand-lg navbar-light"
-      style="
-        background-color: rgba(235, 235, 235, 0.8);
-        border-bottom: 2px solid #ccc;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-      "
-    >
-      <!-- Toggler button for mobile devices -->
-      <button
-        class="navbar-toggler"
-        type="button"
-        data-bs-toggle="collapse"
-        data-bs-target="#navbarNav"
-        aria-controls="navbarNav"
-        aria-expanded="false"
-        aria-label="Toggle navigation"
-      >
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <!-- Collapsible content -->
-      <div class="collapse navbar-collapse" id="navbarNav">
-        <ul class="navbar-nav ml-auto">
-          <li class="nav-item">
-            <a class="nav-link" href="/" style="color: black">Home</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="/report/" style="color: black">Reports</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="/dashboard/" style="color: black"
-              >Dashboard</a
-            >
-          </li>
-          <li class="nav-item" style="list-style-type: none">
-            <span class="navbar-text" style="color: black"
-              >Welcome, Sarunsaji31!</span
-            >
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="/logout/" style="color: black">Logout</a>
-          </li>
-        </ul>
-      </div>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-light" style="background-color: rgba(235, 235, 235, 0.8); border-bottom: 2px solid #ccc; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ml-auto">
+                <li class="nav-item"><a class="nav-link" href="/" style="color: black;">Home</a></li>
+                <li class="nav-item"><a class="nav-link" href="/report/" style="color: black;">Reports</a></li>
+                <li class="nav-item"><a class="nav-link" href="/dashboard/" style="color: black;">Dashboard</a></li>
+                <li class="nav-item"><span class="navbar-text" style="color: black;">Welcome, {{ staff_name }}!</span></li>
+                <li class="nav-item"><a class="nav-link" href="/logout/" style="color: black;">Logout</a></li>
+            </ul>
+        </div>
     </nav>
 
     <!-- Header Section -->
     <div class="header-section">
-      <img src="https://et.ae/wp-content/uploads/2020/03/Logo.svg" alt="Logo" />
-      <h1>Enter Head Count Details</h1>
-      <p>Manage and track driver details and trip information efficiently.</p>
+        <img src="https://et.ae/wp-content/uploads/2020/03/Logo.svg" alt="Logo">
+        <h1>Enter Head Count Details</h1>
+        <p>Manage and track driver details and trip information efficiently.</p>
     </div>
 
     <!-- Form Container -->
     <div class="container form-container">
-      {% if error_message %}
-      <div class="alert alert-danger">
-        <strong>Error:</strong> {{ error_message }}
-      </div>
-      {% endif %} {% if success_message %}
-      <div class="alert alert-success">
-        <strong>Success:</strong> {{ success_message }}
-      </div>
-      {% endif %}
-
-      <form id="driver-trip-form" method="post">
-        {% csrf_token %}
-        <div class="driver-form-container">
-          <div class="form-row">
-            <input
-              type="hidden"
-              id="id_staff_id"
-              name="staff_id"
-              value="{{ user.username }}"
-            />
-            <input
-              type="hidden"
-              id="id_driver_name"
-              name="driver_name"
-              value="{{ staff_name }}"
-            />
-            <div class="form-group col-md-4">
-              <label for="id_duty_card_no" class="form-label"
-                >Duty Card No</label
-              >
-              <input
-                type="text"
-                id="id_duty_card_no"
-                name="duty_card_no"
-                class="form-control"
-                placeholder="e.g., A012"
-                required
-              />
-            </div>
-          </div>
+        {% if error_message %}
+        <div class="alert alert-danger">
+            <strong>Error:</strong> {{ error_message }}
         </div>
-
-        <div id="trip-entries" class="mt-4">
-          <!-- Trip form entries will be dynamically added here -->
-          {% for trip in duty_card_trips %}
-          <div class="form-row trip-form-container mb-3">
-            <div class="col-md-3">
-              <label>Route Name</label>
-              <a
-                href="{% url 'stm_timetables' %}?route={{ trip.route_name }}&shift_time={{ trip.shift_time }}"
-                class="d-block"
-                target="_blank"
-                >{{ trip.route_name }}</a
-              >
-            </div>
-            <div class="col-md-2">
-              <label>Shift Time</label>
-              <input
-                type="text"
-                class="form-control"
-                value="{{ trip.shift_time }}"
-                readonly
-              />
-            </div>
-            <!-- Add additional fields if needed -->
-          </div>
-          {% endfor %}
+        {% endif %}
+        
+        {% if success_message %}
+        <div class="alert alert-success">
+            <strong>Success:</strong> {{ success_message }}
         </div>
+        {% endif %}
 
-        <button type="submit" class="btn btn-success mt-4" id="submit-button">
-          Submit
-        </button>
-      </form>
+        <form id="driver-trip-form" method="post">
+            {% csrf_token %}
+            <div class="driver-form-container">
+                <div class="form-row">
+                    <input type="hidden" id="id_staff_id" name="staff_id" value="{{ user.username }}">
+                    <input type="hidden" id="id_driver_name" name="driver_name" value="{{ staff_name }}">
+                    <div class="form-group col-md-4">
+                        <label for="id_duty_card_no" class="form-label">Duty Card No</label>
+                        <input type="text" id="id_duty_card_no" name="duty_card_no" class="form-control" placeholder="e.g., A012" required>
+                    </div>
+                </div>
+            </div>
+
+            <div id="trip-entries" class="mt-4">
+                <!-- Trip form entries will be dynamically added here -->
+            </div>
+
+            <input type="hidden" name="drivertrip_set-TOTAL_FORMS" id="id_drivertrip_set-TOTAL_FORMS" value="0">
+            <input type="hidden" name="drivertrip_set-INITIAL_FORMS" value="0">
+            <input type="hidden" name="drivertrip_set-MIN_NUM_FORMS" value="0">
+            <input type="hidden" name="drivertrip_set-MAX_NUM_FORMS" value="1000">
+            <div id="button-container" class="button-container mt-4">
+                <div id="add-row" class="add-icon">+</div>
+                <button type="submit" class="btn btn-success" id="submit-button">Submit</button>
+            </div>
+        </form>
     </div>
 
-    <!-- Footer Section -->
+    <!-- Footer -->
     <footer class="footer">
-      <p>
-        &copy; Emirates Airline Staff Transport Project. All rights reserved.
-      </p>
+        <p>&copy; Emirates Airline Staff Transport Project. All rights reserved.</p>
     </footer>
 
     <!-- Scripts -->
@@ -348,157 +277,130 @@
 
     <!-- JS for Trip Row Manipulation -->
     <script>
-      $(document).ready(function () {
-        var tripCount = 0;
+        $(document).ready(function() {
+            var tripCount = 0;
 
-        function addTripRow(tripData = {}, index) {
-          var newRow = `
+            function addTripRow(tripData = {}, index) {
+                var newRow = `
                     <div class="form-row trip-form-container" data-index="${index}">
-                        <div class="col-md-3 mb-3">
-                            <label>Route Name</label>
-                            <a href="{% url 'stm_timetables' %}?route=${
-                              tripData.route_name
-                            }&shift_time=${
-            tripData.shift_time
-          }" class="d-block" target="_blank">${tripData.route_name || ""}</a>
-                        </div>
+                            <div class="col-md-3 mb-3">
+                                <label>Route Name</label>
+                                <a href="{% url 'route_details' %}?route=${tripData.route_name}&shift_time=${tripData.shift_time}" class="form-control" target="_blank">
+                                    ${tripData.route_name || 'Enter Route Name'}
+                                </a>
+                                <!-- Hidden input to keep the route_name in the formset -->
+                                <input type="hidden" name="drivertrip_set-${index}-route_name" value="${tripData.route_name || ''}" required>
+                            </div>
                         <div class="col-md-2 mb-3">
                             <label>Type</label>
                             <select name="drivertrip_set-${index}-trip_type" class="form-control" required>
-                                <option value="inbound" ${
-                                  tripData.trip_type === "inbound"
-                                    ? "selected"
-                                    : ""
-                                }>Inbound</option>
-                                <option value="outbound" ${
-                                  tripData.trip_type === "outbound"
-                                    ? "selected"
-                                    : ""
-                                }>Outbound</option>
+                                <option value="inbound" ${tripData.trip_type === 'inbound' ? 'selected' : ''}>Inbound</option>
+                                <option value="outbound" ${tripData.trip_type === 'outbound' ? 'selected' : ''}>Outbound</option>
                             </select>
                         </div>
                         <div class="col-md-2 mb-3">
                             <label>Pick Up Time</label>
-                            <input type="time" name="drivertrip_set-${index}-pick_up_time" class="form-control" value="${
-            tripData.pick_up_time || ""
-          }" required>
+                            <input type="time" name="drivertrip_set-${index}-pick_up_time" class="form-control" value="${tripData.pick_up_time || ''}" required>
                         </div>
                         <div class="col-md-2 mb-3">
                             <label>Drop Off Time</label>
-                            <input type="time" name="drivertrip_set-${index}-drop_off_time" class="form-control" value="${
-            tripData.drop_off_time || ""
-          }" required>
+                            <input type="time" name="drivertrip_set-${index}-drop_off_time" class="form-control" value="${tripData.drop_off_time || ''}" required>
                         </div>
                         <div class="col-md-2 mb-3">
                             <label>Shift Time</label>
-                            <input type="time" name="drivertrip_set-${index}-shift_time" class="form-control" value="${
-            tripData.shift_time || ""
-          }" required>
+                            <input type="time" name="drivertrip_set-${index}-shift_time" class="form-control" value="${tripData.shift_time || ''}" required>
                         </div>
                         <div class="col-md-3 mb-3">
                             <label>Date</label>
-                            <input type="date" name="drivertrip_set-${index}-date" class="form-control" value="${
-            tripData.date || ""
-          }" required>
+                            <input type="date" name="drivertrip_set-${index}-date" class="form-control" value="${tripData.date || ''}" required>
                         </div>
                         <div class="col-md-2 mb-3">
                             <label>Head Count</label>
-                            <input type="number" name="drivertrip_set-${index}-head_count" class="form-control" value="${
-            tripData.head_count || ""
-          }" min="0" max="47" required>
+                            <input type="number" name="drivertrip_set-${index}-head_count" class="form-control" placeholder="Enter Head Count" value="${tripData.head_count || ''}" min="0" max="47" required>
                         </div>
                         <div class="col-md-1 remove-trip-container mb-3">
                             <span class="remove-trip">Remove</span>
                         </div>
                     </div>
                 `;
-          $("#trip-entries").append(newRow);
-          tripCount++;
-          updateFormIndices();
-        }
 
-        function updateFormIndices() {
-          $(".trip-form-container").each(function (index) {
-            $(this).attr("data-index", index);
-            $(this)
-              .find("input, select")
-              .each(function () {
-                const name = $(this).attr("name");
-                const newName = name.replace(/\\d+/, index);
-                $(this).attr("name", newName);
-              });
-          });
-          $("#id_drivertrip_set-TOTAL_FORMS").val(tripCount);
-        }
+                $('#trip-entries').append(newRow);
+                tripCount++;
+                updateFormIndices();
+            }
 
-        $("#add-row").on("click", function () {
-          addTripRow({}, tripCount);
-          $("#submit-button").show();
-        });
-
-        $(document).on("click", ".remove-trip", function () {
-          $(this).closest(".trip-form-container").remove();
-          tripCount--;
-          updateFormIndices();
-          if (tripCount === 0) {
-            $("#submit-button").hide();
-          }
-        });
-
-        $("#submit-button").hide();
-
-        $("#id_duty_card_no").autocomplete({
-          source: function (request, response) {
-            $.ajax({
-              url: "{% url 'duty-card-no-autocomplete' %}",
-              dataType: "json",
-              data: {
-                term: request.term,
-              },
-              success: function (data) {
-                response(
-                  $.map(data, function (item) {
-                    return {
-                      label: item,
-                      value: item,
-                    };
-                  })
-                );
-              },
-              error: function (xhr, status, error) {
-                console.log(
-                  "Error fetching autocomplete data for duty_card_no:",
-                  error
-                );
-              },
-            });
-          },
-          minLength: 2,
-          select: function (event, ui) {
-            console.log("Selected duty_card_no:", ui.item.value);
-            $.ajax({
-              url: "{% url 'get-duty-card-details' %}",
-              dataType: "json",
-              data: {
-                duty_card_no: ui.item.value,
-              },
-              success: function (data) {
-                $("#trip-entries").empty();
-                tripCount = 0;
-                data.trips.forEach(function (trip, index) {
-                  addTripRow(trip, index);
+            function updateFormIndices() {
+                $('.trip-form-container').each(function(index) {
+                    $(this).attr('data-index', index);
+                    $(this).find('input, select').each(function() {
+                        const name = $(this).attr('name');
+                        const newName = name.replace(/\d+/, index);
+                        $(this).attr('name', newName);
+                    });
                 });
-                if (tripCount > 0) {
-                  $("#submit-button").show();
-                }
-              },
-              error: function (xhr, status, error) {
-                console.log("Error fetching duty card details:", error);
-              },
+                $('#id_drivertrip_set-TOTAL_FORMS').val(tripCount);
+            }
+
+            $('#add-row').on('click', function() {
+                addTripRow({}, tripCount);
+                $('#submit-button').show();
             });
-          },
+
+            $(document).on('click', '.remove-trip', function() {
+                $(this).closest('.trip-form-container').remove();
+                tripCount--;
+                updateFormIndices();
+
+                if (tripCount === 0) {
+                    $('#submit-button').hide();
+                }
+            });
+
+            $('#submit-button').hide();
+
+            $("#id_duty_card_no").autocomplete({
+                source: function(request, response) {
+                    $.ajax({
+                        url: "{% url 'duty-card-no-autocomplete' %}",
+                        dataType: "json",
+                        data: { term: request.term },
+                        success: function(data) {
+                            response($.map(data, function(item) {
+                                return { label: item, value: item };
+                            }));
+                        },
+                        error: function(xhr, status, error) {
+                            console.log("Error fetching autocomplete data:", error);
+                        }
+                    });
+                },
+                minLength: 2,
+                select: function(event, ui) {
+                    $.ajax({
+                        url: "{% url 'get-duty-card-details' %}",
+                        dataType: "json",
+                        data: { duty_card_no: ui.item.value },
+                        success: function(data) {
+                            $('#trip-entries').empty();
+                            tripCount = 0;
+                            data.trips.forEach(function(trip, index) {
+                                addTripRow(trip, index);
+                            });
+                            if (tripCount > 0) {
+                                $('#submit-button').show();
+                            }
+                        },
+                        error: function(xhr, status, error) {
+                            console.log("Error fetching duty card details:", error);
+                        }
+                    });
+                },
+                focus: function(event, ui) {
+                    event.preventDefault();
+                    $(this).val(ui.item.label);
+                }
+            });
         });
-      });
     </script>
-  </body>
+</body>
 </html>
