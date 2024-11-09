@@ -1,208 +1,224 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
+  <head>
     {% load static %}
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Enter Head Count - OCC-EKG Project</title>
 
     <!-- Bootstrap 5.1.3 CSS (without integrity check) -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css">
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css"
+    />
 
     <!-- Font Awesome 5.15.3 -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"
+    />
 
     <!-- jQuery UI CSS -->
-    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <link
+      rel="stylesheet"
+      href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css"
+    />
 
     <style>
-        body {
-            font-family: 'Arial', sans-serif;
-            background: url("{% static 'occ_background_img.png' %}") no-repeat center center fixed;
-            background-size: cover;
-            color: #333;
-        }
-        .navbar {
-            background-color: #6c757d;
-        }
-        .navbar-brand,
-        .nav-link {
-            color: rgb(5, 5, 5) !important;
-        }
-        .navbar-brand {
-            font-weight: bold;
-            font-size: 1.25rem;
-        }
-        .navbar-toggler {
-            border-color: rgba(255, 255, 255, 0.1);
+      body {
+        font-family: "Arial", sans-serif;
+        background: url("{% static 'occ_background_img.png' %}") no-repeat
+          center center fixed;
+        background-size: cover;
+        color: #333;
+      }
+      .navbar {
+        background-color: #6c757d;
+      }
+      .navbar-brand,
+      .nav-link {
+        color: rgb(5, 5, 5) !important;
+      }
+      .navbar-brand {
+        font-weight: bold;
+        font-size: 1.25rem;
+      }
+      .navbar-toggler {
+        border-color: rgba(255, 255, 255, 0.1);
+      }
+      .navbar-toggler-icon {
+        background-color: white;
+        border-radius: 2px;
+        width: 30px;
+        height: 4px;
+        position: relative;
+      }
+      .navbar-toggler-icon::before,
+      .navbar-toggler-icon::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        width: 100%;
+        height: 4px;
+        background-color: white;
+      }
+      .navbar-toggler-icon::before {
+        top: -10px;
+      }
+      .navbar-toggler-icon::after {
+        bottom: -10px;
+      }
+      .header-section {
+        text-align: center;
+        padding: 40px 20px;
+        background: rgba(233, 236, 239, 0.85);
+        color: #333;
+        position: relative;
+        margin-bottom: 30px;
+        border-bottom: 1px solid #ccc;
+      }
+      .header-section h1 {
+        font-size: 2rem;
+        margin-bottom: 10px;
+        font-weight: 700;
+      }
+      .header-section p {
+        font-size: 1rem;
+        margin-bottom: 20px;
+      }
+      .header-section img {
+        position: absolute;
+        top: 10px;
+        left: 25px;
+        width: 100px;
+      }
+      .form-container {
+        background-color: rgba(255, 255, 255, 0.9);
+        padding: 40px;
+        border-radius: 10px;
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.05);
+        margin-top: 20px;
+        max-width: 800px;
+        margin-left: auto;
+        margin-right: auto;
+        border: 1px solid #ddd;
+      }
+      .form-group label {
+        font-weight: 500;
+        font-size: 1rem;
+        color: #555;
+      }
+      .form-control {
+        border-radius: 0.25rem;
+        border: 1px solid #ccc;
+        height: 38px;
+        transition: border-color 0.3s ease;
+      }
+      .form-control:focus {
+        border-color: #007bff;
+        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+      }
+      .form-control::placeholder {
+        color: #888;
+        font-style: italic;
+        font-size: 0.9rem;
+      }
+      .btn-primary,
+      .btn-success {
+        border-radius: 0.25rem;
+        font-weight: bold;
+        padding: 10px 20px;
+      }
+      .add-icon {
+        cursor: pointer;
+        color: #28a745;
+        font-size: 24px;
+        font-weight: bold;
+        text-align: center;
+        align-self: center;
+        margin-bottom: 20px;
+      }
+      .remove-trip {
+        cursor: pointer;
+        font-weight: bold;
+        color: #dc3545;
+      }
+      .button-container {
+        display: flex;
+        gap: 10px;
+        margin-top: 20px;
+        justify-content: center;
+      }
+      .footer {
+        background: #e9ecef;
+        color: #333;
+        text-align: center;
+        padding: 10px 0;
+        margin-top: 30px;
+        border-top: 1px solid #ccc;
+      }
+      .footer p {
+        margin: 0;
+        font-size: 0.9rem;
+      }
+      .trip-form-container {
+        border-bottom: 1px solid #ddd;
+        padding-bottom: 20px;
+        margin-bottom: 20px;
+      }
+      .driver-form-container {
+        margin-bottom: 40px;
+      }
+      .navbar-text {
+        position: absolute;
+        right: 20px;
+        top: 10px;
+        color: rgb(0, 0, 0);
+        font-weight: bold;
+      }
+      @media (max-width: 768px) {
+        .header-section img {
+          width: 70px;
+          top: 5px;
+          left: 10px;
         }
         .header-section {
-            text-align: center;
-            padding: 40px 20px;
-            background: rgba(233, 236, 239, 0.85);
-            color: #333;
-            position: relative;
-            margin-bottom: 30px;
-            border-bottom: 1px solid #ccc;
+          padding: 30px 10px;
         }
         .header-section h1 {
-            font-size: 2rem;
-            margin-bottom: 10px;
-            font-weight: 700;
+          font-size: 1.75rem;
         }
         .header-section p {
-            font-size: 1rem;
-            margin-bottom: 20px;
-        }
-        .header-section img {
-            position: absolute;
-            top: 10px;
-            left: 25px;
-            width: 100px;
+          font-size: 0.95rem;
         }
         .form-container {
-            background-color: rgba(255, 255, 255, 0.9);
-            padding: 40px;
-            border-radius: 10px;
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.05);
-            margin-top: 20px;
-            max-width: 800px;
-            margin-left: auto;
-            margin-right: auto;
-            border: 1px solid #ddd;
-        }
-        .form-group label {
-            font-weight: 500;
-            font-size: 1rem;
-            color: #555;
-        }
-        .form-control {
-            border-radius: 0.25rem;
-            border: 1px solid #ccc;
-            height: 38px;
-            transition: border-color 0.3s ease;
-        }
-        .form-control:focus {
-            border-color: #007bff;
-            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
-        }
-        .form-control::placeholder {
-            color: #888;
-            font-style: italic;
-            font-size: 0.9rem;
-        }
-        .btn-primary, .btn-success {
-            border-radius: 0.25rem;
-            font-weight: bold;
-            padding: 10px 20px;
-        }
-        .add-icon {
-            cursor: pointer;
-            color: #28a745;
-            font-size: 24px;
-            font-weight: bold;
-            text-align: center;
-            align-self: center;
-            margin-bottom: 20px;
-        }
-        .remove-trip {
-            cursor: pointer;
-            font-weight: bold;
-            color: #dc3545;
-        }
-        .button-container {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-            justify-content: center;
-        }
-        .footer {
-            background: #e9ecef;
-            color: #333;
-            text-align: center;
-            padding: 10px 0;
-            margin-top: 30px;
-            border-top: 1px solid #ccc;
-        }
-        .footer p {
-            margin: 0;
-            font-size: 0.9rem;
-        }
-        .trip-form-container {
-            border-bottom: 1px solid #ddd;
-            padding-bottom: 20px;
-            margin-bottom: 20px;
-        }
-        .driver-form-container {
-            margin-bottom: 40px;
+          padding: 20px;
         }
         .navbar-text {
-            position: absolute;
-            right: 20px;
-            top: 10px;
-            color: rgb(0, 0, 0);
-            font-weight: bold;
+          right: 10px;
+          top: 5px;
         }
-        @media (max-width: 768px) {
-            .header-section img {
-                width: 70px;
-                top: 5px;
-                left: 10px;
-            }
-            .header-section {
-                padding: 30px 10px;
-            }
-            .header-section h1 {
-                font-size: 1.75rem;
-            }
-            .header-section p {
-                font-size: 0.95rem;
-            }
-            .form-container {
-                padding: 20px;
-            }
-            .navbar-text {
-                right: 10px;
-                top: 5px;
-            }
-        }
+      }
     </style>
-</head>
+  </head>
 
-<body>
-    <!-- Navbar with Transparent Background -->
+  <body>
+    <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-light" style="background-color: rgba(235, 235, 235, 0.8); border-bottom: 2px solid #ccc; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
-            
-            <!-- Toggler button for mobile devices -->
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <!-- Collapsible content -->
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ml-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="/" style="color: black;">Home</a>
-                    </li>                   
-                    <li class="nav-item">
-                        <a class="nav-link" href="/report/" style="color: black;">Reports</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/dashboard/" style="color: black;">Dashboard</a>
-                    </li>
-                    <li class="nav-item" style="list-style-type: none;">
-                        <span class="navbar-text" style="color: black;">Welcome,  {{ staff_name }}!</span>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/logout/" style="color: black;">Logout</a>
-                    </li>
-                </ul>
-            </div>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ml-auto">
+                <li class="nav-item"><a class="nav-link" href="/" style="color: black;">Home</a></li>
+                <li class="nav-item"><a class="nav-link" href="/report/" style="color: black;">Reports</a></li>
+                <li class="nav-item"><a class="nav-link" href="/dashboard/" style="color: black;">Dashboard</a></li>
+                <li class="nav-item"><span class="navbar-text" style="color: black;">Welcome, {{ staff_name }}!</span></li>
+                <li class="nav-item"><a class="nav-link" href="/logout/" style="color: black;">Logout</a></li>
+            </ul>
         </div>
     </nav>
 
     <!-- Header Section -->
     <div class="header-section">
-        <img src="https://et.ae/wp-content/uploads/2020/03/Logo.svg" alt="Logo">
+        <img src="{% static 'assets/images/logo.svg' %}" alt="Emirates Transport" class="mb-3" style="max-width: 150px;">
         <h1>Enter Head Count Details</h1>
         <p>Manage and track driver details and trip information efficiently.</p>
     </div>
@@ -249,7 +265,7 @@
         </form>
     </div>
 
-    <!-- Footer Section -->
+    <!-- Footer -->
     <footer class="footer">
         <p>&copy; Emirates Airline Staff Transport Project. All rights reserved.</p>
     </footer>
@@ -264,14 +280,17 @@
         $(document).ready(function() {
             var tripCount = 0;
 
-            // Function to add a new trip row
             function addTripRow(tripData = {}, index) {
                 var newRow = `
                     <div class="form-row trip-form-container" data-index="${index}">
-                        <div class="col-md-3 mb-3">
-                            <label>Route Name</label>
-                            <input type="text" name="drivertrip_set-${index}-route_name" class="form-control" placeholder="Enter Route Name" value="${tripData.route_name || ''}" required>
-                        </div>
+                            <div class="col-md-3 mb-3">
+                                <label>Route Name</label>
+                                <a href="{% url 'route_details' %}?route=${tripData.route_name}&shift_time=${tripData.shift_time}" class="form-control" target="_blank">
+                                    ${tripData.route_name || 'Enter Route Name'}
+                                </a>
+                                <!-- Hidden input to keep the route_name in the formset -->
+                                <input type="hidden" name="drivertrip_set-${index}-route_name" value="${tripData.route_name || ''}" required>
+                            </div>
                         <div class="col-md-2 mb-3">
                             <label>Type</label>
                             <select name="drivertrip_set-${index}-trip_type" class="form-control" required>
@@ -310,7 +329,6 @@
                 updateFormIndices();
             }
 
-            // Function to update form indices and TOTAL_FORMS
             function updateFormIndices() {
                 $('.trip-form-container').each(function(index) {
                     $(this).attr('data-index', index);
@@ -320,69 +338,54 @@
                         $(this).attr('name', newName);
                     });
                 });
-                $('#id_drivertrip_set-TOTAL_FORMS').val(tripCount);  // Update total form count
+                $('#id_drivertrip_set-TOTAL_FORMS').val(tripCount);
             }
 
-            // Add a trip row when clicking the "Add Row" button
             $('#add-row').on('click', function() {
                 addTripRow({}, tripCount);
-                $('#submit-button').show();  // Show submit button once a row is added
+                $('#submit-button').show();
             });
 
-            // Remove trip row and update indices
             $(document).on('click', '.remove-trip', function() {
                 $(this).closest('.trip-form-container').remove();
                 tripCount--;
-                updateFormIndices();  // Update form indices after removal
+                updateFormIndices();
 
-                // Hide submit button if no rows left
                 if (tripCount === 0) {
                     $('#submit-button').hide();
                 }
             });
 
-            // Initially hide submit button
             $('#submit-button').hide();
 
-            // Duty card autocomplete
             $("#id_duty_card_no").autocomplete({
                 source: function(request, response) {
                     $.ajax({
                         url: "{% url 'duty-card-no-autocomplete' %}",
                         dataType: "json",
-                        data: {
-                            term: request.term
-                        },
+                        data: { term: request.term },
                         success: function(data) {
                             response($.map(data, function(item) {
-                                return {
-                                    label: item,
-                                    value: item
-                                };
+                                return { label: item, value: item };
                             }));
                         },
                         error: function(xhr, status, error) {
-                            console.log("Error fetching autocomplete data for duty_card_no:", error);
+                            console.log("Error fetching autocomplete data:", error);
                         }
                     });
                 },
                 minLength: 2,
                 select: function(event, ui) {
-                    console.log("Selected duty_card_no:", ui.item.value);
                     $.ajax({
                         url: "{% url 'get-duty-card-details' %}",
                         dataType: "json",
-                        data: {
-                            duty_card_no: ui.item.value
-                        },
+                        data: { duty_card_no: ui.item.value },
                         success: function(data) {
                             $('#trip-entries').empty();
                             tripCount = 0;
                             data.trips.forEach(function(trip, index) {
                                 addTripRow(trip, index);
                             });
-
-                            // Show submit button if trips are added
                             if (tripCount > 0) {
                                 $('#submit-button').show();
                             }
@@ -395,12 +398,9 @@
                 focus: function(event, ui) {
                     event.preventDefault();
                     $(this).val(ui.item.label);
-                },
-                close: function(event, ui) {
-                    $(this).trigger('change');
                 }
             });
         });
-    </script>   
+    </script>
 </body>
 </html>

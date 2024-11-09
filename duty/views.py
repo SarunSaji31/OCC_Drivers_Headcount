@@ -1,40 +1,49 @@
-from django.shortcuts import render, redirect, get_object_or_404
-from django.http import JsonResponse, HttpResponse
+from datetime import datetime, date, time
+import logging
+import openpyxl
+import pandas as pd
+from functools import wraps
+from io import BytesIO
+
+from django.conf import settings
+from django.contrib import messages
 from django.contrib.auth import logout, authenticate, login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import User
-from django.contrib import messages
+from django.core.mail import send_mail, EmailMessage
+from django.core.paginator import Paginator
+from django.db import IntegrityError
+from django.db.models import Q, Sum
+from django.http import JsonResponse, HttpResponse
+from django.shortcuts import render, redirect, get_object_or_404
+from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils import timezone
-from django.core.mail import send_mail
-from django.core.paginator import Paginator
-from django.db.models import Q, Sum
-from .forms import DelayDataForm,DriverTripFormSet, CustomUserCreationForm, PasswordResetRequestForm, SetNewPasswordForm,formset_factory
-from .models import DriverTrip, DriverImportLog, DutyCardTrip
-from .decorators import user_in_driverimportlog_required
-from datetime import datetime, date
-import pandas as pd
-from django.db import IntegrityError
-import logging
-from functools import wraps
-from django.conf import settings
-from datetime import datetime,time
-from .forms import BreakdownReportForm 
+from django.utils.timezone import now
+
 from docx import Document
-from io import BytesIO
-from django.template.loader import render_to_string
-from django.core.mail import EmailMessage
-from docx.shared import Pt
+from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
-from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
-from .models import DelayData, BreakdownReport
+from docx.shared import Pt
 
-import openpyxl
 from openpyxl.utils import get_column_letter
-from django.utils.timezone import now
+
+import pdfkit
+
+from .decorators import user_in_driverimportlog_required
+from .forms import (
+    DelayDataForm, DriverTripFormSet, CustomUserCreationForm, 
+    PasswordResetRequestForm, SetNewPasswordForm, formset_factory, 
+    BreakdownReportForm
+)
+from .models import (
+    DriverTrip, DriverImportLog, DutyCardTrip, DelayData, 
+    BreakdownReport, StmRoute, StmPickupPoint, StmShiftTime
+)
+
 
 # Setup logger
 logger = logging.getLogger(__name__)
@@ -46,7 +55,7 @@ def home(request):
     staff_name = DriverImportLog.objects.filter(staff_id=staff_id).values_list('driver_name', flat=True).first() or staff_id
 
     # Fetch driver trips
-    driver_trips = DriverTrip.objects.filter(driver__staff_id=staff_id)
+    driver_trips = DriverTrip.objects.filter(driver__staff_id=staff_id).select_related('duty_card')
     driver_trip_data = [{
         'route_name': trip.route_name,
         'pick_up_time': trip.pick_up_time.strftime('%H:%M:%S'),
@@ -54,7 +63,8 @@ def home(request):
         'shift_time': trip.shift_time.strftime('%H:%M:%S'),
         'head_count': trip.head_count,
         'trip_type': trip.trip_type,
-        'date': trip.date.strftime('%Y-%m-%d')
+        'date': trip.date.strftime('%Y-%m-%d'),
+        'capacity': trip.duty_card.capacity  # Include capacity from the related DutyCardTrip
     } for trip in driver_trips]
 
     context = {
@@ -62,6 +72,24 @@ def home(request):
         'driver_trips': driver_trip_data,
     }
     return render(request, 'duty/home.html', context)
+
+@login_required
+def submission_history(request):
+    """Display the submission history of the logged-in user."""
+    staff_id = request.user.username
+    driver = DriverImportLog.objects.filter(staff_id=staff_id).first()
+
+    if not driver:
+        return render(request, 'duty/submission_history.html', {
+            'error_message': "No submission history found for this user."
+        })
+
+    submissions = DriverTrip.objects.filter(driver=driver).order_by('-date')
+    context = {
+        'staff_name': driver.driver_name,
+        'submissions': submissions
+    }
+    return render(request, 'duty/submission_history.html', context)
 
 
 @login_required
@@ -80,7 +108,6 @@ def enter_head_count(request):
     if request.method == 'POST':
         trip_formset = DriverTripFormSet(request.POST, prefix='drivertrip_set')
         duty_card_no = request.POST.get('duty_card_no')
-        duty_card = DutyCardTrip.objects.filter(duty_card_no=duty_card_no).first()
 
         if not duty_card_no:
             return render(request, 'duty/enter_head_count.html', {
@@ -89,7 +116,26 @@ def enter_head_count(request):
                 'error_message': "Please fill in the Duty Card No."
             })
 
-        desired_date = datetime.strptime(request.POST.get('drivertrip_set-0-date'), '%Y-%m-%d').date()
+        duty_card = DutyCardTrip.objects.filter(duty_card_no=duty_card_no).first()
+        if not duty_card:
+            return render(request, 'duty/enter_head_count.html', {
+                'trip_formset': trip_formset,
+                'staff_name': staff_name,
+                'error_message': "Invalid Duty Card No. Please check and try again."
+            })
+
+        try:
+            desired_date_str = request.POST.get('drivertrip_set-0-date')
+            if not desired_date_str:
+                raise ValueError("Date field is missing or empty.")
+            desired_date = datetime.strptime(desired_date_str, '%Y-%m-%d').date()
+        except (ValueError, TypeError):
+            return render(request, 'duty/enter_head_count.html', {
+                'trip_formset': trip_formset,
+                'staff_name': staff_name,
+                'error_message': "Invalid date format. Please use YYYY-MM-DD."
+            })
+
         if DriverTrip.objects.filter(driver=driver, date=desired_date).exists():
             return render(request, 'duty/enter_head_count.html', {
                 'trip_formset': trip_formset,
@@ -104,7 +150,7 @@ def enter_head_count(request):
                 trip.duty_card = duty_card
                 trip.save()
             messages.success(request, "Headcount successfully submitted.")
-            return redirect('success')
+            return redirect('success')  # Ensure 'success' is defined in your URL patterns
         else:
             return render(request, 'duty/enter_head_count.html', {
                 'trip_formset': trip_formset,
@@ -1048,192 +1094,109 @@ def download_fleet_report(request):
     
     return response
 
-
-from .models import StmRoute, StmPickupPoint, StmShiftTime
-from django.shortcuts import render
-from django.http import JsonResponse
-from django.db.models import Q
-import datetime
-
 def ajax_search_route(request):
     if request.method == 'GET':
         # Retrieve filter inputs
         route_code = request.GET.get('route', '').strip()
-        route_name = request.GET.get('route_name', '').strip()  # New field for route name
+        route_name = request.GET.get('route_name', '').strip()
         route_type = request.GET.get('type', '').strip()
         work_hub = request.GET.get('work_hub', '').strip()
         pick_up_point = request.GET.get('pick_up_point', '').strip()
         stop_id = request.GET.get('stop_id', '').strip()
         shift_time = request.GET.get('shift_time', '').strip()
+        connection_from = request.GET.get('connection_from', '').strip()
+        connection_to = request.GET.get('connection_to', '').strip()
 
-        # Construct query with partial matching
+        # Construct query with partial matching for the main route table
         query = Q()
         if route_code:
-            query &= Q(route__icontains=route_code)  # Partial match for route code
+            query &= Q(route__icontains=route_code)
         if route_name:
-            query &= Q(route__icontains=route_name)  # Partial match for route name
+            query &= Q(route__icontains=route_name)
         if route_type:
-            query &= Q(route_type__icontains=route_type)  # Partial match
+            query &= Q(route_type__icontains=route_type)
         if work_hub:
-            query &= Q(work_hub__icontains=work_hub)  # Partial match
+            query &= Q(work_hub__icontains=work_hub)
+        if connection_from:
+            query &= Q(connection_from__icontains=connection_from)
+        if connection_to:
+            query &= Q(connection_to__icontains=connection_to)
 
         # Retrieve filtered routes
         routes = StmRoute.objects.filter(query).distinct()
 
-        # Track unique route entries
         route_data = []
         seen_entries = set()
 
         for route in routes:
-            pickup_points = route.pickup_points.all()
-            shift_times = route.shift_times.all()
+            # Filter related tables based on optional parameters
+            pickup_points = route.pickup_points.filter(pick_up_point__icontains=pick_up_point) if pick_up_point else route.pickup_points.all()
+            if stop_id:
+                pickup_points = pickup_points.filter(stop_id__icontains=stop_id)
 
-            # Filter based on optional parameters
-            if pick_up_point or stop_id:
-                pickup_points = pickup_points.filter(
-                    Q(pick_up_point__icontains=pick_up_point) if pick_up_point else Q(),
-                    Q(stop_id__icontains=stop_id) if stop_id else Q()
-                )
+            shift_times = route.shift_times.filter(shift_time__icontains=shift_time) if shift_time else route.shift_times.all()
 
-            if shift_time:
-                shift_times = shift_times.filter(shift_time=shift_time)
+            # Build unique route data for JSON response only if related data matches
+            if pickup_points.exists() or not pick_up_point:
+                for shift in shift_times:
+                    entry_key = (route.route, route.route_type, shift.shift_time, route.work_hub)
+                    if entry_key not in seen_entries:
+                        seen_entries.add(entry_key)
+                        route_data.append({
+                            'route_code': route.route,
+                            'route_name': route.route,
+                            'route_type': route.route_type,
+                            'work_hub': route.work_hub,
+                            'connection_from': route.connection_from,
+                            'connection_to': route.connection_to,
+                            'shift_time': shift.shift_time.strftime('%H:%M') if shift.shift_time else '-',
+                        })
 
-            # Build unique route data for JSON response
-            for shift in shift_times:
-                # Create a unique key for each unique combination of fields
-                entry_key = (
-                    route.route, route.route_type, shift.shift_time, route.work_hub
-                )
-
-                # Only add if the entry hasn't been seen before
-                if entry_key not in seen_entries:
-                    seen_entries.add(entry_key)
-                    route_data.append({
-                        'route_code': route.route,
-                        'route_name': route.route,  # Added route name
-                        'route_type': route.route_type,
-                        'work_hub': route.work_hub,
-                        'shift_time': shift.shift_time.strftime('%H:%M') if shift.shift_time else '-',
-                    })
-
-        # Check if the request is AJAX and return JSON
+        # Return JSON response for AJAX request
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return JsonResponse({'routes': route_data})
 
-        # Otherwise, render the HTML page
         return render(request, 'duty/search_form_with_results.html', {'routes': route_data})
 
-    return render(request, 'error_page.html', {'error': 'Invalid request'})
+    return render(request, 'duty/error_page.html', {'error': 'Invalid request'})
 
-
-from django.shortcuts import render, get_list_or_404
-from .models import StmRoute, StmPickupPoint, StmShiftTime
 
 def route_details(request):
-    # Retrieve route name, route type, and shift time from query parameters
+    # Retrieve input parameters from the request
     route_name = request.GET.get('route')
-    route_type = request.GET.get('type')  # Route type is optional
+    route_type = request.GET.get('type')  # Optional
     shift_time = request.GET.get('shift_time')
+    connection_from = request.GET.get('connection_from')  # New field
+    connection_to = request.GET.get('connection_to')  # New field
 
-    # Step 1: Filter StmRoute by route name and apply route_type filter only if specified
+    # Debug: Log received input
+    print(f"Route Name: {route_name}, Route Type: {route_type}, Shift Time: {shift_time}, Connection From: {connection_from}, Connection To: {connection_to}")
+
+    # Validate and fetch data based on route and shift time
     if route_type:
-        route_qs = StmRoute.objects.filter(route=route_name, route_type=route_type)
+        route_qs = StmRoute.objects.filter(route__iexact=route_name, route_type=route_type)
     else:
-        route_qs = StmRoute.objects.filter(route=route_name)
+        route_qs = StmRoute.objects.filter(route__iexact=route_name)
 
-    # Check if any routes match; if not, return an error
-    if not route_qs.exists():
-        return render(request, 'duty/error_page.html', {'error': 'No matching route found.'})
-
-    # Prepare a list to hold route data
-    route_data_list = []
-
-    # Process each route found in route_qs
-    for route in route_qs:
-        # Step 2: Filter StmShiftTime by route and shift time, ordered by stop_order
-        shift_times = StmShiftTime.objects.filter(route=route, shift_time=shift_time).order_by('stop_order')
-
-        if not shift_times.exists():
-            continue  # Skip this route type if no shift times are found
-
-        # Step 3: Retrieve pickup points ordered by pick_up_point_order_id
-        pickup_points = StmPickupPoint.objects.filter(route=route).order_by('pick_up_point_order_id')
-        route_data = {
-            'route_name': route.route,
-            'route_type': route.route_type,
-            'operating_days_1': route.operating_days_1,
-            'operating_days_2': route.operating_days_2,
-            'work_hub': route.work_hub,
-            'shift_time': shift_time,
-            'pickup_points': [],
-        }
-
-        # Create a mapping for shift times by stop order for efficient lookup
-        stop_order_to_times = {
-            shift.stop_order: {
-                'time': shift.time if isinstance(shift.time, str) else shift.time.strftime('%H:%M') if shift.time else '-',
-                'special_time': shift.special_time if isinstance(shift.special_time, str) else shift.special_time.strftime('%H:%M') if shift.special_time else '-'
-            } for shift in shift_times
-        }
-
-        # Map pickup points with corresponding time based on stop order
-        for point in pickup_points:
-            stop_order = point.pick_up_point_order_id  # Use pick_up_point_order_id for ordering
-            route_data['pickup_points'].append({
-                'stop_id': point.stop_id,
-                'pick_up_point': point.pick_up_point,
-                'time': stop_order_to_times.get(stop_order, {}).get('time', '-'),
-                'special_time': stop_order_to_times.get(stop_order, {}).get('special_time', '-')
-            })
-
-        # Append the filtered route data to route_data_list
-        route_data_list.append(route_data)
-
-    # Render the route details page with the data
-    return render(request, 'duty/stm_timetable.html', {'route_data_list': route_data_list})
-
-from django.http import HttpResponse
-from django.template.loader import render_to_string
-from django.shortcuts import render
-from .models import StmRoute, StmPickupPoint, StmShiftTime
-import pdfkit
-
-def render_to_pdf(template_src, context_dict):
-    html_string = render_to_string(template_src, context_dict)
-    # Specify wkhtmltopdf path if pdfkit isn't finding it automatically
-    config = pdfkit.configuration(wkhtmltopdf='C:/Program Files/wkhtmltopdf/bin/wkhtmltopdf.exe')
-    try:
-        pdf = pdfkit.from_string(html_string, False, configuration=config)
-        if pdf:
-            response = HttpResponse(pdf, content_type='application/pdf')
-            response['Content-Disposition'] = 'attachment; filename="route_details.pdf"'
-            return response
-    except Exception as e:
-        print("PDF Generation Error:", e)
-    return None
-
-def route_details_pdf(request):
-    # Get parameters from the request
-    route_name = request.GET.get('route')
-    route_type = request.GET.get('type')
-    shift_time = request.GET.get('shift_time')
-
-    # Fetch data using the same logic as route_details
-    if route_type:
-        route_qs = StmRoute.objects.filter(route=route_name, route_type=route_type)
-    else:
-        route_qs = StmRoute.objects.filter(route=route_name)
+    # Apply connection_from and connection_to filters if provided
+    if connection_from:
+        route_qs = route_qs.filter(connection_from__icontains=connection_from)
+        print(f"Filtered by Connection From: {connection_from}, Count: {route_qs.count()}")
+    if connection_to:
+        route_qs = route_qs.filter(connection_to__icontains=connection_to)
+        print(f"Filtered by Connection To: {connection_to}, Count: {route_qs.count()}")
 
     if not route_qs.exists():
+        print("No matching route found.")  # Debug statement
         return render(request, 'duty/error_page.html', {'error': 'No matching route found.'})
 
     route_data_list = []
     for route in route_qs:
         shift_times = StmShiftTime.objects.filter(route=route, shift_time=shift_time).order_by('stop_order')
         if not shift_times.exists():
+            print(f"No shift times found for route: {route.route} with shift time: {shift_time}")  # Debug statement
             continue
 
-        # Initialize `stop_order_to_times` to map stop orders
         stop_order_to_times = {
             shift.stop_order: {
                 'time': shift.time.strftime('%H:%M') if shift.time and not isinstance(shift.time, str) else shift.time,
@@ -1242,7 +1205,6 @@ def route_details_pdf(request):
             for shift in shift_times
         }
 
-        # Prepare pickup points and their corresponding times
         pickup_points = StmPickupPoint.objects.filter(route=route).order_by('pick_up_point_order_id')
         route_data = {
             'route_name': route.route,
@@ -1250,6 +1212,8 @@ def route_details_pdf(request):
             'operating_days_1': route.operating_days_1,
             'operating_days_2': route.operating_days_2,
             'work_hub': route.work_hub,
+            'connection_from': route.connection_from,  # Include in output
+            'connection_to': route.connection_to,      # Include in output
             'shift_time': shift_time,
             'pickup_points': [
                 {
@@ -1263,8 +1227,86 @@ def route_details_pdf(request):
         }
         route_data_list.append(route_data)
 
-    # Render the PDF
-    pdf = render_to_pdf('duty/stm_timetable.html', {'route_data_list': route_data_list})
-    if pdf:
-        return pdf
-    return render(request, 'duty/error_page.html', {'error': 'Error generating PDF.'})
+    # Log final data structure
+    print(f"Final Route Data List: {route_data_list}")  # Debug statement
+
+    return render(request, 'duty/stm_timetable.html', {'route_data_list': route_data_list})
+
+
+def connection_from_autocomplete(request):
+    if 'term' in request.GET:
+        qs = StmRoute.objects.filter(connection_from__icontains=request.GET.get('term')).values_list('connection_from', flat=True).distinct()
+        suggestions = list(qs)
+        return JsonResponse(suggestions, safe=False)
+
+def connection_to_autocomplete(request):
+    if 'term' in request.GET:
+        qs = StmRoute.objects.filter(connection_to__icontains=request.GET.get('term')).values_list('connection_to', flat=True).distinct()
+        suggestions = list(qs)
+        return JsonResponse(suggestions, safe=False)
+
+from django.shortcuts import render
+from .models import StmRoute, StmShiftTime, StmPickupPoint
+
+def stm_timetables(request):
+    # Get route and shift_time from the query parameters
+    route_name = request.GET.get('route')
+    shift_time = request.GET.get('shift_time')
+
+    # Log the received parameters for debugging
+    print(f"Received route: {route_name}, shift time: {shift_time}")
+
+    # Validate and fetch data based on route and shift time
+    if route_name and shift_time:
+        # Use case-insensitive filtering for the route
+        routes = StmRoute.objects.filter(route__iexact=route_name)
+
+        if not routes.exists():
+            return render(request, 'duty/stm_timetable.html', {'error': 'No matching route found.'})
+
+        route_data_list = []
+        for route in routes:
+            shift = StmShiftTime.objects.filter(route=route, shift_time=shift_time).first()
+
+            if shift:
+                # Fetch pickup points for the route and order them by pick_up_point_order_id
+                pickup_points = StmPickupPoint.objects.filter(route=route).order_by('pick_up_point_order_id')
+
+                # Create a mapping of stop orders to shift times
+                shift_times = StmShiftTime.objects.filter(route=route).order_by('stop_order')
+                stop_order_to_time = {
+                    shift.stop_order: shift.time if isinstance(shift.time, str) else (shift.time.strftime('%H:%M') if shift.time else '-')
+                    for shift in shift_times
+                }
+
+                # Log the retrieved data for verification
+                print(f"Route: {route}, Shift: {shift}, Number of pickup points: {len(pickup_points)}")
+
+                route_data = {
+                    'route_name': route.route,
+                    'route_type': route.route_type,
+                    'operating_days_1': route.operating_days_1,
+                    'operating_days_2': route.operating_days_2,
+                    'work_hub': route.work_hub,
+                    'shift_time': shift.shift_time if isinstance(shift.shift_time, str) else (shift.shift_time.strftime('%H:%M') if shift.shift_time else 'N/A'),
+                    'pickup_points': [
+                        {
+                            'stop_id': point.stop_id,
+                            'pick_up_point': point.pick_up_point,
+                            'time': stop_order_to_time.get(point.pick_up_point_order_id, '-'),
+                            'special_time': shift.special_time if isinstance(shift.special_time, str) else (shift.special_time.strftime('%H:%M') if shift.special_time else '-')
+                        }
+                        for point in pickup_points
+                    ]
+                }
+                route_data_list.append(route_data)
+
+        if route_data_list:
+            return render(request, 'duty/stm_timetable.html', {'route_data_list': route_data_list})
+        else:
+            return render(request, 'duty/stm_timetable.html', {'error': 'No matching shift time found for the selected route.'})
+    else:
+        print("Invalid route or shift time provided")
+        return render(request, 'duty/stm_timetable.html', {'error': 'Invalid route or shift time provided'})
+    
+

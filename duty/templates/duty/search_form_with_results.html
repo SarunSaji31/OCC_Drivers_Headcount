@@ -3,47 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Search Route</title>
+    <title>Emirates Airline Staff Transport - Search Route</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body {
-            background-color: #f8f9fa;
+            background-color: #f4f0eb; /* Light beige */
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
         h1 {
-            font-weight: 300;
-            color: #343a40;
+            font-weight: 700;
+            color: #d71920; /* Emirates red */
             text-align: center;
             margin-bottom: 30px;
         }
         .card {
-            border: none;
-            border-radius: 8px;
+            border: 2px solid #d71920; /* Emirates red */
+            border-radius: 12px;
             padding: 20px;
-            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+            box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.1);
             background-color: #ffffff;
         }
         .form-label {
-            font-weight: 500;
-            color: #495057;
+            font-weight: 600;
+            color: #333;
         }
         .form-control, .form-select {
-            border-radius: 6px;
-            box-shadow: none;
-            border-color: #ced4da;
+            border-radius: 8px;
+            border: 1px solid #d71920;
         }
         .form-control:focus, .form-select:focus {
-            box-shadow: 0px 0px 5px rgba(33, 150, 243, 0.5);
-            border-color: #2196f3;
+            box-shadow: 0px 0px 8px rgba(215, 25, 32, 0.4);
+            border-color: #d71920;
+        }
+        .btn-primary {
+            background-color: #d71920;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: background-color 0.3s ease;
+        }
+        .btn-primary:hover {
+            background-color: #b5161c;
         }
         .table {
             margin-top: 20px;
             background-color: #ffffff;
-            border-radius: 8px;
+            border-radius: 12px;
             overflow: hidden;
         }
         .table th {
-            background-color: #007bff;
+            background-color: #d71920;
             color: #ffffff;
+            font-weight: 700;
         }
         .table th, .table td {
             vertical-align: middle;
@@ -53,11 +65,15 @@
             font-size: 0.9rem;
             color: #6c757d;
         }
+        .container {
+            max-width: 1200px;
+            margin-top: 40px;
+        }
     </style>
 </head>
 <body>
-<div class="container mt-5">
-    <h1>Search Route</h1>
+<div class="container">
+    <h1>Emirates Airline Staff Transport - Search Route</h1>
     <div class="row">
         <!-- Search Area -->
         <div class="col-md-6">
@@ -91,6 +107,14 @@
                         <label for="shift_time" class="form-label">Shift Time</label>
                         <input type="time" id="shift_time" name="shift_time" class="form-control">
                     </div>
+                    <div class="mb-3">
+                        <label for="connection_from" class="form-label">Connection From</label>
+                        <input type="text" id="connection_from" name="connection_from" class="form-control" placeholder="Enter Connection From">
+                    </div>
+                    <div class="mb-3">
+                        <label for="connection_to" class="form-label">Connection To</label>
+                        <input type="text" id="connection_to" name="connection_to" class="form-control" placeholder="Enter Connection To">
+                    </div>
                 </form>
             </div>
         </div>
@@ -113,6 +137,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const pickUpPointInput = document.getElementById('pick_up_point');
     const stopIdInput = document.getElementById('stop_id');
     const shiftTimeInput = document.getElementById('shift_time');
+    const connectionFromInput = document.getElementById('connection_from');
+    const connectionToInput = document.getElementById('connection_to');
     const resultContainer = document.getElementById('search-results');
 
     function updateResults(data) {
@@ -153,6 +179,8 @@ document.addEventListener('DOMContentLoaded', function() {
             pick_up_point: pickUpPointInput.value.trim(),
             stop_id: stopIdInput.value.trim(),
             shift_time: shiftTimeInput.value,
+            connection_from: connectionFromInput.value.trim(),
+            connection_to: connectionToInput.value.trim()
         });
 
         fetch(`/search/?${params.toString()}`, {
@@ -174,7 +202,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    [routeNameInput, typeInput, workHubInput, pickUpPointInput, stopIdInput, shiftTimeInput].forEach(input => {
+    [routeNameInput, typeInput, workHubInput, pickUpPointInput, stopIdInput, shiftTimeInput, connectionFromInput, connectionToInput].forEach(input => {
         input.addEventListener('input', fetchResults);
     });
 });
