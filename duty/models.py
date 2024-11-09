@@ -84,17 +84,19 @@ class BreakdownReport(models.Model):
    reported_datetime = models.DateTimeField()  # Date and time the breakdown was reported
 
    def __str__(self):
-       return f"Breakdown Report {self.id} - {self.breakdown_datetime}"
-   
+       return f"Breakdown Report {self.id} - {self.breakdown_datetime}" 
 
-# StmRoute model
+from django.db import models
+
 class StmRoute(models.Model):
-    route_id = models.CharField(max_length=50, unique=True, db_column='R_id')  # R_id, unique route ID
+    route_id = models.CharField(max_length=50, unique=True, db_column='R_id')  # Unique route ID
     route = models.CharField(max_length=50, db_column='Route')  # Route name/code
     route_type = models.CharField(max_length=50, db_column='Type')  # Type of route (Inbound/Outbound)
     operating_days_1 = models.CharField(max_length=7, db_column='Operating_days_1')  # Operating days 1, e.g., smtwtfa
     operating_days_2 = models.CharField(max_length=7, blank=True, null=True, db_column='Operating_days_2')  # Optional operating days 2
     work_hub = models.CharField(max_length=255, db_column='Work_Hub')  # Work hub for the route
+    connection_from = models.CharField(max_length=255, db_column='Connection_From', null=True, blank=True)  # New field
+    connection_to = models.CharField(max_length=255, db_column='Connection_To', null=True, blank=True)  # New field
 
     def __str__(self):
         return f'{self.route} ({self.route_type})'
@@ -102,21 +104,18 @@ class StmRoute(models.Model):
     class Meta:
         db_table = 'Stm_Routes'
 
-
-from django.db import models
-
 class StmPickupPoint(models.Model):
-    route = models.ForeignKey(StmRoute, on_delete=models.CASCADE, db_column='R_id', related_name='pickup_points')  # ForeignKey to StmRoute
-    stop_id = models.CharField(max_length=100, db_column='Stop_Id')  # Stop ID
-    pick_up_point = models.CharField(max_length=255, db_column='Pick_Up_Point')  # Pickup Point
-    pick_up_point_order_id = models.IntegerField(db_column='Pick_Up_Point_Order_Id')  # Order ID for pickup point
+    route = models.ForeignKey(StmRoute, on_delete=models.CASCADE, db_column='R_id', related_name='pickup_points')
+    stop_id = models.CharField(max_length=100, db_column='Stop_Id')
+    pick_up_point = models.CharField(max_length=255, db_column='Pick_Up_Point')
+    pick_up_point_order_id = models.IntegerField(db_column='Pick_Up_Point_Order_Id')
 
     def __str__(self):
         return f"Route {self.route.route} - Stop {self.stop_id} - {self.pick_up_point}"
 
     class Meta:
         db_table = 'Stm_Pickup_Points'
-        ordering = ['pick_up_point_order_id']  # Ensures pickup points are ordered by pick_up_point_order_id
+        ordering = ['pick_up_point_order_id']
 
         
 class StmShiftTime(models.Model):
