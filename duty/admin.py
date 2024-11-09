@@ -79,7 +79,7 @@ class StmShiftTimeInline(admin.TabularInline):
 
 @admin.register(StmRoute)
 class StmRouteAdmin(admin.ModelAdmin):
-    list_display = ['route_id', 'route', 'route_type', 'operating_days_1', 'work_hub']
+    list_display = ['route_id', 'route', 'route_type', 'operating_days_1', 'work_hub', 'connection_from', 'connection_to']
     search_fields = ['route_id', 'route']
     list_filter = ['route_type', 'work_hub', 'operating_days_1']
     inlines = [StmPickupPointInline, StmShiftTimeInline]
@@ -101,12 +101,10 @@ class StmPickupPointAdmin(admin.ModelAdmin):
     search_fields = ['route__route', 'stop_id', 'pick_up_point']
     ordering = ['pick_up_point_order_id']
     list_filter = ['route']
- 
 
 @admin.register(StmShiftTime)
 class StmShiftTimeAdmin(admin.ModelAdmin):
     list_display = ['route', 'time', 'special_time', 'shift_time', 'stop_order']
-    search_fields = ['route__route', 'shift_time']  
+    search_fields = ['route__route', 'shift_time']
     list_filter = ['route', 'time', 'shift_time']
-    ordering = ['shift_time', 'stop_order']  # Ensure results are ordered by shift_time and then stop_order
- 
+    ordering = ['shift_time', 'stop_order']
