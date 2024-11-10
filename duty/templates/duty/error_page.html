@@ -2,18 +2,68 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Error - Route Details</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Arial', sans-serif;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            margin-top: 60px;
+            padding: 20px;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        .alert {
+            font-size: 1.1rem;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        h4.alert-heading {
+            font-size: 1.5rem;
+        }
+        .btn-home {
+            display: block;
+            width: 100%;
+            max-width: 250px;
+            margin: 20px auto 0;
+            background-color: #d71920; /* Emirates red */
+            color: #ffffff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 1rem;
+            text-align: center;
+            text-decoration: none;
+            transition: background-color 0.3s;
+        }
+        .btn-home:hover {
+            background-color: #b5161c;
+        }
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            .btn-home {
+                font-size: 0.9rem;
+            }
+        }
+    </style>
 </head>
 <body>
-<div class="container mt-5">
+<div class="container">
     <div class="alert alert-danger" role="alert">
         <h4 class="alert-heading">Error</h4>
         <p>{{ error }}</p>
         <hr>
         <p class="mb-0">Please go back and try again with valid inputs or contact support if the issue persists.</p>
     </div>
-    <a href="javascript:history.back()" class="btn btn-primary mt-3">Go Back</a>
+    <a href="/" class="btn btn-home mt-2">Back to Home</a>
 </div>
 </body>
 </html>
