@@ -75,21 +75,31 @@ def home(request):
 
 @login_required
 def submission_history(request):
-    """Display the submission history of the logged-in user."""
+    """Display a summary of the submission history of the logged-in user."""
     staff_id = request.user.username
     driver = DriverImportLog.objects.filter(staff_id=staff_id).first()
 
     if not driver:
-        return render(request, 'duty/submission_history.html', {
+        return render(request, 'duty/user_submission_history.html', {
             'error_message': "No submission history found for this user."
         })
 
+    # Group submissions by date and duty card number
     submissions = DriverTrip.objects.filter(driver=driver).order_by('-date')
+    submission_summary = {}
+    for trip in submissions:
+        key = (trip.date, trip.duty_card.duty_card_no)
+        if key not in submission_summary:
+            submission_summary[key] = []
+        submission_summary[key].append(trip)
+
     context = {
         'staff_name': driver.driver_name,
-        'submissions': submissions
+        'submission_summary': submission_summary,
     }
-    return render(request, 'duty/submission_history.html', context)
+
+    return render(request, 'duty/user_submission_history.html', context)
+
 
 
 @login_required
@@ -1161,6 +1171,10 @@ def ajax_search_route(request):
     return render(request, 'duty/error_page.html', {'error': 'Invalid request'})
 
 
+from django.shortcuts import render
+from django.http import JsonResponse
+from .models import StmRoute, StmShiftTime, StmPickupPoint
+
 def route_details(request):
     # Retrieve input parameters from the request
     route_name = request.GET.get('route')
@@ -1168,9 +1182,6 @@ def route_details(request):
     shift_time = request.GET.get('shift_time')
     connection_from = request.GET.get('connection_from')  # New field
     connection_to = request.GET.get('connection_to')  # New field
-
-    # Debug: Log received input
-    print(f"Route Name: {route_name}, Route Type: {route_type}, Shift Time: {shift_time}, Connection From: {connection_from}, Connection To: {connection_to}")
 
     # Validate and fetch data based on route and shift time
     if route_type:
@@ -1181,20 +1192,16 @@ def route_details(request):
     # Apply connection_from and connection_to filters if provided
     if connection_from:
         route_qs = route_qs.filter(connection_from__icontains=connection_from)
-        print(f"Filtered by Connection From: {connection_from}, Count: {route_qs.count()}")
     if connection_to:
         route_qs = route_qs.filter(connection_to__icontains=connection_to)
-        print(f"Filtered by Connection To: {connection_to}, Count: {route_qs.count()}")
 
     if not route_qs.exists():
-        print("No matching route found.")  # Debug statement
         return render(request, 'duty/error_page.html', {'error': 'No matching route found.'})
 
     route_data_list = []
     for route in route_qs:
         shift_times = StmShiftTime.objects.filter(route=route, shift_time=shift_time).order_by('stop_order')
         if not shift_times.exists():
-            print(f"No shift times found for route: {route.route} with shift time: {shift_time}")  # Debug statement
             continue
 
         stop_order_to_times = {
@@ -1227,10 +1234,23 @@ def route_details(request):
         }
         route_data_list.append(route_data)
 
-    # Log final data structure
-    print(f"Final Route Data List: {route_data_list}")  # Debug statement
-
     return render(request, 'duty/stm_timetable.html', {'route_data_list': route_data_list})
+
+
+def connection_from_autocomplete(request):
+    if 'term' in request.GET:
+        qs = StmRoute.objects.filter(connection_from__icontains=request.GET.get('term')).values_list('connection_from', flat=True).distinct()
+        suggestions = list(qs)
+        return JsonResponse(suggestions, safe=False)
+
+
+def connection_to_autocomplete(request):
+    if 'term' in request.GET:
+        qs = StmRoute.objects.filter(connection_to__icontains=request.GET.get('term')).values_list('connection_to', flat=True).distinct()
+        suggestions = list(qs)
+        return JsonResponse(suggestions, safe=False)
+
+
 
 
 def connection_from_autocomplete(request):
@@ -1309,4 +1329,3 @@ def stm_timetables(request):
         print("Invalid route or shift time provided")
         return render(request, 'duty/stm_timetable.html', {'error': 'Invalid route or shift time provided'})
     
-
