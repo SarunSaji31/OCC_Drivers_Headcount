@@ -22,6 +22,7 @@ from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.timezone import now
+from openpyxl import Workbook
 
 from docx import Document
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
@@ -1031,6 +1032,7 @@ def fleet_counts_api(request):
 
     return JsonResponse(data)
 
+logger = logging.getLogger(__name__)
 
 def download_fleet_report(request):
     """
@@ -1040,10 +1042,20 @@ def download_fleet_report(request):
     report_type = request.GET.get('report_type')  # daily, monthly, or total
     report_category = request.GET.get('report_category')  # delay or breakdown
 
+    # Log the parameters to check if they are coming through correctly
+    logger.info(f"Received report_type: {report_type}, report_category: {report_category}")
+
+    # Check if report_type or report_category is missing
+    if not report_type or not report_category:
+        logger.error('Invalid report type or category.')
+        return JsonResponse({'status': 'error', 'message': 'Invalid report type or category.'})
+
     # Define the query based on the report type
     today = timezone.now().date()
     month_start = today.replace(day=1)
     
+    queryset = None  # Initialize queryset
+
     if report_type == 'daily':
         if report_category == 'delay':
             queryset = DelayData.objects.filter(date=today)
@@ -1060,27 +1072,39 @@ def download_fleet_report(request):
         elif report_category == 'breakdown':
             queryset = BreakdownReport.objects.all()
 
+    # Check if the queryset is empty
+    if queryset is None or not queryset.exists():
+        logger.error('No data available for the selected report.')
+        return JsonResponse({'status': 'error', 'message': 'No data available for the selected report.'})
+
     # Create an Excel workbook
-    workbook = openpyxl.Workbook()
+    workbook = Workbook()
     worksheet = workbook.active
 
     # Define headers for the Excel sheet
     if report_category == 'delay':
-        headers = ['Date', 'Route', 'STA', 'ATA', 'Remarks', 'Staff Count']  # Removed 'shift_time'
+        headers = ['Date', 'Route', 'In/Out', 'STD', 'STA', 'ATD', 'ATA', 'Delay', 'Remarks', 'Staff Count']
         worksheet.append(headers)
         # Add data to Excel rows
         for delay in queryset:
             worksheet.append([
                 delay.date, 
-                delay.route,  # Correct field name for route
-                delay.sta.strftime('%H:%M') if delay.sta else None,
+                delay.route,  
+                delay.in_out,  
+                delay.std.strftime('%H:%M') if delay.std else None,  
+                delay.sta.strftime('%H:%M') if delay.sta else None, 
+                delay.atd.strftime('%H:%M') if delay.atd else None,  
                 delay.ata.strftime('%H:%M') if delay.ata else None,
+                delay.delay,  
                 delay.remarks, 
                 delay.staff_count
             ])
 
     elif report_category == 'breakdown':
-        headers = ['Report Date', 'Breakdown Date', 'Location', 'Route #', 'Trip Work Order', 'Injured Passengers', 'Driver Name', 'Remarks']
+        headers = ['Report Date', 'Breakdown Date', 'Location', 'Route #', 'Trip Work Order', 'Passengers Involved', 
+                   'EK Staff Numbers', 'Non-EK Passenger Details', 'Injured Passengers', 'Action Taken for Injured',
+                   'Vehicle Damage', 'Driver Name', 'Driver ID', 'Driver Shift', 'Breakdown Description', 
+                   'EK Vehicles Involved', 'Vehicle Make and Plate', 'Replacement Vehicle', 'Reported To', 'Reported Date']
         worksheet.append(headers)
         # Add data to Excel rows
         for breakdown in queryset:
@@ -1090,9 +1114,21 @@ def download_fleet_report(request):
                 breakdown.location,
                 breakdown.route_number,
                 breakdown.trip_work_order,
+                breakdown.passengers_involved,
+                breakdown.ek_staff_numbers,
+                breakdown.non_ek_passenger_details,
                 breakdown.injured_passengers,
+                breakdown.action_taken_for_injured,
+                breakdown.vehicle_damage,
                 breakdown.driver_name,
-                breakdown.breakdown_description
+                breakdown.driver_id,
+                breakdown.driver_shift,
+                breakdown.breakdown_description,
+                breakdown.ek_vehicles_involved,
+                breakdown.vehicle_make_plate,
+                breakdown.replacement_vehicle,
+                breakdown.reported_to_person,
+                breakdown.reported_datetime.strftime('%Y-%m-%d %H:%M')
             ])
 
     # Prepare the response as an XLSX file
@@ -1171,10 +1207,6 @@ def ajax_search_route(request):
     return render(request, 'duty/error_page.html', {'error': 'Invalid request'})
 
 
-from django.shortcuts import render
-from django.http import JsonResponse
-from .models import StmRoute, StmShiftTime, StmPickupPoint
-
 def route_details(request):
     # Retrieve input parameters from the request
     route_name = request.GET.get('route')
@@ -1219,8 +1251,8 @@ def route_details(request):
             'operating_days_1': route.operating_days_1,
             'operating_days_2': route.operating_days_2,
             'work_hub': route.work_hub,
-            'connection_from': route.connection_from,  # Include in output
-            'connection_to': route.connection_to,      # Include in output
+            'connection_from': route.connection_from,  
+            'connection_to': route.connection_to,      
             'shift_time': shift_time,
             'pickup_points': [
                 {
@@ -1242,31 +1274,6 @@ def connection_from_autocomplete(request):
         qs = StmRoute.objects.filter(connection_from__icontains=request.GET.get('term')).values_list('connection_from', flat=True).distinct()
         suggestions = list(qs)
         return JsonResponse(suggestions, safe=False)
-
-
-def connection_to_autocomplete(request):
-    if 'term' in request.GET:
-        qs = StmRoute.objects.filter(connection_to__icontains=request.GET.get('term')).values_list('connection_to', flat=True).distinct()
-        suggestions = list(qs)
-        return JsonResponse(suggestions, safe=False)
-
-
-
-
-def connection_from_autocomplete(request):
-    if 'term' in request.GET:
-        qs = StmRoute.objects.filter(connection_from__icontains=request.GET.get('term')).values_list('connection_from', flat=True).distinct()
-        suggestions = list(qs)
-        return JsonResponse(suggestions, safe=False)
-
-def connection_to_autocomplete(request):
-    if 'term' in request.GET:
-        qs = StmRoute.objects.filter(connection_to__icontains=request.GET.get('term')).values_list('connection_to', flat=True).distinct()
-        suggestions = list(qs)
-        return JsonResponse(suggestions, safe=False)
-
-from django.shortcuts import render
-from .models import StmRoute, StmShiftTime, StmPickupPoint
 
 def stm_timetables(request):
     # Get route and shift_time from the query parameters
