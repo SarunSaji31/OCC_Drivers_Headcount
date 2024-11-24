@@ -211,6 +211,7 @@
                 <li class="nav-item"><a class="nav-link" href="/report/" style="color: black;">Reports</a></li>
                 <li class="nav-item"><a class="nav-link" href="/dashboard/" style="color: black;">Dashboard</a></li>
                 <li class="nav-item"><span class="navbar-text" style="color: black;">Welcome, {{ staff_name }}!</span></li>
+                <li class="nav-item"><a class="nav-link" href="/user_submission_history/" style="color: black;">Submission History</a></li>
                 <li class="nav-item"><a class="nav-link" href="/logout/" style="color: black;">Logout</a></li>
             </ul>
         </div>
@@ -218,7 +219,7 @@
 
     <!-- Header Section -->
     <div class="header-section">
-        <img src="{% static 'assets/images/logo.svg' %}" alt="Emirates Transport" class="mb-3" style="max-width: 150px;">
+      <img src="https://et.ae/assets/images/logo.svg" alt="Logo">
         <h1>Enter Head Count Details</h1>
         <p>Manage and track driver details and trip information efficiently.</p>
     </div>
@@ -275,132 +276,136 @@
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
 
-    <!-- JS for Trip Row Manipulation -->
+   <!-- JS for Trip Row Manipulation -->
     <script>
-        $(document).ready(function() {
-            var tripCount = 0;
+      $(document).ready(function() {
+          var tripCount = 0;
 
-            function addTripRow(tripData = {}, index) {
-                var newRow = `
-                    <div class="form-row trip-form-container" data-index="${index}">
-                            <div class="col-md-3 mb-3">
-                                <label>Route Name</label>
-                                <a href="{% url 'route_details' %}?route=${tripData.route_name}&shift_time=${tripData.shift_time}" class="form-control" target="_blank">
-                                    ${tripData.route_name || 'Enter Route Name'}
-                                </a>
-                                <!-- Hidden input to keep the route_name in the formset -->
-                                <input type="hidden" name="drivertrip_set-${index}-route_name" value="${tripData.route_name || ''}" required>
-                            </div>
-                        <div class="col-md-2 mb-3">
-                            <label>Type</label>
-                            <select name="drivertrip_set-${index}-trip_type" class="form-control" required>
-                                <option value="inbound" ${tripData.trip_type === 'inbound' ? 'selected' : ''}>Inbound</option>
-                                <option value="outbound" ${tripData.trip_type === 'outbound' ? 'selected' : ''}>Outbound</option>
-                            </select>
-                        </div>
-                        <div class="col-md-2 mb-3">
-                            <label>Pick Up Time</label>
-                            <input type="time" name="drivertrip_set-${index}-pick_up_time" class="form-control" value="${tripData.pick_up_time || ''}" required>
-                        </div>
-                        <div class="col-md-2 mb-3">
-                            <label>Drop Off Time</label>
-                            <input type="time" name="drivertrip_set-${index}-drop_off_time" class="form-control" value="${tripData.drop_off_time || ''}" required>
-                        </div>
-                        <div class="col-md-2 mb-3">
-                            <label>Shift Time</label>
-                            <input type="time" name="drivertrip_set-${index}-shift_time" class="form-control" value="${tripData.shift_time || ''}" required>
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <label>Date</label>
-                            <input type="date" name="drivertrip_set-${index}-date" class="form-control" value="${tripData.date || ''}" required>
-                        </div>
-                        <div class="col-md-2 mb-3">
-                            <label>Head Count</label>
-                            <input type="number" name="drivertrip_set-${index}-head_count" class="form-control" placeholder="Enter Head Count" value="${tripData.head_count || ''}" min="0" max="47" required>
-                        </div>
-                        <div class="col-md-1 remove-trip-container mb-3">
-                            <span class="remove-trip">Remove</span>
-                        </div>
-                    </div>
-                `;
+          function addTripRow(tripData = {}, index) {
+              var newRow = `
+                  <div class="form-row trip-form-container" data-index="${index}">
+                      <div class="col-md-3 mb-3">
+                          <label>Route Name</label>
+                          ${tripData.route_name ? `
+                              <a href="/route-details/?route=${encodeURIComponent(tripData.route_name)}&shift_time=${encodeURIComponent(tripData.shift_time)}" class="form-control" target="_blank">
+                                  ${tripData.route_name}
+                              </a>
+                              <input type="hidden" name="drivertrip_set-${index}-route_name" value="${tripData.route_name}" required>
+                          ` : `
+                              <input type="text" name="drivertrip_set-${index}-route_name" class="form-control" placeholder="Enter Route Name" required>
+                          `}
+                      </div>
+                      <div class="col-md-2 mb-3">
+                          <label>Type</label>
+                          <select name="drivertrip_set-${index}-trip_type" class="form-control" required>
+                              <option value="inbound" ${tripData.trip_type === 'inbound' ? 'selected' : ''}>Inbound</option>
+                              <option value="outbound" ${tripData.trip_type === 'outbound' ? 'selected' : ''}>Outbound</option>
+                          </select>
+                      </div>
+                      <div class="col-md-2 mb-3">
+                          <label>Pick Up Time</label>
+                          <input type="time" name="drivertrip_set-${index}-pick_up_time" class="form-control" value="${tripData.pick_up_time || ''}" required>
+                      </div>
+                      <div class="col-md-2 mb-3">
+                          <label>Drop Off Time</label>
+                          <input type="time" name="drivertrip_set-${index}-drop_off_time" class="form-control" value="${tripData.drop_off_time || ''}" required>
+                      </div>
+                      <div class="col-md-2 mb-3">
+                          <label>Shift Time</label>
+                          <input type="time" name="drivertrip_set-${index}-shift_time" class="form-control" value="${tripData.shift_time || ''}" required>
+                      </div>
+                      <div class="col-md-3 mb-3">
+                          <label>Date</label>
+                          <input type="date" name="drivertrip_set-${index}-date" class="form-control" value="${tripData.date || ''}" required>
+                      </div>
+                      <div class="col-md-2 mb-3">
+                          <label>Head Count</label>
+                          <input type="number" name="drivertrip_set-${index}-head_count" class="form-control" placeholder="Enter Head Count" value="${tripData.head_count || ''}" min="0" max="47" required>
+                      </div>
+                      <div class="col-md-1 remove-trip-container mb-3">
+                          <span class="remove-trip">Remove</span>
+                      </div>
+                  </div>
+              `;
 
-                $('#trip-entries').append(newRow);
-                tripCount++;
-                updateFormIndices();
-            }
+              $('#trip-entries').append(newRow);
+              tripCount++;
+              updateFormIndices();
+          }
 
-            function updateFormIndices() {
-                $('.trip-form-container').each(function(index) {
-                    $(this).attr('data-index', index);
-                    $(this).find('input, select').each(function() {
-                        const name = $(this).attr('name');
-                        const newName = name.replace(/\d+/, index);
-                        $(this).attr('name', newName);
-                    });
-                });
-                $('#id_drivertrip_set-TOTAL_FORMS').val(tripCount);
-            }
+          function updateFormIndices() {
+              $('.trip-form-container').each(function(index) {
+                  $(this).attr('data-index', index);
+                  $(this).find('input, select').each(function() {
+                      const name = $(this).attr('name');
+                      const newName = name.replace(/\d+/, index);
+                      $(this).attr('name', newName);
+                  });
+              });
+              $('#id_drivertrip_set-TOTAL_FORMS').val(tripCount);
+          }
 
-            $('#add-row').on('click', function() {
-                addTripRow({}, tripCount);
-                $('#submit-button').show();
-            });
+          $('#add-row').on('click', function() {
+              addTripRow({}, tripCount);
+              $('#submit-button').show();
+          });
 
-            $(document).on('click', '.remove-trip', function() {
-                $(this).closest('.trip-form-container').remove();
-                tripCount--;
-                updateFormIndices();
+          $(document).on('click', '.remove-trip', function() {
+              $(this).closest('.trip-form-container').remove();
+              tripCount--;
+              updateFormIndices();
 
-                if (tripCount === 0) {
-                    $('#submit-button').hide();
-                }
-            });
+              if (tripCount === 0) {
+                  $('#submit-button').hide();
+              }
+          });
 
-            $('#submit-button').hide();
+          $('#submit-button').hide();
 
-            $("#id_duty_card_no").autocomplete({
-                source: function(request, response) {
-                    $.ajax({
-                        url: "{% url 'duty-card-no-autocomplete' %}",
-                        dataType: "json",
-                        data: { term: request.term },
-                        success: function(data) {
-                            response($.map(data, function(item) {
-                                return { label: item, value: item };
-                            }));
-                        },
-                        error: function(xhr, status, error) {
-                            console.log("Error fetching autocomplete data:", error);
-                        }
-                    });
-                },
-                minLength: 2,
-                select: function(event, ui) {
-                    $.ajax({
-                        url: "{% url 'get-duty-card-details' %}",
-                        dataType: "json",
-                        data: { duty_card_no: ui.item.value },
-                        success: function(data) {
-                            $('#trip-entries').empty();
-                            tripCount = 0;
-                            data.trips.forEach(function(trip, index) {
-                                addTripRow(trip, index);
-                            });
-                            if (tripCount > 0) {
-                                $('#submit-button').show();
-                            }
-                        },
-                        error: function(xhr, status, error) {
-                            console.log("Error fetching duty card details:", error);
-                        }
-                    });
-                },
-                focus: function(event, ui) {
-                    event.preventDefault();
-                    $(this).val(ui.item.label);
-                }
-            });
-        });
+          $("#id_duty_card_no").autocomplete({
+              source: function(request, response) {
+                  $.ajax({
+                      url: "{% url 'duty-card-no-autocomplete' %}",
+                      dataType: "json",
+                      data: { term: request.term },
+                      success: function(data) {
+                          response($.map(data, function(item) {
+                              return { label: item, value: item };
+                          }));
+                      },
+                      error: function(xhr, status, error) {
+                          console.log("Error fetching autocomplete data:", error);
+                      }
+                  });
+              },
+              minLength: 2,
+              select: function(event, ui) {
+                  $.ajax({
+                      url: "{% url 'get-duty-card-details' %}",
+                      dataType: "json",
+                      data: { duty_card_no: ui.item.value },
+                      success: function(data) {
+                          $('#trip-entries').empty();
+                          tripCount = 0;
+                          data.trips.forEach(function(trip, index) {
+                              addTripRow(trip, index);
+                          });
+                          if (tripCount > 0) {
+                              $('#submit-button').show();
+                          }
+                      },
+                      error: function(xhr, status, error) {
+                          console.log("Error fetching duty card details:", error);
+                      }
+                  });
+              },
+              focus: function(event, ui) {
+                  event.preventDefault();
+                  $(this).val(ui.item.label);
+              }
+          });
+      });
     </script>
+
 </body>
 </html>

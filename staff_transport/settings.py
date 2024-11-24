@@ -118,6 +118,7 @@ EMAIL_DEBUG = True
 
 WKHTMLTOPDF_PATH = 'C:/Program Files/wkhtmltopdf/bin/wkhtmltopdf.exe'
 
+LOGIN_REDIRECT_URL = '/'
 
 # Internationalization settings
 LANGUAGE_CODE = 'en-us'

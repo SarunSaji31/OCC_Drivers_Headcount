@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Duty Schedule</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        h1, h2 {
+            text-align: center;
+            color: #333;
+        }
+
+        label {
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        select, input, button {
+            font-size: 16px;
+            margin: 10px 0;
+            padding: 5px 10px;
+            border-radius: 5px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            padding: 10px;
+            text-align: center;
+            border: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #f4f4f4;
+            font-weight: bold;
+        }
+
+        button {
+            padding: 5px 10px;
+            border: none;
+            background-color: #007BFF;
+            color: white;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        #headcount-dashboard {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+
+        #headcount-dashboard p {
+            font-size: 18px;
+            margin: 5px 0;
+        }
+
+        #headcount-dashboard button {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Duty Schedule</h1>
+
+<!-- Duty Card and Bus Selection -->
+<div>
+    <label for="duty_card">Select Your Duty Card:</label>
+    <select id="duty_card" name="duty_card">
+        {% for card in unique_duty_cards %}
+        <option value="{{ card.duty_card_no }}">{{ card.duty_card_no }}</option>
+        {% endfor %}
+    </select>
+
+    <label for="bus_no">Select Your Bus:</label>
+    <select id="bus_no" name="bus_no">
+        {% for bus in buses %}
+        <option value="{{ bus.id }}">{{ bus.bus_no }}</option>
+        {% endfor %}
+    </select>
+
+    <label for="start_km">Enter Start KM:</label>
+    <input type="number" id="start_km" name="start_km" min="0" placeholder="Enter start KM">
+</div>
+
+<!-- Duty Schedule Table -->
+<h2>Duty Schedule for {{ duty_card.duty_card_no }}</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Sl No</th>
+            <th>Route Name</th>
+            <th>Type</th>
+            <th>Pick-Up Time</th>
+            <th>Drop-Off Time</th>
+            <th>Shift Time</th>
+            <th>Action</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for trip in trips %}
+        <tr>
+            <td>{{ forloop.counter }}</td>
+            <td>{{ trip.route_name }}</td>
+            <td>{{ trip.trip_type }}</td>
+            <td>{{ trip.pick_up_time }}</td>
+            <td>{{ trip.drop_off_time }}</td>
+            <td>{{ trip.shift_time }}</td>
+            <td>
+                <button onclick="startTrip('{{ trip.id }}')">Start Trip</button>
+                <button onclick="stopTrip('{{ trip.id }}')">Stop Trip</button>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<!-- Live Headcount Dashboard -->
+<h2>Live Headcount Dashboard</h2>
+<div id="headcount-dashboard">
+    <p>Current Headcount: <span id="current-headcount">0</span></p>
+    <p>Remaining Capacity: <span id="remaining-capacity">{{ bus_no.seat_capacity }}</span></p>
+    <button onclick="scanBarcode()">Simulate Barcode Scan</button>
+</div>
+
+<script>
+    // Function to start a trip
+    function startTrip(tripId) {
+        alert(`Trip ID ${tripId} started!`);
+    }
+
+    // Function to stop a trip
+    function stopTrip(tripId) {
+        alert(`Trip ID ${tripId} stopped!`);
+    }
+
+    // Simulated barcode scanner handler
+    function scanBarcode() {
+        // Simulate barcode scan
+        const scannedId = prompt("Scan staff ID:");
+        if (scannedId) {
+            // Get the headcount and capacity elements
+            const currentHeadcountElem = document.getElementById('current-headcount');
+            const remainingCapacityElem = document.getElementById('remaining-capacity');
+
+            // Parse the current values
+            const currentHeadcount = parseInt(currentHeadcountElem.textContent);
+            const remainingCapacity = parseInt(remainingCapacityElem.textContent);
+
+            // Update the dashboard values
+            if (remainingCapacity > 0) {
+                currentHeadcountElem.textContent = currentHeadcount + 1;
+                remainingCapacityElem.textContent = remainingCapacity - 1;
+            } else {
+                alert("Bus is full! No more seats available.");
+            }
+        }
+    }
+</script>
+
+</body>
+</html>

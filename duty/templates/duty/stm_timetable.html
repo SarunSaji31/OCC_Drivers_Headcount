@@ -59,7 +59,7 @@
         }
 
         /* Button Styling */
-        .btn-download {
+        .btn-download, .btn-home {
             background-color: #d71920; /* Emirates red */
             color: #fff;
             border: none;
@@ -73,7 +73,7 @@
             margin-right: auto;
             transition: background-color 0.3s ease;
         }
-        .btn-download:hover {
+        .btn-download:hover, .btn-home:hover {
             background-color: #b5161c;
         }
 
@@ -85,7 +85,7 @@
             .display-6 {
                 font-size: 1.5rem;
             }
-            .btn-download {
+            .btn-download, .btn-home {
                 font-size: 0.85rem;
             }
             .table th, .table td {
@@ -101,6 +101,7 @@
     <div class="text-center mb-4">
         <h1 class="display-6">Emirates Airline - Route Details</h1>
         <button id="pdf-button" onclick="downloadPDF()" class="btn btn-download">Download as PDF</button>
+        <a href="/" class="btn btn-home mt-2">Back to Home</a>
     </div>
 
     {% for route_data in route_data_list %}

@@ -1,45 +1,66 @@
 from django.contrib import admin
 from .models import DriverImportLog, DriverTrip, DutyCardTrip, DelayData, BreakdownReport, StmRoute, StmPickupPoint, StmShiftTime
 
+
 # Register DriverImportLog model
 @admin.register(DriverImportLog)
 class DriverImportLogAdmin(admin.ModelAdmin):
     list_display = ('staff_id', 'driver_name')
     search_fields = ('staff_id', 'driver_name')
-    
+    list_per_page = 20  # Improve page navigation for large datasets
     ordering = ('staff_id',)
 
-# Register DutyCardTrip model and make the capacity field editable
+# Register DutyCardTrip model and customize the admin interface
 @admin.register(DutyCardTrip)
 class DutyCardTripAdmin(admin.ModelAdmin):
     list_display = ('duty_card_no', 'route_name', 'trip_type', 'pick_up_time', 'drop_off_time', 'shift_time', 'capacity')
     search_fields = ('duty_card_no', 'route_name')
-    list_filter = ('trip_type',)
-  
+    list_filter = ('trip_type', 'shift_time')
+    list_per_page = 20  # Improve page navigation for large datasets
+
     ordering = ('duty_card_no',)
     fieldsets = (
         ('Basic Information', {
-            'fields': ('duty_card_no', 'route_name', 'trip_type')
+            'fields': ('duty_card_no', 'route_name', 'trip_type'),
+            'description': 'Provide the basic details of the duty card.'
         }),
         ('Timing Details', {
-            'fields': ('pick_up_time', 'drop_off_time', 'shift_time')
+            'fields': ('pick_up_time', 'drop_off_time', 'shift_time'),
+            'description': 'Ensure the timing details match the route schedule.'
         }),
         ('Additional Details', {
-            'fields': ('capacity', 'submission_date')
+            'fields': ('capacity', 'submission_date'),
+            'description': 'Review capacity and submission date for record purposes.'
         }),
     )
 
     # Allow the capacity field to be editable in the admin panel
-    readonly_fields = ('submission_date',)  # Keep submission_date read-only if needed
+    readonly_fields = ('submission_date',)
 
-# Register other models as needed
+# Register DriverTrip model and customize the admin interface
 @admin.register(DriverTrip)
 class DriverTripAdmin(admin.ModelAdmin):
     list_display = ('route_name', 'shift_time', 'trip_type', 'date', 'head_count')
     search_fields = ('route_name', 'trip_type')
-    list_filter = ('shift_time', 'trip_type', 'date')
-  
+    list_filter = ('duty_card', 'shift_time', 'trip_type', 'date')  # Added 'duty_card' to enable filtering by duty card
+    list_per_page = 20  # Improve page navigation for large datasets
     ordering = ('-date', 'route_name')
+
+    fieldsets = (
+        ('Trip Information', {
+            'fields': ('driver', 'duty_card', 'route_name', 'trip_type'),
+            'description': 'Specify the main details of the trip.'
+        }),
+        ('Timing Details', {
+            'fields': ('pick_up_time', 'drop_off_time', 'shift_time'),
+            'description': 'Ensure the timing details match the driver schedule.'
+        }),
+        ('Additional Details', {
+            'fields': ('head_count', 'date'),
+            'description': 'Provide additional details like head count and date.'
+        }),
+    )
+
 
 @admin.register(DelayData)
 class DelayDataAdmin(admin.ModelAdmin):
@@ -56,10 +77,6 @@ class BreakdownReportAdmin(admin.ModelAdmin):
     list_filter = ('breakdown_datetime', 'route_number')
   
     ordering = ('-breakdown_datetime',)
-
-
-from django.contrib import admin
-from .models import StmRoute, StmPickupPoint, StmShiftTime
 
 class StmPickupPointInline(admin.TabularInline):
     model = StmPickupPoint

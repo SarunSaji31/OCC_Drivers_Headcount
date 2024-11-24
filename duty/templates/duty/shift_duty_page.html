@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shift Duty</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f4f9;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        form {
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #ffffff;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        label {
+            display: block;
+            margin: 10px 0 5px;
+            font-weight: bold;
+            font-size: 14px;
+            color: #555;
+        }
+        select, input, button {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0 20px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        select:focus, input:focus {
+            border-color: #007bff;
+            outline: none;
+            box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Shift Duty</h1>
+    <form method="GET" action="{% url 'duty_schedule' %}">
+        <!-- Bus No Selection -->
+        <div class="form-group">
+            <label for="bus_no">Enter Your Bus No:</label>
+            <select name="bus_no" id="bus_no" required>
+                <option value="" disabled selected>Select your bus number</option>
+                {% for bus in buses %}
+                <option value="{{ bus.bus_no }}">{{ bus.bus_no }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Start KM Input -->
+        <div class="form-group">
+            <label for="start_km">Enter Start KM:</label>
+            <input type="number" name="start_km" id="start_km" min="0" step="0.1" placeholder="Enter starting KM" required>
+        </div>
+
+        <!-- Duty Card Selection -->
+        <div class="form-group">
+            <label for="duty_card">Select Your Duty Card:</label>
+            <select name="duty_card" id="duty_card" required>
+                <option value="" disabled selected>Select your duty card</option>
+                {% for card in duty_cards %}
+                <option value="{{ card.id }}">{{ card.duty_card_no }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Submit Button -->
+        <button type="submit">Go to Your Duty Schedule</button>
+    </form>
+</body>
+</html>

@@ -22,6 +22,7 @@ from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.timezone import now
+from openpyxl import Workbook
 
 from docx import Document
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
@@ -75,21 +76,31 @@ def home(request):
 
 @login_required
 def submission_history(request):
-    """Display the submission history of the logged-in user."""
+    """Display a summary of the submission history of the logged-in user."""
     staff_id = request.user.username
     driver = DriverImportLog.objects.filter(staff_id=staff_id).first()
 
     if not driver:
-        return render(request, 'duty/submission_history.html', {
+        return render(request, 'duty/user_submission_history.html', {
             'error_message': "No submission history found for this user."
         })
 
+    # Group submissions by date and duty card number
     submissions = DriverTrip.objects.filter(driver=driver).order_by('-date')
+    submission_summary = {}
+    for trip in submissions:
+        key = (trip.date, trip.duty_card.duty_card_no)
+        if key not in submission_summary:
+            submission_summary[key] = []
+        submission_summary[key].append(trip)
+
     context = {
         'staff_name': driver.driver_name,
-        'submissions': submissions
+        'submission_summary': submission_summary,
     }
-    return render(request, 'duty/submission_history.html', context)
+
+    return render(request, 'duty/user_submission_history.html', context)
+
 
 
 @login_required
@@ -1021,6 +1032,7 @@ def fleet_counts_api(request):
 
     return JsonResponse(data)
 
+logger = logging.getLogger(__name__)
 
 def download_fleet_report(request):
     """
@@ -1030,10 +1042,20 @@ def download_fleet_report(request):
     report_type = request.GET.get('report_type')  # daily, monthly, or total
     report_category = request.GET.get('report_category')  # delay or breakdown
 
+    # Log the parameters to check if they are coming through correctly
+    logger.info(f"Received report_type: {report_type}, report_category: {report_category}")
+
+    # Check if report_type or report_category is missing
+    if not report_type or not report_category:
+        logger.error('Invalid report type or category.')
+        return JsonResponse({'status': 'error', 'message': 'Invalid report type or category.'})
+
     # Define the query based on the report type
     today = timezone.now().date()
     month_start = today.replace(day=1)
     
+    queryset = None  # Initialize queryset
+
     if report_type == 'daily':
         if report_category == 'delay':
             queryset = DelayData.objects.filter(date=today)
@@ -1050,27 +1072,39 @@ def download_fleet_report(request):
         elif report_category == 'breakdown':
             queryset = BreakdownReport.objects.all()
 
+    # Check if the queryset is empty
+    if queryset is None or not queryset.exists():
+        logger.error('No data available for the selected report.')
+        return JsonResponse({'status': 'error', 'message': 'No data available for the selected report.'})
+
     # Create an Excel workbook
-    workbook = openpyxl.Workbook()
+    workbook = Workbook()
     worksheet = workbook.active
 
     # Define headers for the Excel sheet
     if report_category == 'delay':
-        headers = ['Date', 'Route', 'STA', 'ATA', 'Remarks', 'Staff Count']  # Removed 'shift_time'
+        headers = ['Date', 'Route', 'In/Out', 'STD', 'STA', 'ATD', 'ATA', 'Delay', 'Remarks', 'Staff Count']
         worksheet.append(headers)
         # Add data to Excel rows
         for delay in queryset:
             worksheet.append([
                 delay.date, 
-                delay.route,  # Correct field name for route
-                delay.sta.strftime('%H:%M') if delay.sta else None,
+                delay.route,  
+                delay.in_out,  
+                delay.std.strftime('%H:%M') if delay.std else None,  
+                delay.sta.strftime('%H:%M') if delay.sta else None, 
+                delay.atd.strftime('%H:%M') if delay.atd else None,  
                 delay.ata.strftime('%H:%M') if delay.ata else None,
+                delay.delay,  
                 delay.remarks, 
                 delay.staff_count
             ])
 
     elif report_category == 'breakdown':
-        headers = ['Report Date', 'Breakdown Date', 'Location', 'Route #', 'Trip Work Order', 'Injured Passengers', 'Driver Name', 'Remarks']
+        headers = ['Report Date', 'Breakdown Date', 'Location', 'Route #', 'Trip Work Order', 'Passengers Involved', 
+                   'EK Staff Numbers', 'Non-EK Passenger Details', 'Injured Passengers', 'Action Taken for Injured',
+                   'Vehicle Damage', 'Driver Name', 'Driver ID', 'Driver Shift', 'Breakdown Description', 
+                   'EK Vehicles Involved', 'Vehicle Make and Plate', 'Replacement Vehicle', 'Reported To', 'Reported Date']
         worksheet.append(headers)
         # Add data to Excel rows
         for breakdown in queryset:
@@ -1080,9 +1114,21 @@ def download_fleet_report(request):
                 breakdown.location,
                 breakdown.route_number,
                 breakdown.trip_work_order,
+                breakdown.passengers_involved,
+                breakdown.ek_staff_numbers,
+                breakdown.non_ek_passenger_details,
                 breakdown.injured_passengers,
+                breakdown.action_taken_for_injured,
+                breakdown.vehicle_damage,
                 breakdown.driver_name,
-                breakdown.breakdown_description
+                breakdown.driver_id,
+                breakdown.driver_shift,
+                breakdown.breakdown_description,
+                breakdown.ek_vehicles_involved,
+                breakdown.vehicle_make_plate,
+                breakdown.replacement_vehicle,
+                breakdown.reported_to_person,
+                breakdown.reported_datetime.strftime('%Y-%m-%d %H:%M')
             ])
 
     # Prepare the response as an XLSX file
@@ -1169,9 +1215,6 @@ def route_details(request):
     connection_from = request.GET.get('connection_from')  # New field
     connection_to = request.GET.get('connection_to')  # New field
 
-    # Debug: Log received input
-    print(f"Route Name: {route_name}, Route Type: {route_type}, Shift Time: {shift_time}, Connection From: {connection_from}, Connection To: {connection_to}")
-
     # Validate and fetch data based on route and shift time
     if route_type:
         route_qs = StmRoute.objects.filter(route__iexact=route_name, route_type=route_type)
@@ -1181,20 +1224,16 @@ def route_details(request):
     # Apply connection_from and connection_to filters if provided
     if connection_from:
         route_qs = route_qs.filter(connection_from__icontains=connection_from)
-        print(f"Filtered by Connection From: {connection_from}, Count: {route_qs.count()}")
     if connection_to:
         route_qs = route_qs.filter(connection_to__icontains=connection_to)
-        print(f"Filtered by Connection To: {connection_to}, Count: {route_qs.count()}")
 
     if not route_qs.exists():
-        print("No matching route found.")  # Debug statement
         return render(request, 'duty/error_page.html', {'error': 'No matching route found.'})
 
     route_data_list = []
     for route in route_qs:
         shift_times = StmShiftTime.objects.filter(route=route, shift_time=shift_time).order_by('stop_order')
         if not shift_times.exists():
-            print(f"No shift times found for route: {route.route} with shift time: {shift_time}")  # Debug statement
             continue
 
         stop_order_to_times = {
@@ -1212,8 +1251,8 @@ def route_details(request):
             'operating_days_1': route.operating_days_1,
             'operating_days_2': route.operating_days_2,
             'work_hub': route.work_hub,
-            'connection_from': route.connection_from,  # Include in output
-            'connection_to': route.connection_to,      # Include in output
+            'connection_from': route.connection_from,  
+            'connection_to': route.connection_to,      
             'shift_time': shift_time,
             'pickup_points': [
                 {
@@ -1227,9 +1266,6 @@ def route_details(request):
         }
         route_data_list.append(route_data)
 
-    # Log final data structure
-    print(f"Final Route Data List: {route_data_list}")  # Debug statement
-
     return render(request, 'duty/stm_timetable.html', {'route_data_list': route_data_list})
 
 
@@ -1238,15 +1274,6 @@ def connection_from_autocomplete(request):
         qs = StmRoute.objects.filter(connection_from__icontains=request.GET.get('term')).values_list('connection_from', flat=True).distinct()
         suggestions = list(qs)
         return JsonResponse(suggestions, safe=False)
-
-def connection_to_autocomplete(request):
-    if 'term' in request.GET:
-        qs = StmRoute.objects.filter(connection_to__icontains=request.GET.get('term')).values_list('connection_to', flat=True).distinct()
-        suggestions = list(qs)
-        return JsonResponse(suggestions, safe=False)
-
-from django.shortcuts import render
-from .models import StmRoute, StmShiftTime, StmPickupPoint
 
 def stm_timetables(request):
     # Get route and shift_time from the query parameters
@@ -1310,3 +1337,78 @@ def stm_timetables(request):
         return render(request, 'duty/stm_timetable.html', {'error': 'Invalid route or shift time provided'})
     
 
+
+def category_page(request):
+    """Render the category page."""
+    return render(request, 'duty/category_page.html')
+
+
+from django.db.models import F
+from django.shortcuts import render
+from .models import BusDetails, DutyCardTrip
+
+def shift_duty_page(request):
+    """
+    View to display the Shift Duty page with a list of buses and unique duty cards.
+    """
+    # Fetch all buses
+    buses = BusDetails.objects.all()
+
+    # Fetch unique duty cards using distinct logic
+    unique_duty_cards = (
+        DutyCardTrip.objects
+        .order_by('duty_card_no')
+        .values('id', 'duty_card_no')
+        .distinct()  # Ensures only unique duty_card_no values
+    )
+
+    # Render the Shift Duty page
+    return render(request, 'duty/shift_duty_page.html', {
+        'buses': buses,
+        'duty_cards': unique_duty_cards
+    })
+
+
+
+from django.shortcuts import get_object_or_404, render
+from django.http import HttpResponseBadRequest
+from .models import DutyCardTrip, DriverTrip, BusDetails
+
+def duty_schedule_page(request):
+    # Get and validate GET parameters
+    duty_card_id = request.GET.get('duty_card')
+    bus_no = request.GET.get('bus_no')
+    start_km = request.GET.get('start_km')
+
+    # Validate that all required parameters are provided
+    if not duty_card_id or not bus_no or not start_km:
+        return HttpResponseBadRequest("Missing required parameters: duty_card, bus_no, or start_km.")
+
+    # Validate `start_km` is a positive number
+    try:
+        start_km = float(start_km)
+        if start_km <= 0:
+            raise ValueError
+    except ValueError:
+        return HttpResponseBadRequest("Start KM must be a positive number.")
+
+    # Fetch unique duty cards
+    unique_duty_cards = DutyCardTrip.objects.values('id', 'duty_card_no').distinct()
+
+    # Fetch the selected duty card
+    duty_card = get_object_or_404(DutyCardTrip, id=duty_card_id)
+
+    # Fetch trips associated with the selected duty card
+    trips = DriverTrip.objects.filter(duty_card=duty_card)
+
+    # Fetch the selected bus details
+    bus = get_object_or_404(BusDetails, bus_no=bus_no)
+
+    # Render the page with the required context
+    return render(request, 'duty/duty_schedule_page.html', {
+        'duty_card': duty_card,
+        'unique_duty_cards': unique_duty_cards,
+        'bus_no': bus,
+        'start_km': start_km,
+        'trips': trips,
+    })

@@ -131,3 +131,11 @@ class StmShiftTime(models.Model):
     class Meta:
         db_table = 'Stm_ShiftTime'
         ordering = ['stop_order', 'time']  # Orders by stop_order and then by time
+
+
+class BusDetails(models.Model):
+    bus_no = models.CharField(max_length=100, unique=True)
+    seat_capacity = models.PositiveIntegerField()
+
+    def __str__(self):
+        return f"{self.bus_no} ({self.seat_capacity} seats)"

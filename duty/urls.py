@@ -69,8 +69,16 @@ urlpatterns = [
     path('ajax/search_route/', views.ajax_search_route, name='ajax_search_route'),
     path('route-details/', views.route_details, name='route_details'),  # New route details page
     path('stm_timetables/', views.stm_timetables, name='stm_timetable'), 
-     path('submission-history/', views.submission_history, name='submission_history'),
- 
+    path('submission-history/', views.submission_history, name='submission_history'),
+    path('user_submission_history/', views.submission_history, name='user_submission_history'),
+     
+    path('category/', views.category_page, name='category_page'),
+
+    path('shift_duty/', views.shift_duty_page, name='shift_duty'),
+    path('duty_schedule/', views.duty_schedule_page, name='duty_schedule'),
+
+
+
     
 ]
 
