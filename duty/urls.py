@@ -76,6 +76,7 @@ urlpatterns = [
 
     path('shift_duty/', views.shift_duty_page, name='shift_duty'),
     path('duty_schedule/', views.duty_schedule_page, name='duty_schedule'),
+    path('handle_trip/', views.handle_trip, name='handle_trip'),
 
 
 

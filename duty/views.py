@@ -1342,49 +1342,41 @@ def category_page(request):
     """Render the category page."""
     return render(request, 'duty/category_page.html')
 
+from django.shortcuts import render, get_object_or_404
+from django.http import HttpResponseBadRequest, JsonResponse
+from django.utils.timezone import now
+from django.views.decorators.csrf import csrf_exempt
+from .models import BusDetails, DutyCardTrip, DriverTrip, TripLog
 
-from django.db.models import F
-from django.shortcuts import render
-from .models import BusDetails, DutyCardTrip
 
 def shift_duty_page(request):
     """
-    View to display the Shift Duty page with a list of buses and unique duty cards.
+    Displays the Shift Duty page with buses and unique duty cards.
     """
-    # Fetch all buses
-    buses = BusDetails.objects.all()
-
-    # Fetch unique duty cards using distinct logic
-    unique_duty_cards = (
+    buses = BusDetails.objects.all()  # Fetch all bus details
+    duty_cards = (
         DutyCardTrip.objects
         .order_by('duty_card_no')
         .values('id', 'duty_card_no')
-        .distinct()  # Ensures only unique duty_card_no values
+        .distinct()  # Ensure unique duty_card_no values
     )
-
-    # Render the Shift Duty page
     return render(request, 'duty/shift_duty_page.html', {
         'buses': buses,
-        'duty_cards': unique_duty_cards
+        'duty_cards': duty_cards
     })
 
 
-
-from django.shortcuts import get_object_or_404, render
-from django.http import HttpResponseBadRequest
-from .models import DutyCardTrip, DriverTrip, BusDetails
-
 def duty_schedule_page(request):
-    # Get and validate GET parameters
+    """
+    Displays the Duty Schedule page with trip details for the selected duty card and bus.
+    """
     duty_card_id = request.GET.get('duty_card')
     bus_no = request.GET.get('bus_no')
     start_km = request.GET.get('start_km')
 
-    # Validate that all required parameters are provided
     if not duty_card_id or not bus_no or not start_km:
         return HttpResponseBadRequest("Missing required parameters: duty_card, bus_no, or start_km.")
 
-    # Validate `start_km` is a positive number
     try:
         start_km = float(start_km)
         if start_km <= 0:
@@ -1392,23 +1384,120 @@ def duty_schedule_page(request):
     except ValueError:
         return HttpResponseBadRequest("Start KM must be a positive number.")
 
-    # Fetch unique duty cards
-    unique_duty_cards = DutyCardTrip.objects.values('id', 'duty_card_no').distinct()
-
-    # Fetch the selected duty card
     duty_card = get_object_or_404(DutyCardTrip, id=duty_card_id)
-
-    # Fetch trips associated with the selected duty card
+    bus = get_object_or_404(BusDetails, bus_no=bus_no)
     trips = DriverTrip.objects.filter(duty_card=duty_card)
 
-    # Fetch the selected bus details
-    bus = get_object_or_404(BusDetails, bus_no=bus_no)
-
-    # Render the page with the required context
     return render(request, 'duty/duty_schedule_page.html', {
         'duty_card': duty_card,
-        'unique_duty_cards': unique_duty_cards,
         'bus_no': bus,
         'start_km': start_km,
         'trips': trips,
     })
+
+
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.timezone import now
+from django.shortcuts import get_object_or_404
+from .models import TripLog, DriverTrip
+import json
+
+@csrf_exempt
+def handle_trip(request):
+    if request.method == "POST":
+        try:
+            # Parse JSON data from request body
+            data = json.loads(request.body)
+            action = data.get('action')  # Operation: 'start', 'scan', 'stop'
+            trip_id = data.get('trip_id')  # Trip ID for starting
+            trip_log_id = data.get('trip_log_id')  # Trip log ID for scanning/stopping
+            staff_id = data.get('staff_id')  # Staff ID for scanning
+            print(f"Received data: {data}")  # Debugging output
+        except json.JSONDecodeError as e:
+            return JsonResponse({"status": "error", "message": f"Invalid JSON: {str(e)}"})
+
+        # Verify user authentication
+        user = request.user
+        if not user.is_authenticated:
+            return JsonResponse({"status": "error", "message": "User is not authenticated."})
+
+        # START ACTION: Initiates a trip and creates a TripLog entry
+        if action == "start":
+            if not trip_id:
+                return JsonResponse({"status": "error", "message": "Trip ID is required to start a trip."})
+            try:
+                trip = get_object_or_404(DriverTrip, id=trip_id)
+                trip_log = TripLog.objects.create(
+                    driver=user,
+                    route_name=trip.route_name,
+                    trip_type=trip.trip_type,
+                    pick_up_time=trip.pick_up_time,
+                    drop_off_time=trip.drop_off_time,
+                    shift_time=trip.shift_time,
+                    start_time=now()
+                )
+                return JsonResponse({
+                    "status": "success",
+                    "message": f"Trip '{trip.route_name}' started successfully.",
+                    "trip_log_id": trip_log.id
+                })
+            except Exception as e:
+                return JsonResponse({"status": "error", "message": f"Failed to start trip: {str(e)}"})
+
+        # SCAN ACTION: Captures scanned staff IDs during the trip
+        elif action == "scan":
+            if not trip_log_id or not staff_id:
+                return JsonResponse({"status": "error", "message": "Trip log ID and staff ID are required for scanning."})
+            try:
+                trip_log = get_object_or_404(TripLog, id=trip_log_id)
+
+                # Increment scanned count and add staff ID uniquely
+                scanned_staff_ids = trip_log.scanned_staff_ids or []  # Default to empty list
+                if staff_id not in scanned_staff_ids:
+                    scanned_staff_ids.append(staff_id)
+                    trip_log.scanned_staff_ids = scanned_staff_ids
+                    trip_log.scanned_ids += 1  # Increment scanned count
+                    trip_log.save()
+
+                    return JsonResponse({
+                        "status": "success",
+                        "message": f"Staff ID {staff_id} scanned successfully.",
+                        "current_headcount": trip_log.scanned_ids,
+                        "remaining_capacity": max(0, trip_log.capacity - trip_log.scanned_ids),
+                        "staff_ids": trip_log.scanned_staff_ids
+                    })
+                else:
+                    return JsonResponse({
+                        "status": "info",
+                        "message": f"Staff ID {staff_id} is already scanned.",
+                        "current_headcount": trip_log.scanned_ids
+                    })
+            except Exception as e:
+                return JsonResponse({"status": "error", "message": f"Error scanning ID: {str(e)}"})
+
+        # STOP ACTION: Marks the trip as complete and calculates duration
+        elif action == "stop":
+            if not trip_log_id:
+                return JsonResponse({"status": "error", "message": "Trip log ID is required to stop the trip."})
+            try:
+                trip_log = get_object_or_404(TripLog, id=trip_log_id)
+                trip_log.end_time = now()
+                trip_log.save()
+
+                duration = (trip_log.end_time - trip_log.start_time).seconds
+                return JsonResponse({
+                    "status": "success",
+                    "message": f"Trip '{trip_log.route_name}' stopped successfully.",
+                    "scanned_count": trip_log.scanned_ids,
+                    "total_duration": duration,
+                    "scanned_staff_ids": trip_log.scanned_staff_ids
+                })
+            except Exception as e:
+                return JsonResponse({"status": "error", "message": f"Error stopping trip: {str(e)}"})
+
+        # Invalid action
+        return JsonResponse({"status": "error", "message": "Invalid action provided."})
+
+    # Invalid HTTP method
+    return JsonResponse({"status": "error", "message": "Invalid request method. POST required."})

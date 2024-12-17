@@ -8,23 +8,12 @@
         body {
             font-family: Arial, sans-serif;
             margin: 20px;
+            background-color: #f4f4f9;
         }
 
         h1, h2 {
             text-align: center;
             color: #333;
-        }
-
-        label {
-            font-size: 16px;
-            font-weight: bold;
-        }
-
-        select, input, button {
-            font-size: 16px;
-            margin: 10px 0;
-            padding: 5px 10px;
-            border-radius: 5px;
         }
 
         table {
@@ -63,6 +52,7 @@
             border: 1px solid #ddd;
             border-radius: 5px;
             background-color: #f9f9f9;
+            display: none;
         }
 
         #headcount-dashboard p {
@@ -70,34 +60,23 @@
             margin: 5px 0;
         }
 
-        #headcount-dashboard button {
+        #scanned-list {
             margin-top: 10px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #fff;
+        }
+
+        #scanned-list li {
+            font-size: 14px;
+            margin: 5px 0;
         }
     </style>
 </head>
 <body>
 
 <h1>Duty Schedule</h1>
-
-<!-- Duty Card and Bus Selection -->
-<div>
-    <label for="duty_card">Select Your Duty Card:</label>
-    <select id="duty_card" name="duty_card">
-        {% for card in unique_duty_cards %}
-        <option value="{{ card.duty_card_no }}">{{ card.duty_card_no }}</option>
-        {% endfor %}
-    </select>
-
-    <label for="bus_no">Select Your Bus:</label>
-    <select id="bus_no" name="bus_no">
-        {% for bus in buses %}
-        <option value="{{ bus.id }}">{{ bus.bus_no }}</option>
-        {% endfor %}
-    </select>
-
-    <label for="start_km">Enter Start KM:</label>
-    <input type="number" id="start_km" name="start_km" min="0" placeholder="Enter start KM">
-</div>
 
 <!-- Duty Schedule Table -->
 <h2>Duty Schedule for {{ duty_card.duty_card_no }}</h2>
@@ -132,47 +111,125 @@
 </table>
 
 <!-- Live Headcount Dashboard -->
-<h2>Live Headcount Dashboard</h2>
 <div id="headcount-dashboard">
+    <h3>Scanning Dashboard</h3>
     <p>Current Headcount: <span id="current-headcount">0</span></p>
     <p>Remaining Capacity: <span id="remaining-capacity">{{ bus_no.seat_capacity }}</span></p>
-    <button onclick="scanBarcode()">Simulate Barcode Scan</button>
+    <ul id="scanned-list">
+        <!-- Scanned IDs will appear here -->
+    </ul>
+    <input type="text" id="barcode-input" placeholder="Scan barcode here" autofocus>
 </div>
 
 <script>
+    let currentTripLogId = null;
+    let isScanning = false;
+    let serialNo = 1;
+
+    const currentHeadcountElem = document.getElementById('current-headcount');
+    const remainingCapacityElem = document.getElementById('remaining-capacity');
+    const barcodeInput = document.getElementById('barcode-input');
+    const scannedList = document.getElementById('scanned-list');
+
     // Function to start a trip
     function startTrip(tripId) {
-        alert(`Trip ID ${tripId} started!`);
+        fetch('/handle_trip/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({
+                action: 'start',
+                trip_id: tripId
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert(`Trip started!`);
+                isScanning = true;
+                currentTripLogId = data.trip_log_id;
+
+                document.getElementById('headcount-dashboard').style.display = 'block';
+                scannedList.innerHTML = ''; // Clear previous scans
+                barcodeInput.focus();
+                serialNo = 1; // Reset serial number
+            } else {
+                alert(data.message || 'Error starting trip.');
+            }
+        });
     }
 
     // Function to stop a trip
     function stopTrip(tripId) {
-        alert(`Trip ID ${tripId} stopped!`);
+        fetch('/handle_trip/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({
+                action: 'stop',
+                trip_log_id: currentTripLogId
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert('Trip stopped successfully!');
+                isScanning = false;
+                currentTripLogId = null;
+
+                // Reset headcount and capacity
+                currentHeadcountElem.textContent = "0";
+                remainingCapacityElem.textContent = '{{ bus_no.seat_capacity }}';
+
+                document.getElementById('headcount-dashboard').style.display = 'none';
+            }
+        });
     }
 
-    // Simulated barcode scanner handler
-    function scanBarcode() {
-        // Simulate barcode scan
-        const scannedId = prompt("Scan staff ID:");
-        if (scannedId) {
-            // Get the headcount and capacity elements
-            const currentHeadcountElem = document.getElementById('current-headcount');
-            const remainingCapacityElem = document.getElementById('remaining-capacity');
+    // Function to handle barcode scanning input
+    barcodeInput.addEventListener('keypress', function (e) {
+        if (e.key === 'Enter' && isScanning) {
+            const scannedId = barcodeInput.value.trim();
+            if (scannedId && currentTripLogId) {
+                fetch('/handle_trip/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: JSON.stringify({
+                        action: 'scan',
+                        trip_log_id: currentTripLogId,
+                        staff_id: scannedId
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        const newItem = document.createElement('li');
+                        const punchTime = new Date().toLocaleTimeString();
+                        newItem.textContent = `Sl No: ${serialNo++} | Staff ID: ${scannedId} | Punch Time: ${punchTime}`;
+                        scannedList.appendChild(newItem);
 
-            // Parse the current values
-            const currentHeadcount = parseInt(currentHeadcountElem.textContent);
-            const remainingCapacity = parseInt(remainingCapacityElem.textContent);
+                        let currentHeadcount = parseInt(currentHeadcountElem.textContent);
+                        let remainingCapacity = parseInt(remainingCapacityElem.textContent);
 
-            // Update the dashboard values
-            if (remainingCapacity > 0) {
-                currentHeadcountElem.textContent = currentHeadcount + 1;
-                remainingCapacityElem.textContent = remainingCapacity - 1;
-            } else {
-                alert("Bus is full! No more seats available.");
+                        if (remainingCapacity > 0) {
+                            currentHeadcountElem.textContent = currentHeadcount + 1;
+                            remainingCapacityElem.textContent = remainingCapacity - 1;
+                        } else {
+                            alert("Bus is full! No more seats available.");
+                        }
+                    }
+                    barcodeInput.value = ''; // Clear the input field
+                });
             }
         }
-    }
+    });
 </script>
-
 </body>
 </html>
