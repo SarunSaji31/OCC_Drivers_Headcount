@@ -358,10 +358,13 @@ def duty_card_no_autocomplete(request):
         return JsonResponse(duty_card_nos, safe=False)
     
 def get_duty_card_details(request):
+    """
+    Fetch details of a duty card including trips.
+    """
     if 'duty_card_no' in request.GET:
         duty_card_no = request.GET.get('duty_card_no')
 
-        # Fetching trips from the database
+        # Fetch trips from the database
         trips = DutyCardTrip.objects.filter(duty_card_no=duty_card_no)
 
         if not trips.exists():
@@ -369,9 +372,10 @@ def get_duty_card_details(request):
 
         trip_details = []
         for trip in trips:
-            # Convert trip_type to match the expected values in the frontend
-            normalized_trip_type = 'inbound' if trip.trip_type == 'IN' else 'outbound'
+            # Normalize the trip_type field
+            normalized_trip_type = 'inbound' if trip.trip_type and trip.trip_type.lower() in ['in', 'inbound'] else 'outbound'
 
+            # Prepare trip details for the response
             trip_info = {
                 'route_name': trip.route_name,
                 'pick_up_time': trip.pick_up_time.strftime("%H:%M") if trip.pick_up_time else '',
@@ -386,7 +390,6 @@ def get_duty_card_details(request):
         return JsonResponse({'trips': trip_details}, safe=False)
 
     return JsonResponse({'error': 'Duty card number not provided'}, status=400)
-
 
 @login_required
 def route_autocomplete(request):

@@ -1,5 +1,6 @@
 from pathlib import Path
-from decouple import config
+from decouple import Config, RepositoryEnv
+config = Config(RepositoryEnv('.env'))
 import os
 import dj_database_url
 import pymysql
@@ -95,6 +96,7 @@ else:
         }
     }
 
+
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
@@ -118,6 +120,7 @@ EMAIL_USE_LOCALTIME = True  # Optional, if necessary
 EMAIL_DEBUG = True
 
 WKHTMLTOPDF_PATH = 'C:/Program Files/wkhtmltopdf/bin/wkhtmltopdf.exe'
+
 
 
 # Internationalization settings
