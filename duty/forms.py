@@ -86,16 +86,20 @@ class SetNewPasswordForm(forms.Form):
         return cleaned_data
     
 
-# forms.py
-class DelayDataForm(forms.ModelForm):
-    class Meta:
-        model = DelayData
-        fields = ['route', 'in_out', 'std', 'atd', 'sta', 'ata', 'staff_count', 'remarks']  
+from django import forms
+from .models import DelayData
 
 class DelayDataForm(forms.ModelForm):
     class Meta:
         model = DelayData
-        fields = ['route', 'in_out', 'std', 'atd', 'sta', 'ata', 'staff_count', 'remarks']  
+        fields = ['date', 'route', 'in_out', 'std', 'atd', 'sta', 'ata', 'staff_count', 'remarks']
+
+    def clean_date(self):
+        date = self.cleaned_data.get('date')
+        if not date:
+            raise forms.ValidationError("Date is required.")
+        return date
+
 
 class BreakdownReportForm(forms.ModelForm):
     class Meta:

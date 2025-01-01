@@ -236,7 +236,7 @@
 
                     <div class="action-row">
                         <span class="remove-button">Remove</span>
-                        <span class="clear-button">Clear</span> <!-- Clear button aligned with Remove button -->
+                        <span class="clear-button">Clear</span>
                     </div>
                     <hr>
                 </div>
@@ -248,7 +248,7 @@
             </div>
 
             <div class="button-container">
-                <button type="button" class="btn btn-warning" id="broadcastButton">Broadcast and Save</button>
+                <button type="submit" class="btn btn-warning" id="saveButton">Save</button>
             </div>
 
             <!-- Back Button -->
@@ -257,8 +257,6 @@
             </div>
 
         </form>
-
-        <div id="broadcastMessage" class="mt-3"></div>
     </div>
 
     <!-- Bootstrap 4 JS -->
@@ -268,32 +266,24 @@
         document.addEventListener('DOMContentLoaded', function () {
             const formsetContainer = document.getElementById('formset-container');
             const addFormButton = document.getElementById('addFormButton');
-            const templateForm = document.querySelector('.delay-form').cloneNode(true); // Store the template
-            let formCount = 1; // Tracks the number of forms
+            const templateForm = document.querySelector('.delay-form').cloneNode(true);
+            let formCount = 1;
 
-            const today = new Date().toISOString().split('T')[0];
-            document.querySelectorAll('input[name="form-0-date"]').forEach(input => input.value = today);
-
-            // Function to add a new delay form
             function addNewDelayForm() {
-                const newForm = templateForm.cloneNode(true); // Use the stored template
+                const newForm = templateForm.cloneNode(true);
                 newForm.querySelectorAll('input').forEach(input => input.value = '');
                 newForm.querySelectorAll('textarea').forEach(textarea => textarea.value = '');
                 newForm.querySelectorAll('.error-message').forEach(error => error.style.display = 'none');
-                newForm.querySelectorAll('input[name="form-0-date"]').forEach(input => input.value = today);
 
-                // Update the form field names for the new form
                 newForm.querySelectorAll('input, select, textarea').forEach(function (input) {
                     input.name = input.name.replace('form-0-', `form-${formCount}-`);
                 });
 
                 formsetContainer.appendChild(newForm);
 
-                // Add event listener for calculating delay in the new form
                 newForm.querySelector('input[name^="form-"][name$="sta"]').addEventListener('change', calculateDelay);
                 newForm.querySelector('input[name^="form-"][name$="ata"]').addEventListener('change', calculateDelay);
 
-                // Add event listener for removing form
                 newForm.querySelector('.remove-button').addEventListener('click', function () {
                     formsetContainer.removeChild(newForm);
                 });
@@ -303,10 +293,8 @@
                 document.getElementById('id_form-TOTAL_FORMS').value = formCount;
             }
 
-            // Add event listener to "Add New Delay Report" button
             addFormButton.addEventListener('click', addNewDelayForm);
 
-            // Function to calculate time difference in minutes for delay
             function calculateDelay() {
                 const form = this.closest('.delay-form');
                 const staInput = form.querySelector('input[name^="form-"][name$="sta"]').value;
@@ -316,7 +304,7 @@
                     const staTime = new Date(`1970-01-01T${staInput}:00`);
                     const ataTime = new Date(`1970-01-01T${ataInput}:00`);
 
-                    const delayMinutes = Math.floor((ataTime - staTime) / 60000); // convert milliseconds to minutes
+                    const delayMinutes = Math.floor((ataTime - staTime) / 60000);
 
                     if (!isNaN(delayMinutes)) {
                         form.querySelector('input[name^="form-"][name$="delay"]').value = delayMinutes >= 0 ? delayMinutes : '0';
@@ -326,48 +314,6 @@
 
             document.querySelector('input[name="form-0-sta"]').addEventListener('change', calculateDelay);
             document.querySelector('input[name="form-0-ata"]').addEventListener('change', calculateDelay);
-
-            document.querySelector('#broadcastButton').addEventListener('click', function (event) {
-                event.preventDefault();
-
-                const form = document.querySelector('#DelayDataFormSet');
-                const formData = new FormData(form);
-                formData.append('broadcast', true);
-
-                fetch("{% url 'add_delay_report' %}", { // Use the correct view name here
-                    method: 'POST',
-                    body: formData,
-                    headers: {
-                        'X-CSRFToken': formData.get('csrfmiddlewaretoken'),
-                    }
-                })
-                    .then(response => response.json())
-                    .then(data => {
-                        const messageDiv = document.querySelector('#broadcastMessage');
-                        if (data.status === 'success') {
-                            messageDiv.innerHTML = `<div class="alert alert-success">Broadcast message sent successfully.</div>`;
-                            clearForm();
-                        } else {
-                            messageDiv.innerHTML = `<div class="alert alert-danger">Error: ${data.message}</div>`;
-                        }
-                    })
-                    .catch(error => {
-                        document.querySelector('#broadcastMessage').innerHTML = '<div class="alert alert-danger">An error occurred while sending the broadcast message.</div>';
-                    });
-            });
-
-            function clearForm() {
-                formsetContainer.innerHTML = '';
-                addNewDelayForm();
-                formCount = 1;
-                document.getElementById('id_form-TOTAL_FORMS').value = formCount;
-            }
-
-            document.addEventListener('click', function (e) {
-                if (e.target.classList.contains('clear-button')) {
-                    clearForm();
-                }
-            });
 
             document.querySelector('.remove-button').addEventListener('click', function () {
                 const form = this.closest('.delay-form');

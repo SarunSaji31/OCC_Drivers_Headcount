@@ -1,9 +1,7 @@
 from datetime import datetime, date, time
 import logging
-import openpyxl
 import pandas as pd
 from functools import wraps
-from io import BytesIO
 
 from django.conf import settings
 from django.contrib import messages
@@ -12,7 +10,6 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import User
-from django.core.mail import send_mail, EmailMessage
 from django.core.paginator import Paginator
 from django.db import IntegrityError
 from django.db.models import Q, Sum
@@ -100,8 +97,6 @@ def submission_history(request):
     }
 
     return render(request, 'duty/user_submission_history.html', context)
-
-
 
 @login_required
 def enter_head_count(request):
@@ -608,41 +603,36 @@ def admin_dashboard(request):
     return render(request, 'duty/admin_dashboard.html')
 
 logger = logging.getLogger(__name__)
+
 @login_required
 def add_reports(request):
     """Handles adding multiple delay reports."""
-    # Create a formset for multiple delay forms
     DelayDataFormSet = formset_factory(DelayDataForm, extra=1)
 
     if request.method == 'POST':
-        logger.info("Processing the POST request")
-
-        # Bind the form data to the formset
+        logger.info("Processing POST request")
         formset = DelayDataFormSet(request.POST)
 
         if formset.is_valid():
-            logger.info("All delay forms are valid, saving data")
+            logger.info("Formset is valid, saving forms")
             for form in formset:
-                form.save()  # Save each form
+                try:
+                    logger.info(f"Saving form with data: {form.cleaned_data}")
+                    form.save()
+                except Exception as e:
+                    logger.error(f"Error saving form: {e}")
             return redirect('success')
         else:
-            # If any form is not valid, print the errors for debugging
-            for form in formset:
-                logger.error(f"Form validation failed: {form.errors}")
+            logger.error(f"Formset validation failed: {formset.errors}")
 
-    # Handle GET request, initialize an empty formset
-    else:
-        formset = DelayDataFormSet()
+    formset = DelayDataFormSet()
+    return render(request, 'duty/Ekg_report.html', {'formset': formset})
 
-    # Render the formset
-    return render(request, 'duty/Ekg_report.html', {
-        'formset': formset
-    })
+from django.db import transaction
 
-
-logger = logging.getLogger(__name__)
-
+@login_required
 def add_delay_report(request):
+    """Handles detailed validation and processing of delay reports."""
     logger.info("add_delay_report view called")
 
     # Create a formset for multiple delay forms
@@ -650,163 +640,90 @@ def add_delay_report(request):
 
     if request.method == 'POST':
         logger.info("POST request detected")
-
         formset = DelayDataFormSet(request.POST)
-        delay_entries = []
         total_valid_forms = 0
         missing_fields_message = ""
 
         if formset.is_valid():
-            for i, form in enumerate(formset):
-                # Use cleaned_data to safely access the form's fields after validation
-                date = form.cleaned_data.get('date')
-                route = form.cleaned_data.get('route')
-                in_out = form.cleaned_data.get('in_out')
-                std = form.cleaned_data.get('std')
-                atd = form.cleaned_data.get('atd')
-                sta = form.cleaned_data.get('sta')
-                ata = form.cleaned_data.get('ata')
-                staff_count = form.cleaned_data.get('staff_count')
-                remarks = form.cleaned_data.get('remarks')
+            logger.info("Formset is valid")
+            try:
+                with transaction.atomic():  # Ensure atomicity for database operations
+                    for i, form in enumerate(formset):
+                        logger.info(f"Processing form {i + 1}")
 
-                # If any essential fields are missing, skip the form
-                if not route or not std or not atd or not sta or not ata:
-                    logger.warning(f"Form {i + 1} is missing required fields. Skipping this form.")
-                    missing_fields_message += f"Form {i + 1} is missing required fields.<br>"
-                    continue
+                        # Safely retrieve form data
+                        date = form.cleaned_data.get('date')
+                        route = form.cleaned_data.get('route')
+                        std = form.cleaned_data.get('std')
+                        atd = form.cleaned_data.get('atd')
+                        sta = form.cleaned_data.get('sta')
+                        ata = form.cleaned_data.get('ata')
 
-                total_valid_forms += 1
+                        # Validate required fields
+                        if not date or not route or not std or not atd or not sta or not ata:
+                            logger.warning(f"Form {i + 1} is missing required fields. Skipping this form.")
+                            missing_fields_message += f"Form {i + 1}: Required fields are missing.<br>"
+                            continue
 
-                # Convert the date string to a datetime.date object if needed
-                date_obj = datetime.strptime(date, "%Y-%m-%d").date() if isinstance(date, str) else date
+                        try:
+                            # Ensure valid date format
+                            if isinstance(date, str):
+                                date = datetime.strptime(date, "%Y-%m-%d").date()
 
-                # Calculate delay
-                sta_time = datetime.combine(date_obj, sta)
-                ata_time = datetime.combine(date_obj, ata)
-                delay = ata_time - sta_time
-                delay_seconds = int(delay.total_seconds())
-                delay_hours, remainder = divmod(delay_seconds, 3600)
-                delay_minutes, _ = divmod(remainder, 60)
-                delay_time = time(hour=int(delay_hours), minute=int(delay_minutes))
+                            # Calculate delay
+                            sta_time = datetime.combine(date, sta)
+                            ata_time = datetime.combine(date, ata)
+                            delay_minutes = int((ata_time - sta_time).total_seconds() // 60)
 
-                # Save the form instance with the delay time
-                try:
-                    delay_instance = form.save(commit=False)
-                    delay_instance.delay = delay_time
-                    delay_instance.save()
+                            # Save the form instance
+                            delay_instance = form.save(commit=False)
+                            delay_instance.date = date
+                            delay_instance.delay = f"{delay_minutes // 60:02}:{delay_minutes % 60:02}"
+                            delay_instance.save()
+                            logger.info(f"Form {i + 1} saved successfully.")
+                            total_valid_forms += 1
 
-                    # Add form data for the email
-                    delay_entries.append({
-                        'date': date_obj.strftime('%Y-%m-%d'),
-                        'route': route,
-                        'in_out': in_out,
-                        'std': std.strftime('%H:%M'),
-                        'atd': atd.strftime('%H:%M'),
-                        'sta': sta.strftime('%H:%M'),
-                        'ata': ata.strftime('%H:%M'),
-                        'delay': delay_time.strftime('%H:%M:%S'),
-                        'staff_count': staff_count,
-                        'remarks': remarks,
-                    })
+                        except Exception as e:
+                            logger.error(f"Error processing form {i + 1}: {str(e)}")
+                            missing_fields_message += f"Form {i + 1}: {str(e)}<br>"
+                            continue
 
-                except IntegrityError as e:
-                    logger.error(f"Database error occurred while saving form {i + 1}: {str(e)}")
-                    return JsonResponse({
-                        'status': 'error',
-                        'message': f"Database error occurred while saving form {i + 1}: {str(e)}"
-                    })
-
-            # If no valid forms are submitted
-            if total_valid_forms == 0:
+            except Exception as e:
+                logger.critical(f"Transaction failed: {str(e)}")
                 return JsonResponse({
                     'status': 'error',
-                    'message': 'No valid forms submitted. Please provide valid delay data.'
+                    'message': 'An error occurred while saving data.',
+                    'details': str(e)
                 })
 
-            # If broadcast is selected
-            if 'broadcast' in request.POST:
-                logger.info("Broadcast button clicked")
+            if total_valid_forms == 0:
+                logger.warning("No valid forms submitted.")
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'No valid forms submitted. Please check the data.',
+                    'details': missing_fields_message
+                })
 
-                try:
-                    subject = "Delay updates" if total_valid_forms > 1 else f"Delay {route}, {sta.strftime('%H:%M')}"
-                    
-                    # Construct email message with data
-                    message = """
-                    <html>
-                    <body>
-                    <p>Dear Team,</p>
-                    <p>Please see the delay details below:</p>
-                    <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; width: 100%; font-size: 14px; text-align: center; border-color: #ddd;">
-                        <thead>
-                            <tr style="background-color: #f2f2f2; font-weight: bold;">
-                                <th>DATE</th>
-                                <th>ROUTE</th>
-                                <th>IN/OUT</th>
-                                <th>STD</th>
-                                <th>ATD</th>
-                                <th>STA</th>
-                                <th>ATA</th>
-                                <th>DELAY</th>
-                                <th>STAFF COUNT</th>
-                                <th>REMARKS</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                    """
-                    for entry in delay_entries:
-                        message += f"""
-                            <tr>
-                                <td>{entry['date']}</td>
-                                <td>{entry['route']}</td>
-                                <td>{entry['in_out']}</td>
-                                <td>{entry['std']}</td>
-                                <td>{entry['atd']}</td>
-                                <td>{entry['sta']}</td>
-                                <td>{entry['ata']}</td>
-                                <td>{entry['delay']}</td>
-                                <td>{entry['staff_count']}</td>
-                                <td>{entry['remarks']}</td>
-                            </tr>
-                        """
-                    message += """
-                        </tbody>
-                    </table>
-                    <br>
-                    <p>Regards,<br>Team</p>
-                    </body>
-                    </html>
-                    """
-
-                    # Send email
-                    send_mail(
-                        subject=subject,
-                        message='',  # Empty plain text message
-                        from_email='occekg@gmail.com',
-                        recipient_list=['sarun.ts@et.ae'],
-                        html_message=message
-                    )
-
-                    return JsonResponse({'status': 'success', 'message': 'The delay email has been broadcast successfully.'})
-
-                except Exception as e:
-                    logger.error(f"Failed to send email: {str(e)}")
-                    return JsonResponse({
-                        'status': 'error',
-                        'message': f"Failed to send email: {str(e)}"
-                    })
+            logger.info(f"{total_valid_forms} forms processed successfully.")
+            return JsonResponse({
+                'status': 'success',
+                'message': f'{total_valid_forms} forms processed successfully.'
+            })
 
         else:
-            # Handle formset validation errors
             logger.error("Formset validation failed")
-            logger.error(formset.errors)  # Log detailed formset errors for debugging
+            logger.error(f"Errors: {formset.errors}")
             return JsonResponse({
                 'status': 'error',
                 'message': 'Invalid form data. Please correct the errors.',
                 'errors': formset.errors
             })
 
-    # Render the formset for new submissions or validation errors
+    # Handle GET request
+    formset = DelayDataFormSet()
     return render(request, 'duty/add_delay_report.html', {'formset': formset})
+
+
 
 @login_required
 @user_in_driverimportlog_required
@@ -816,183 +733,28 @@ def subcategory_selection(request):
 
 
 logger = logging.getLogger(__name__)
+
 @login_required
-# View for EKG Breakdown Report Submission
 def ekg_breakdown(request):
-   if request.method == 'POST':
-       form = BreakdownReportForm(request.POST)
-       if form.is_valid():
-           # Save the form data
-           breakdown_report = form.save()
-           # Log success
-           logger.info("Breakdown Report submitted successfully.")
-           
-           # Optionally trigger email sending
-           if request.POST.get('broadcast', False):
-               return send_breakdown_report_email(breakdown_report)
+    """Handles submission of EKG Breakdown Report."""
+    if request.method == 'POST':
+        form = BreakdownReportForm(request.POST)
+        if form.is_valid():
+            # Save the form data
+            breakdown_report = form.save()
+            # Log success
+            logger.info("Breakdown Report submitted successfully.")
 
-           # Return success response
-           return JsonResponse({'status': 'success', 'message': 'Breakdown Report submitted successfully.'})
-       
-       else:
-           # Log form errors
-           logger.error(f"Form validation failed: {form.errors}")
-           return JsonResponse({'status': 'error', 'message': 'Invalid form data. Please correct the errors.', 'errors': form.errors.as_json()})
-   
-   else:
-       # Render the initial form for GET requests
-       form = BreakdownReportForm()
-       return render(request, 'duty/ekg_breakdown.html', {'form': form})
-
-def set_cell_border(cell, **kwargs):
-    """
-    Set cell's border for Word document table cells.
-    """
-    tc = cell._element
-    tcPr = tc.get_or_add_tcPr()
-    for edge in ('top', 'bottom', 'left', 'right'):
-        edge_data = kwargs.get(edge)
-        if edge_data:
-            tag = f"w:{edge}"
-            element = OxmlElement(tag)
-            element.set(qn('w:val'), edge_data.get("val", "single"))
-            element.set(qn('w:sz'), str(edge_data.get("sz", 12)))
-            element.set(qn('w:space'), str(edge_data.get("space", 0)))
-            element.set(qn('w:color'), edge_data.get("color", "000000"))
-            tcPr.append(element)
-@login_required
-def send_breakdown_report_email(breakdown_report):
-    try:
-        # Create the Word document with report details
-        document = Document()
-
-        # Set the document default font to Calibri, size 10
-        style = document.styles['Normal']
-        font = style.font
-        font.name = 'Calibri'
-        font.size = Pt(10)
-
-        # Add centered title with size 16, bold, black
-        heading = document.add_heading('Breakdown Report', 0)
-        heading.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-        run = heading.runs[0]
-        run.font.size = Pt(16)
-        run.font.bold = True
-        run.font.color.rgb = document.styles['Normal'].font.color.rgb
-
-        # Section A: To be completed by the Provider
-        document.add_heading('Section A: To be completed by the Provider', level=1)
-
-        # Create table with adjusted column width
-        table = document.add_table(rows=0, cols=2)
-        table.autofit = False
-        table.columns[0].width = Pt(150)  # Adjust width for label column
-        table.columns[1].width = Pt(300)  # Adjust width for value column
-
-        # Rows of Section A with bold labels
-        rows = [
-            ('Date and Time of Report', breakdown_report.reported_datetime),
-            ('Breakdown Date and Time', breakdown_report.breakdown_datetime),
-            ('Breakdown Location', breakdown_report.location),
-            ('Route #', breakdown_report.route_number),
-            ('Trip Work Order #', breakdown_report.trip_work_order),
-            ('No. of passengers involved', breakdown_report.passengers_involved),
-            ('EK Staff numbers', breakdown_report.ek_staff_numbers),
-            ('Non-EK Passenger Details', breakdown_report.non_ek_passenger_details),
-            ('No. of injured passengers', breakdown_report.injured_passengers),
-            ('Action taken for injured passengers', breakdown_report.action_taken_for_injured),
-            ('Damage to the vehicle(s)', breakdown_report.vehicle_damage),
-            ('Driver Name and ID No.', f"{breakdown_report.driver_name} (ID: {breakdown_report.driver_id})"),
-            ('Driver Shift', breakdown_report.driver_shift),
-            ('Description of the Breakdown', breakdown_report.breakdown_description),
-            ('No. of EK vehicles involved', breakdown_report.ek_vehicles_involved),
-            ('Vehicle Make and Plate #', breakdown_report.vehicle_make_plate),
-            ('Replacement vehicle #', breakdown_report.replacement_vehicle),
-            ('Reported to person at EK', breakdown_report.reported_to_person),
-            ('Reported Date and Time', breakdown_report.reported_datetime)
-        ]
-
-        # Add rows to the table
-        for label, value in rows:
-            row = table.add_row()
-            row.cells[0].text = label
-            row.cells[1].text = str(value)
-            row.cells[0].paragraphs[0].runs[0].font.bold = True
-            row.cells[1].paragraphs[0].runs[0].font.bold = False
-
-            # Set main border for the table cells
-            for cell in row.cells:
-                set_cell_border(cell, top={"sz": 12, "val": "single", "color": "000000"},
-                                     bottom={"sz": 12, "val": "single", "color": "000000"},
-                                     left={"sz": 12, "val": "single", "color": "000000"},
-                                     right={"sz": 12, "val": "single", "color": "000000"})
-
-        # Add Section B heading with centered text, size 10, bold, black
-        section_b_heading = document.add_heading('Section B: To be completed by EK Transport Services', level=1)
-        section_b_heading.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-        run_b = section_b_heading.runs[0]
-        run_b.font.size = Pt(10)
-        run_b.font.bold = True
-
-        # Section B table
-        table_b = document.add_table(rows=0, cols=2)
-        table_b.autofit = False
-        table_b.columns[0].width = Pt(150)
-        table_b.columns[1].width = Pt(300)
-
-        section_b_rows = [
-            ('Incident Reference Number', ''),
-            ('If there are injuries, has the passenger been spoken to?', ''),
-            ('Have all attachments been added to the case?', '')
-        ]
-
-        # Add rows to Section B table
-        for label, value in section_b_rows:
-            row = table_b.add_row()
-            row.cells[0].text = label
-            row.cells[1].text = value  # Leave blank for manual input
-            row.cells[0].paragraphs[0].runs[0].font.bold = True
-            row.cells[1].paragraphs[0].runs[0].font.bold = False
-
-            # Set main border for the Section B table cells
-            for cell in row.cells:
-                set_cell_border(cell, top={"sz": 12, "val": "single", "color": "000000"},
-                                     bottom={"sz": 12, "val": "single", "color": "000000"},
-                                     left={"sz": 12, "val": "single", "color": "000000"},
-                                     right={"sz": 12, "val": "single", "color": "000000"})
-
-        # Save the document to memory
-        report_buffer = BytesIO()
-        document.save(report_buffer)
-        report_buffer.seek(0)
-
-        # Prepare email content
-        subject = "Breakdown Report"
-        email_body = render_to_string('duty/breakdown_report_email.html', {'report': breakdown_report})
-
-        # Prepare email with attachment
-        email = EmailMessage(
-            subject=subject,
-            body=email_body,
-            from_email='occekg@gmail.com',
-            to=['sarun.ts@et.ae']  # Update with recipient list
-        )
-        email.attach('Breakdown_Report.docx', report_buffer.getvalue(), 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')
-        email.content_subtype = 'html'
-
-        # Send the email
-        email.send()
-
-        logger.info("Breakdown report email sent successfully.")
-        return JsonResponse({'status': 'success', 'message': 'Breakdown email broadcast successfully.'})
-
-    except Exception as e:
-        logger.error(f"Failed to send breakdown report email: {str(e)}")
-        return JsonResponse({'status': 'error', 'message': f"Failed to send breakdown report email: {str(e)}"})
-
-    # If the request method is incorrect
-    return JsonResponse({'status': 'error', 'message': 'Invalid request method.'})
-
+            # Return success response
+            return JsonResponse({'status': 'success', 'message': 'Breakdown Report submitted successfully.'})
+        else:
+            # Log form errors
+            logger.error(f"Form validation failed: {form.errors}")
+            return JsonResponse({'status': 'error', 'message': 'Invalid form data. Please correct the errors.', 'errors': form.errors.as_json()})
+    else:
+        # Render the initial form for GET requests
+        form = BreakdownReportForm()
+        return render(request, 'duty/ekg_breakdown.html', {'form': form})
 
 @login_required
 def stm_dashboard(request):
@@ -1004,36 +766,32 @@ def stm_dashboard(request):
 
 logger = logging.getLogger(__name__)
 
+from django.utils.timezone import localdate
+
 def fleet_counts_api(request):
-    """
-    API to return daily, monthly, and total delay and breakdown counts.
-    """
-    today = timezone.now().date()
+    today = localdate()
     month_start = today.replace(day=1)
 
-    # Query daily and monthly delay counts
     daily_delay_count = DelayData.objects.filter(date=today).count()
     monthly_delay_count = DelayData.objects.filter(date__gte=month_start).count()
 
-    # Query daily and monthly breakdown counts
     daily_breakdown_count = BreakdownReport.objects.filter(breakdown_datetime__date=today).count()
     monthly_breakdown_count = BreakdownReport.objects.filter(breakdown_datetime__date__gte=month_start).count()
 
-    # Query total delay and breakdown counts (for the entire dataset)
     total_delay_count = DelayData.objects.all().count()
     total_breakdown_count = BreakdownReport.objects.all().count()
 
-    # Prepare the response data
     data = {
         'daily_delay_count': daily_delay_count,
         'monthly_delay_count': monthly_delay_count,
         'daily_breakdown_count': daily_breakdown_count,
         'monthly_breakdown_count': monthly_breakdown_count,
         'total_delay_count': total_delay_count,
-        'total_breakdown_count': total_breakdown_count
+        'total_breakdown_count': total_breakdown_count,
     }
 
     return JsonResponse(data)
+
 
 logger = logging.getLogger(__name__)
 

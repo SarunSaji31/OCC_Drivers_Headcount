@@ -11,7 +11,7 @@
     <!-- Google Font -->
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
 
-    <!-- Custom CSS for enhanced design -->
+    <!-- Custom CSS -->
     <style>
         body {
             font-family: 'Roboto', sans-serif;
@@ -60,24 +60,6 @@
 
         .submit-btn:hover {
             background-color: #0056b3;
-        }
-
-        .alert {
-            display: none;
-            margin-top: 20px;
-            padding: 15px;
-        }
-
-        .alert-success {
-            color: #155724;
-            background-color: #d4edda;
-            border-color: #c3e6cb;
-        }
-
-        .alert-danger {
-            color: #721c24;
-            background-color: #f8d7da;
-            border-color: #f5c6cb;
         }
 
         /* Back link style */
@@ -271,12 +253,8 @@
             </div>
         </div>
 
-        <button type="button" class="submit-btn w-100" id="broadcastButton">Submit and Broadcast Report</button>
-        <div id="broadcastMessage"></div>
+        <button type="submit" class="submit-btn w-100">Submit Report</button>
     </form>
-
-    <div class="alert alert-success" id="successMessage">Broadcast message sent successfully.</div>
-    <div class="alert alert-danger" id="errorMessage">An error occurred while sending the broadcast message.</div>
 </div>
 
 <!-- Bootstrap 5 JS -->
@@ -284,45 +262,33 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        document.querySelector('#broadcastButton').addEventListener('click', function (event) {
-            event.preventDefault();  // Prevent the form from submitting the traditional way
+        const form = document.querySelector('#BreakdownReportForm');
 
-            const form = document.querySelector('#BreakdownReportForm');
+        form.addEventListener('submit', function (event) {
+            event.preventDefault(); // Prevent default form submission
+
             const formData = new FormData(form);
-
-            // Get the CSRF token
-            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-
-            formData.append('broadcast', true);
 
             fetch("{% url 'ekg_breakdown' %}", {
                 method: 'POST',
                 body: formData,
                 headers: {
-                    'X-CSRFToken': csrfToken,
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
                 }
             })
             .then(response => response.json())
             .then(data => {
                 if (data.status === 'success') {
-                    document.getElementById('successMessage').style.display = 'block';
-                    document.getElementById('errorMessage').style.display = 'none';
-                    clearForm();  // Clear form on success
+                    window.location.href = "/success/"; // Redirect to success page
                 } else {
-                    document.getElementById('errorMessage').style.display = 'block';
-                    document.getElementById('successMessage').style.display = 'none';
+                    alert('An error occurred: ' + (data.message || 'Unknown error'));
                 }
             })
             .catch(error => {
-                document.getElementById('errorMessage').style.display = 'block';
-                document.getElementById('successMessage').style.display = 'none';
+                console.error('Error:', error);
+                alert('An unexpected error occurred.');
             });
         });
-
-        function clearForm() {
-            const inputs = document.querySelectorAll('input, textarea');
-            inputs.forEach(input => input.value = '');
-        }
     });
 </script>
 
