@@ -56,8 +56,7 @@ urlpatterns = [
     path('subcategory/', views.subcategory_selection, name='subcategory_selection'),  
     
     # EKG Breakdown Page
-    path('ekg-breakdown/', views.ekg_breakdown, name='ekg_breakdown'), 
-
+    path('ekg-breakdown/', views.ekg_breakdown, name='ekg_breakdown'),  
 
     # STM Dashboard
     path('stm-dashboard/', stm_dashboard, name='stm_dashboard'),
@@ -67,12 +66,12 @@ urlpatterns = [
     # Search and Route Details URLs
     path('search/', views.ajax_search_route, name='search_route'),
     path('ajax/search_route/', views.ajax_search_route, name='ajax_search_route'),
-    path('route-details/', views.route_details, name='route_details'),  # New route details page
+    path('route-details/', views.route_details, name='route_details'),  
     path('stm_timetables/', views.stm_timetables, name='stm_timetable'), 
     path('submission-history/', views.submission_history, name='submission_history'),
-    path('user_submission_history/', views.submission_history, name='user_submission_history'),
- 
     
+    # Upload page
+    path('upload/', views.upload_view, name='upload'),
 ]
 
 # Serve static files during development

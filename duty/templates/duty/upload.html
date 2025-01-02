@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Crew File</title>
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Google Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <!-- Custom CSS -->
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f7f9fc;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            background-color: #fff;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            margin: 60px auto;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        p.lead {
+            color: #666;
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+
+        .btn-custom {
+            padding: 12px 30px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            letter-spacing: 1px;
+        }
+
+        .btn-primary-custom {
+            background-color: #007bff;
+            border: none;
+            color: #fff;
+            box-shadow: 0 5px 10px rgba(0, 123, 255, 0.2);
+        }
+
+        .btn-primary-custom:hover {
+            background-color: #0056b3;
+            box-shadow: 0 8px 15px rgba(0, 123, 255, 0.3);
+        }
+
+        .btn-secondary-custom {
+            background-color: #6c757d;
+            border: none;
+            color: #fff;
+            box-shadow: 0 5px 10px rgba(108, 117, 125, 0.2);
+        }
+
+        .btn-secondary-custom:hover {
+            background-color: #565e64;
+            box-shadow: 0 8px 15px rgba(108, 117, 125, 0.3);
+        }
+
+        .footer {
+            text-align: center;
+            font-size: 16px;
+            margin-top: 40px;
+            color: #888;
+        }
+
+        .footer a {
+            color: #007bff;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Upload Crew File</h1>
+        <p class="lead">Please upload a single Excel file containing both inbound and outbound data to process crew trips.</p>
+
+        <!-- Single File Upload Form -->
+        <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label for="file" class="form-label">Combined File</label>
+                <input type="file" class="form-control" id="file" name="file" required>
+            </div>
+            <button type="submit" class="btn btn-primary-custom btn-custom">Upload</button>
+        </form>
+
+        <!-- Dynamic Download Links -->
+        {% if inbound_path or outbound_path %}
+            <div class="mt-4">
+                <h3>Download Processed Files</h3>
+                {% if inbound_path %}
+                    <a href="?file=inbound" class="btn btn-primary-custom btn-custom">Download Inbound File</a>
+                {% endif %}
+                {% if outbound_path %}
+                    <a href="?file=outbound" class="btn btn-secondary-custom btn-custom">Download Outbound File</a>
+                {% endif %}
+            </div>
+        {% endif %}
+
+        <!-- Error Message -->
+        {% if error %}
+            <div class="alert alert-danger mt-4" role="alert">
+                {{ error }}
+            </div>
+        {% endif %}
+    </div>
+
+    <div class="footer">
+        <p>&copy; 2024 Emirates General Transport. <a href="#">Privacy Policy</a></p>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

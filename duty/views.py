@@ -1097,3 +1097,169 @@ def stm_timetables(request):
         print("Invalid route or shift time provided")
         return render(request, 'duty/stm_timetable.html', {'error': 'Invalid route or shift time provided'})
     
+#crew allocation
+import os
+import pandas as pd
+import datetime
+from django.http import FileResponse
+from django.shortcuts import render
+from django.conf import settings
+from .forms import UploadFileForm
+
+UPLOAD_DIR = os.path.join(settings.MEDIA_ROOT, 'uploads')
+DOWNLOAD_DIR = os.path.join(settings.MEDIA_ROOT, 'downloads')
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+os.makedirs(DOWNLOAD_DIR, exist_ok=True)
+
+def calculate_units(crew_count):
+    return (crew_count - 1) // 31 + 1 if crew_count > 0 else 0
+
+def custom_group_buildings(df, specific_groupings):
+    df_custom_grouped_list = []
+    for time in df['TIME'].unique():
+        df_time = df[df['TIME'] == time]
+        for combined_name, buildings in specific_groupings.items():
+            valid_buildings = df_time[df_time['TO'].isin(buildings) & (df_time['CREW'] > 0)]
+            if not valid_buildings.empty:
+                valid_combined_name = ' & '.join(valid_buildings['TO'])
+                crew_sum = valid_buildings['CREW'].sum()
+                df_custom_grouped_list.append({
+                    'TIME': time,
+                    'TO': valid_combined_name,
+                    'CREW': crew_sum,
+                    'NO OF UNITS': calculate_units(crew_sum)
+                })
+        other_buildings = df_time[~df_time['TO'].isin(sum(specific_groupings.values(), ()))]
+        other_buildings['NO OF UNITS'] = other_buildings['CREW'].apply(calculate_units)
+        df_custom_grouped_list.extend(other_buildings.to_dict(orient='records'))
+    return pd.DataFrame(df_custom_grouped_list).drop_duplicates(subset=['TIME', 'TO'])
+
+def upload_view(request):
+    if request.method == 'POST':
+        form = UploadFileForm(request.POST, request.FILES)
+        if form.is_valid():
+            try:
+                # Save uploaded file
+                uploaded_file = request.FILES['file']
+                timestamp = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+                file_name = f"{os.path.splitext(uploaded_file.name)[0]}_{timestamp}.xlsx"
+                file_path = os.path.join(UPLOAD_DIR, file_name)
+
+                with open(file_path, 'wb+') as destination:
+                    for chunk in uploaded_file.chunks():
+                        destination.write(chunk)
+
+                # Load Excel file
+                excel_data = pd.ExcelFile(file_path)
+                print("Available sheets:", excel_data.sheet_names)  # Debugging output
+
+                # Select sheet name dynamically
+                sheet_name = "CC"
+                if sheet_name not in excel_data.sheet_names:
+                    raise ValueError(f"Worksheet named '{sheet_name}' not found in the uploaded file.")
+
+                # Read data, skipping merged header rows
+                df = pd.read_excel(
+                    excel_data,
+                    sheet_name=sheet_name,
+                    engine="openpyxl",
+                    skiprows=3  # Adjust the number to skip merged headers
+                )
+                print("Loaded DataFrame columns:", df.columns)  # Debugging output
+
+                # Validate columns
+                required_columns = [
+                    "TIME", "EM6", "Talal", "Al Qamzi", "SARAB", "SAFA", "SAB", "FT", 
+                    "MT", "SON", "GT", "TECOM", "Dr. K", "MIT", "PINK", "GCT", 
+                    "PZABEEL", "7Pearls", "DSO"
+                ]
+                if not all(col in df.columns for col in required_columns):
+                    raise ValueError("The required columns are not present in the sheet.")
+
+                # Specific groupings for buildings
+                specific_groupings = {
+                    "EM6 TALAL QAMZI": ("Talal", "Al Qamzi", "EM6"),
+                    "SARAB SAFA": ("SARAB", "SAFA"),
+                    "SABREEN FALTAT": ("SAB", "FT"),
+                    "DR.KHALIFA & TECOM 1,2": ("Dr. K", "TECOM")
+                }
+
+                name_mapping = {
+                    "Talal": "TALAL",
+                    "Al Qamzi": "QAMZI",
+                    "EM6": "EM6",
+                    "Dr. K": "DR.KHALIFA",
+                    "TECOM": "TECOM 1,2",
+                    "GCT": "GROSVENOUR",
+                    "PINK": "PINK",
+                    "SAB": "SABREEN",
+                    "FT": "FALTAT",
+                    "MD": "MANAZIL DIERA",
+                    "MT": "MANAZIL TOWER",
+                    "SON": "SONBOULAH",
+                    "GT": "GARHOUD TOWERS",
+                    "MIT": "MILLINUM TOWER",
+                    "PZABEEL": "PARK ZABEEL 1,2",
+                    "7Pearls ": "7 PEARLS"
+                }
+
+                # Process inbound and outbound data based on header values
+                inbound_condition = "ACCOMODATION TO EAC-C" in df.columns[0]
+                outbound_condition = "EAC-C TO ACCOMODATION" in df.columns[0]
+
+                if inbound_condition:
+                    df_inbound = df.copy()
+                    df_inbound_melted = df_inbound.melt(id_vars=["TIME"], var_name="TO", value_name="CREW").dropna(subset=["CREW"])
+                    df_inbound_melted['CREW'] = pd.to_numeric(df_inbound_melted['CREW'], errors='coerce').fillna(0)
+
+                    df_custom_grouped_inbound = custom_group_buildings(df_inbound_melted, specific_groupings)
+
+                    # Apply name mapping
+                    df_custom_grouped_inbound['TO'] = df_custom_grouped_inbound['TO'].apply(
+                        lambda x: '  '.join(name_mapping.get(item, item) for item in x.split(' & '))
+                    )
+
+                    # Add columns for output
+                    tomorrows_date = (datetime.datetime.now() + datetime.timedelta(days=1)).strftime('%d-%b')
+                    df_custom_grouped_inbound['DATE'] = tomorrows_date
+                    df_custom_grouped_inbound['FROM'] = df_custom_grouped_inbound['TO']
+                    df_custom_grouped_inbound['TO'] = 'EAC-C'
+
+                    inbound_output_path = os.path.join(DOWNLOAD_DIR, f"inbound_processed_{timestamp}.xlsx")
+                    df_custom_grouped_inbound.to_excel(inbound_output_path, index=False)
+
+                if outbound_condition:
+                    df_outbound = df.copy()
+                    df_outbound_melted = df_outbound.melt(id_vars=["TIME"], var_name="TO", value_name="CREW").dropna(subset=["CREW"])
+                    df_outbound_melted['CREW'] = pd.to_numeric(df_outbound_melted['CREW'], errors='coerce').fillna(0)
+
+                    df_custom_grouped_outbound = custom_group_buildings(df_outbound_melted, specific_groupings)
+
+                    # Apply name mapping
+                    df_custom_grouped_outbound['TO'] = df_custom_grouped_outbound['TO'].apply(
+                        lambda x: '  '.join(name_mapping.get(item, item) for item in x.split(' & '))
+                    )
+
+                    # Add columns for output
+                    df_custom_grouped_outbound['DATE'] = tomorrows_date
+                    df_custom_grouped_outbound['FROM'] = 'EAC-C'
+
+                    outbound_output_path = os.path.join(DOWNLOAD_DIR, f"outbound_processed_{timestamp}.xlsx")
+                    df_custom_grouped_outbound.to_excel(outbound_output_path, index=False)
+
+                # Render template with download links
+                return render(request, 'duty/upload.html', {
+                    'form': form,
+                    'inbound_path': inbound_output_path if inbound_condition else None,
+                    'outbound_path': outbound_output_path if outbound_condition else None,
+                })
+
+            except Exception as e:
+                return render(request, 'duty/upload.html', {'form': form, 'error': str(e)})
+        else:
+            return render(request, 'duty/upload.html', {'form': form, 'error': "Invalid form submission"})
+
+    else:
+        form = UploadFileForm()
+
+    return render(request, 'duty/upload.html', {'form': form})

@@ -129,3 +129,11 @@ class BreakdownReportForm(forms.ModelForm):
             'breakdown_datetime': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
             'vehicle_damage': forms.Select(choices=[('yes', 'Yes'), ('no', 'No')]),  # Dropdown for Yes/No
         }
+
+
+#crew allocation
+
+from django import forms
+
+class UploadFileForm(forms.Form):
+    file = forms.FileField(label="Upload Combined File (Inbound & Outbound)")
