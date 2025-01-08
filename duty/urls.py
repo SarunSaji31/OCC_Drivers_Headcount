@@ -72,6 +72,7 @@ urlpatterns = [
     
     # Upload page
     path('upload/', views.upload_view, name='upload'),
+    path('download/<str:filename>/', views.download_file, name='download_file'),
 ]
 
 # Serve static files during development
