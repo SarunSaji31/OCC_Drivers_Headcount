@@ -37,6 +37,12 @@
             font-size: 16px;
             font-weight: 500;
             color: #dc3545;
+            text-decoration: none;
+        }
+
+        .logout-link:hover {
+            color: #b52a33;
+            text-decoration: underline;
         }
 
         h1 {
@@ -58,7 +64,6 @@
             font-weight: 600;
             border-radius: 8px;
             transition: all 0.3s ease;
-            letter-spacing: 1px;
             text-transform: uppercase;
         }
 
@@ -97,12 +102,6 @@
         .btn-home:hover {
             background-color: #218838;
             box-shadow: 0 8px 15px rgba(40, 167, 69, 0.3);
-        }
-
-        /* Button hover effect */
-        .btn-custom:hover {
-            transform: translateY(-3px);
-            transition: transform 0.3s ease, background-color 0.3s ease;
         }
 
         .footer {
@@ -160,31 +159,43 @@
 <body>
 
 <!-- Logout link -->
-<a href="{% url 'logout' %}" class="logout-link">Logout</a>
+<a href="/logout/" class="logout-link">Logout</a>
 
 <div class="container">
-    <h1>Select Subcategory</h1>
+    <h1 class="mb-4">Select Subcategory</h1>
     <p class="lead">Please choose a subcategory to proceed with.</p>
 
-    <div class="d-grid gap-3 d-md-flex justify-content-center">
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3 justify-content-center">
         <!-- Button to go to EKG Report page -->
-        <a href="{% url 'ekg_report' %}" class="btn btn-primary-custom btn-custom">EKG Delay Report</a>
+        <div class="col">
+            <a href="/ekg-report/" class="btn btn-primary-custom btn-custom w-100">EKG Delay Report</a>
+        </div>
 
         <!-- Button to go to EKG Breakdown page -->
-        <a href="{% url 'ekg_breakdown' %}" class="btn btn-secondary-custom btn-custom">EKG Breakdown</a>
+        <div class="col">
+            <a href="/ekg-breakdown/" class="btn btn-secondary-custom btn-custom w-100">EKG Breakdown</a>
+        </div>
 
         <!-- Button to go to STM Dashboard page -->
-        <a href="{% url 'stm_dashboard' %}" class="btn btn-primary-custom btn-custom">STM Dashboard</a>
+        <div class="col">
+            <a href="/stm-dashboard/" class="btn btn-primary-custom btn-custom w-100">STM Dashboard</a>
+        </div>
         
         <!-- Button for Search Page -->
-        <a href="{% url 'search_route' %}" class="btn btn-primary-custom btn-custom">EKSTM Timetable</a>
+        <div class="col">
+            <a href="/search/" class="btn btn-primary-custom btn-custom w-100">EKSTM Timetable</a>
+        </div>
 
         <!-- Button for Upload Page -->
-        <a href="{% url 'upload' %}" class="btn btn-primary-custom btn-custom">Upload Crew Files</a>
+        <div class="col">
+            <a href="/upload/" class="btn btn-primary-custom btn-custom w-100">CC Allocations</a>
+        </div>
     </div>
 
     <!-- Back to Home Button -->
-    <a href="{% url 'home' %}" class="btn btn-home btn-custom mt-4">Return to Home</a>
+    <div class="mt-4">
+        <a href="/" class="btn btn-home btn-custom">Return to Home</a>
+    </div>
 </div>
 
 <div class="footer">

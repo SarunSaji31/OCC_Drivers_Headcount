@@ -1,25 +1,28 @@
-from datetime import datetime, date, time
+from datetime import datetime, timedelta,date
+from functools import wraps
+import os
 import logging
 import pandas as pd
-from functools import wraps
+
 
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import logout, authenticate, login
+from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm
-from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import User
+from django.contrib.auth.hashers import make_password  # Added import
 from django.core.paginator import Paginator
 from django.db import IntegrityError
 from django.db.models import Q, Sum
-from django.http import JsonResponse, HttpResponse
+from django.http import JsonResponse, HttpResponse, FileResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.template.loader import render_to_string
 from django.urls import reverse
-from django.utils import timezone
 from django.utils.timezone import now
+from django.utils import timezone
 from openpyxl import Workbook
+from openpyxl.utils import get_column_letter
 
 from docx import Document
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
@@ -27,20 +30,19 @@ from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Pt
 
-from openpyxl.utils import get_column_letter
-
 import pdfkit
 
 from .decorators import user_in_driverimportlog_required
 from .forms import (
-    DelayDataForm, DriverTripFormSet, CustomUserCreationForm, 
-    PasswordResetRequestForm, SetNewPasswordForm, formset_factory, 
+    DelayDataForm, DriverTripFormSet, CustomUserCreationForm,
+    PasswordResetRequestForm, SetNewPasswordForm, formset_factory,
     BreakdownReportForm
 )
 from .models import (
-    DriverTrip, DriverImportLog, DutyCardTrip, DelayData, 
+    DriverTrip, DriverImportLog, DutyCardTrip, DelayData,
     BreakdownReport, StmRoute, StmPickupPoint, StmShiftTime
 )
+
 
 
 # Setup logger
@@ -1099,7 +1101,7 @@ def stm_timetables(request):
 
 import os
 import pandas as pd
-import datetime
+from datetime import timedelta
 from django.http import HttpResponse, FileResponse
 from django.shortcuts import render
 from django.conf import settings
@@ -1112,63 +1114,77 @@ os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
 # Specific groupings for crew count aggregation
 specific_groupings = {
-    "TALAL-QAMZI-EM-6": ["EM6", "Talal", "Al Qamzi"],
-    "SARAB-SAFA": ["SARAB", "SAFA"],
-    "SABREEN-FALTAT": ["SAB", "FT"],
-    "SONBOULAH-GHARHOUD TOWERS": ["SON", "GT"],
-    "TECOM 1,2-DR.KHALIFA": ["TECOM", "Dr. K"],
-    "MILLINIUM-GROSVENOUR": ["MIT", "GCT"],
-    "PARK ZABEEL 1,2-7 PEARLS": ["PZABEEL", "7Pearls"]
+    "EM6 TALAL QAMZI": ["EM6", "Talal", "Al Qamzi"],
+    "SARAB SAFA": ["SARAB", "SAFA"],
+    "SABREEN FALTAT MANAZIL TOWER": ["SAB", "FT", "MT"],
+    "SONBOULAH GARHOUD TOWERS": ["SON", "GT"],
+    "TECOM DR.KHALIFA": ["TECOM", "Dr. K"],
+    "MILLENIUM PINK GROSVENOR": ["MIT", "PINK", "GCT"],
+    "PARK ZABEEL 7 PEARLS": ["PZABEEL", "7Pearls"],
+    "DSO": ["DSO"]
+}
+
+# Name mapping for full names
+name_mapping = {
+    "Talal": "TALAL",
+    "Al Qamzi": "QAMZI",
+    "EM6": "EM6",
+    "Dr. K": "DR.KHALIFA",
+    "TECOM": "TECOM 1,2",
+    "GCT": "GROSVENOUR",
+    "PINK": "PINK",
+    "SAB": "SABREEN",
+    "FT": "FALTAT",
+    "MT": "MANAZIL TOWER",
+    "SON": "SONBOULAH",
+    "GT": "GARHOUD TOWERS",
+    "MIT": "MILLINUM TOWER",
+    "PZABEEL": "PARK ZABEEL 1,2",
+    "7Pearls": "7 PEARLS",
+    "DSO": "DSO"
 }
 
 # Function to calculate "No of Units"
 def calculate_units(crew_count):
     return (crew_count - 1) // 31 + 1 if crew_count > 0 else 0
 
-# Helper function to parse and adjust time
-def parse_time(value, add_minutes=0):
-    try:
-        if isinstance(value, str):
-            value = datetime.datetime.strptime(value, '%H:%M').time()
-        if isinstance(value, datetime.time):
-            adjusted_time = (datetime.datetime.combine(datetime.date.today(), value) +
-                             datetime.timedelta(minutes=add_minutes))
-            return adjusted_time.strftime('%H:%M')
-    except Exception as e:
-        raise ValueError(f"Error parsing time: {value}, {str(e)}")
-    raise ValueError(f"Unsupported time format: {value}")
-
-# Custom grouping logic
-def custom_group_buildings(df, specific_groupings, direction):
+# Format time to always be in HH:MM format
+def process_data(df, specific_groupings, name_mapping, direction, date="2-Jan"):
     grouped_data = []
-    for time in df['TIME'].unique():
-        time_data = df[df['TIME'] == time]
-        processed_buildings = set()
+    for _, row in df.iterrows():
+        time = row["TIME"]
+        if direction == "Outbound":
+            # Add 14 minutes to outbound times
+            time = (datetime.datetime.combine(datetime.date.today(), time) + timedelta(minutes=14)).time()
+        time = time.strftime('%H:%M')  # Format time as HH:MM
 
-        # Group based on specific groupings
         for group_name, buildings in specific_groupings.items():
-            relevant_data = time_data[time_data['TO'].isin(buildings)]
-            if not relevant_data.empty:
-                crew_sum = relevant_data['CREW'].sum()
-                grouped_data.append({
-                    'TIME': time,
-                    'TO': '"EAC-C"' if direction == "Inbound" else f'"{group_name}"',
-                    'FROM': f'"{group_name}"' if direction == "Inbound" else '"EAC-C"',
-                    'CREW': crew_sum,
-                    'NO OF UNITS': calculate_units(crew_sum)
-                })
-                processed_buildings.update(buildings)
+            crew_count = 0
+            valid_buildings = []
 
-        # Process remaining buildings
-        remaining_data = time_data[~time_data['TO'].isin(processed_buildings)]
-        for _, row in remaining_data.iterrows():
-            grouped_data.append({
-                'TIME': row['TIME'],
-                'TO': '"EAC-C"' if direction == "Inbound" else f'"{row["TO"]}"',
-                'FROM': f'"{row["TO"]}"' if direction == "Inbound" else '"EAC-C"',
-                'CREW': row['CREW'],
-                'NO OF UNITS': calculate_units(row['CREW'])
-            })
+            for building in buildings:
+                if building in df.columns:
+                    building_value = row[building]
+                    if pd.notna(building_value) and building_value > 0:
+                        crew_count += building_value
+                        valid_buildings.append(name_mapping.get(building, building))
+
+            if not valid_buildings:
+                for building in buildings:
+                    if building in df.columns and pd.notna(row[building]):
+                        crew_count += row[building]
+                        valid_buildings.append(name_mapping.get(building, building))
+                        break
+
+            if crew_count > 0:
+                grouped_data.append({
+                    "DATE": date,
+                    "NO OF UNITS": calculate_units(crew_count),
+                    "TIME": time,  # Ensure formatted time is used
+                    "FROM": "EAC-C" if direction == "Outbound" else ", ".join(valid_buildings),
+                    "TO": group_name if direction == "Outbound" else "EAC-C",
+                    "CREW": int(crew_count)
+                })
 
     return pd.DataFrame(grouped_data)
 
@@ -1178,22 +1194,16 @@ def process_files(inbound_file, outbound_file):
     df_inbound = pd.read_excel(inbound_file)
     df_outbound = pd.read_excel(outbound_file)
 
-    # Melt and clean inbound data
-    df_inbound = df_inbound.melt(id_vars=["TIME"], var_name="TO", value_name="CREW").dropna(subset=["CREW"])
-    df_inbound['CREW'] = pd.to_numeric(df_inbound['CREW'], errors='coerce').fillna(0)
-    df_inbound['TIME'] = df_inbound['TIME'].apply(parse_time)
+    # Clean column names
+    df_inbound.columns = df_inbound.columns.str.strip()
+    df_outbound.columns = df_outbound.columns.str.strip()
 
-    # Melt and clean outbound data
-    df_outbound = df_outbound.melt(id_vars=["TIME"], var_name="TO", value_name="CREW").dropna(subset=["CREW"])
-    df_outbound['CREW'] = pd.to_numeric(df_outbound['CREW'], errors='coerce').fillna(0)
-    df_outbound['TIME'] = df_outbound['TIME'].apply(lambda x: parse_time(x, add_minutes=14))
-
-    # Process groupings
-    df_inbound_grouped = custom_group_buildings(df_inbound, specific_groupings, "Inbound")
-    df_outbound_grouped = custom_group_buildings(df_outbound, specific_groupings, "Outbound")
+    # Process inbound and outbound data
+    df_inbound_grouped = process_data(df_inbound, specific_groupings, name_mapping, "Inbound")
+    df_outbound_grouped = process_data(df_outbound, specific_groupings, name_mapping, "Outbound")
 
     # Add date column
-    date_str = (datetime.datetime.now() + datetime.timedelta(days=1)).strftime('%d-%b')
+    date_str = (datetime.datetime.now() + timedelta(days=1)).strftime('%d-%b')
     df_inbound_grouped['DATE'] = date_str
     df_outbound_grouped['DATE'] = date_str
 
@@ -1201,22 +1211,20 @@ def process_files(inbound_file, outbound_file):
     df_inbound_grouped = df_inbound_grouped[['DATE', 'NO OF UNITS', 'TIME', 'FROM', 'TO', 'CREW']]
     df_outbound_grouped = df_outbound_grouped[['DATE', 'NO OF UNITS', 'TIME', 'FROM', 'TO', 'CREW']]
 
-    # Save files with unique timestamps
-    timestamp = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
-    inbound_output_path = os.path.join(DOWNLOAD_DIR, f'inbound_processed_{timestamp}.xlsx')
-    outbound_output_path = os.path.join(DOWNLOAD_DIR, f'outbound_processed_{timestamp}.xlsx')
+    # Save processed files
+    inbound_output_path = os.path.join(DOWNLOAD_DIR, 'Cabin_crew_inbound_trips.xlsx')
+    outbound_output_path = os.path.join(DOWNLOAD_DIR, 'Cabin_crew_outbound_trips.xlsx')
 
     df_inbound_grouped.to_excel(inbound_output_path, index=False)
     df_outbound_grouped.to_excel(outbound_output_path, index=False)
 
     return inbound_output_path, outbound_output_path
 
-# View for file upload
+# View for uploading files
 def upload_view(request):
     if request.method == 'POST' and request.FILES.get('inbound_file') and request.FILES.get('outbound_file'):
         inbound_file = request.FILES['inbound_file']
         outbound_file = request.FILES['outbound_file']
-
         try:
             inbound_path, outbound_path = process_files(inbound_file, outbound_file)
             return render(request, 'duty/upload.html', {
@@ -1224,11 +1232,11 @@ def upload_view(request):
                 'outbound_path': f'/download/{os.path.basename(outbound_path)}'
             })
         except Exception as e:
-            return render(request, 'duty/upload.html', {'error': f"Error processing files: {str(e)}"})
+            return render(request, 'duty/upload.html', {'error': str(e)})
 
     return render(request, 'duty/upload.html')
 
-# Download file view
+# View for downloading files
 def download_file(request, filename):
     file_path = os.path.join(DOWNLOAD_DIR, filename)
     if os.path.exists(file_path):

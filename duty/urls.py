@@ -70,6 +70,7 @@ urlpatterns = [
     path('stm_timetables/', views.stm_timetables, name='stm_timetable'), 
     path('submission-history/', views.submission_history, name='submission_history'),
     
+    
     # Upload page
     path('upload/', views.upload_view, name='upload'),
     path('download/<str:filename>/', views.download_file, name='download_file'),
