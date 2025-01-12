@@ -43,7 +43,7 @@ class DutyCardTripAdmin(admin.ModelAdmin):
 @admin.register(DriverTrip)
 class DriverTripAdmin(admin.ModelAdmin):
     list_display = ('route_name', 'shift_time', 'trip_type', 'duty_card', 'date', 'head_count')
-    search_fields = ('route_name', 'trip_type', 'duty_card__duty_card_no')  # Corrected ForeignKey lookup
+    search_fields = ('route_name', 'trip_type', 'duty_card__duty_card_no')  # Ensure correct related field lookup
     list_filter = ('duty_card', 'shift_time', 'trip_type', 'date')
     list_per_page = 200
     ordering = ('-date', 'route_name')
@@ -58,7 +58,7 @@ class DriverTripAdmin(admin.ModelAdmin):
             'description': 'Ensure the timing details match the driver schedule.'
         }),
         ('Additional Details', {
-            'fields': ('head_count', 'date', 'submission_date'),
+            'fields': ('head_count', 'date'),
             'description': 'Provide additional details like head count and date.'
         }),
     )
