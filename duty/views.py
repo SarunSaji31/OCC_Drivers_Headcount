@@ -353,7 +353,7 @@ def duty_card_no_autocomplete(request):
         duty_card_nos = list(set(qs))
         return JsonResponse(duty_card_nos, safe=False)
 
-from datetime import datetime   
+from datetime import datetime,date  
 def get_duty_card_details(request):
     """
     Fetch details of a duty card including trips.
