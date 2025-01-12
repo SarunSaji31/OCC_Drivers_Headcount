@@ -226,8 +226,7 @@
             <div class="filter-controls">
                 <div class="daterange-wrapper">
                     <input type="text" name="daterange" id="daterange" class="form-control">
-                    <span class="icon-calendar">&#128197;</span> 
-                </div>                
+                </div>
                 <input type="text" id="routeFilter" class="form-control" placeholder="Type route name" style="max-width: 180px;">
                 <select id="tripTypeFilter" class="form-control" style="max-width: 180px;">
                     <option value="">Select Trip Type</option>
@@ -235,6 +234,7 @@
                     <option value="outbound">Outbound</option>
                 </select>
                 <input type="text" id="shiftTimeFilter" class="form-control" placeholder="HH:MM" style="max-width: 180px;">
+
             </div>
             <div class="btn-container">
                 <button id="downloadButton" class="btn btn-custom" disabled>Download XLSX</button>
@@ -310,7 +310,7 @@
                 const now = new Date();
                 const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
                 const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-                return `${firstDay.getFullYear()}-${('0' + (firstDay.getMonth() + 1)).slice(-2)}-${('0' + firstDay.getDate()).slice(-2)} - ${lastDay.getFullYear()}-${('0' + (lastDay.getMonth() + 1)).slice(-2)}-${('0' + lastDay.getDate()).slice(-2)}`;
+                return `${moment(firstDay).format('YYYY-MM-DD')} - ${moment(lastDay).format('YYYY-MM-DD')}`;
             }
 
             // Initialize date range picker
@@ -320,8 +320,14 @@
                 },
                 startDate: moment().startOf('day'),
                 endDate: moment().endOf('day'),
-                autoUpdateInput: false
+                autoUpdateInput: true // Ensure input is updated with selected dates
+            }, function(start, end) {
+                // Set default date range
+                $('input[name="daterange"]').val(`${start.format('YYYY-MM-DD')} - ${end.format('YYYY-MM-DD')}`);
             });
+
+            // Set initial value for date range
+            $('input[name="daterange"]').val(getCurrentMonthDateRange());
 
             // Update date range input on user selection
             $('input[name="daterange"]').on('apply.daterangepicker', function(ev, picker) {
@@ -362,6 +368,39 @@
                 window.location.href = `{% url 'download_report' %}?daterange=${date}&route=${route}&shift_time=${shift_time}&trip_type=${trip_type}`;
             });
         });
+        
+        document.addEventListener("DOMContentLoaded", () => {
+        const shiftTimeInput = document.getElementById("shiftTimeFilter");
+
+        shiftTimeInput.addEventListener("input", (event) => {
+            let value = shiftTimeInput.value.replace(/[^0-9]/g, ""); // Remove non-numeric characters
+            if (value.length > 4) value = value.slice(0, 4); // Limit to 4 digits (HHMM)
+
+            if (value.length >= 3) {
+                value = `${value.slice(0, 2)}:${value.slice(2)}`; // Add colon after HH
+            }
+
+            shiftTimeInput.value = value;
+
+            // Move cursor after the ":" automatically
+            if (value.length === 3) {
+                shiftTimeInput.setSelectionRange(3, 3); // Place cursor after the colon
+            }
+        });
+
+        // Handle paste events to ensure proper formatting
+        shiftTimeInput.addEventListener("paste", (event) => {
+            event.preventDefault();
+            let pasteData = event.clipboardData.getData("text").replace(/[^0-9]/g, ""); // Allow only numbers
+            if (pasteData.length > 4) pasteData = pasteData.slice(0, 4);
+            if (pasteData.length >= 3) {
+                pasteData = `${pasteData.slice(0, 2)}:${pasteData.slice(2)}`;
+            }
+            shiftTimeInput.value = pasteData;
+        });
+    });
+
+
 
     </script>
 </body>
