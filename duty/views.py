@@ -1,18 +1,26 @@
-from datetime import datetime, timedelta,date
 from functools import wraps
 import os
 import logging
+
+# Third-Party Imports
 import pandas as pd
-import datetime
+from openpyxl import Workbook
+from openpyxl.utils import get_column_letter
+from docx import Document
+from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
+from docx.oxml import OxmlElement
+from docx.oxml.ns import qn
+from docx.shared import Pt
+import pdfkit
 
-
+# Django Imports
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.models import User
-from django.contrib.auth.hashers import make_password  # Added import
+from django.contrib.auth.hashers import make_password
 from django.core.paginator import Paginator
 from django.db import IntegrityError
 from django.db.models import Q, Sum
@@ -22,17 +30,8 @@ from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils.timezone import now
 from django.utils import timezone
-from openpyxl import Workbook
-from openpyxl.utils import get_column_letter
 
-from docx import Document
-from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
-from docx.oxml import OxmlElement
-from docx.oxml.ns import qn
-from docx.shared import Pt
-
-import pdfkit
-
+# Project-Specific Imports
 from .decorators import user_in_driverimportlog_required
 from .forms import (
     DelayDataForm, DriverTripFormSet, CustomUserCreationForm,
@@ -43,7 +42,6 @@ from .models import (
     DriverTrip, DriverImportLog, DutyCardTrip, DelayData,
     BreakdownReport, StmRoute, StmPickupPoint, StmShiftTime
 )
-
 
 
 # Setup logger
@@ -354,7 +352,8 @@ def duty_card_no_autocomplete(request):
         qs = DutyCardTrip.objects.filter(duty_card_no__icontains=term).values_list('duty_card_no', flat=True)
         duty_card_nos = list(set(qs))
         return JsonResponse(duty_card_nos, safe=False)
-    
+
+from datetime import datetime    
 def get_duty_card_details(request):
     """
     Fetch details of a duty card including trips.
@@ -1102,7 +1101,7 @@ def stm_timetables(request):
 
 import os
 import pandas as pd
-from datetime import timedelta
+from datetime import datetime, timedelta
 from django.http import HttpResponse, FileResponse
 from django.shortcuts import render
 from django.conf import settings
@@ -1149,15 +1148,16 @@ name_mapping = {
 def calculate_units(crew_count):
     return (crew_count - 1) // 31 + 1 if crew_count > 0 else 0
 
-# Format time to always be in HH:MM format
-def process_data(df, specific_groupings, name_mapping, direction, date="2-Jan"):
+# Function to process data
+def process_data(df, specific_groupings, name_mapping, direction):
     grouped_data = []
     for _, row in df.iterrows():
         time = row["TIME"]
+        if isinstance(time, str):
+            time = datetime.strptime(time, '%H:%M').time()
         if direction == "Outbound":
-            # Add 14 minutes to outbound times
-            time = (datetime.datetime.combine(datetime.date.today(), time) + timedelta(minutes=14)).time()
-        time = time.strftime('%H:%M')  # Format time as HH:MM
+            time = (datetime.combine(datetime.today(), time) + timedelta(minutes=14)).time()
+        formatted_time = time.strftime('%H:%M')
 
         for group_name, buildings in specific_groupings.items():
             crew_count = 0
@@ -1170,21 +1170,14 @@ def process_data(df, specific_groupings, name_mapping, direction, date="2-Jan"):
                         crew_count += building_value
                         valid_buildings.append(name_mapping.get(building, building))
 
-            if not valid_buildings:
-                for building in buildings:
-                    if building in df.columns and pd.notna(row[building]):
-                        crew_count += row[building]
-                        valid_buildings.append(name_mapping.get(building, building))
-                        break
-
             if crew_count > 0:
                 grouped_data.append({
-                    "DATE": date,
+                    "DATE": (datetime.now() + timedelta(days=1)).strftime("%d-%b"),  # Updated format
                     "NO OF UNITS": calculate_units(crew_count),
-                    "TIME": time,  # Ensure formatted time is used
-                    "FROM": "EAC-C" if direction == "Outbound" else ", ".join(valid_buildings),
-                    "TO": group_name if direction == "Outbound" else "EAC-C",
-                    "CREW": int(crew_count)
+                    "TIME": formatted_time,
+                    "FROM": ", ".join(valid_buildings) if direction == "Inbound" else "EAC-C",
+                    "TO": "EAC-C" if direction == "Inbound" else group_name,
+                    "CREW": crew_count
                 })
 
     return pd.DataFrame(grouped_data)
@@ -1202,11 +1195,6 @@ def process_files(inbound_file, outbound_file):
     # Process inbound and outbound data
     df_inbound_grouped = process_data(df_inbound, specific_groupings, name_mapping, "Inbound")
     df_outbound_grouped = process_data(df_outbound, specific_groupings, name_mapping, "Outbound")
-
-    # Add date column
-    date_str = (datetime.datetime.now() + timedelta(days=1)).strftime('%d-%b')
-    df_inbound_grouped['DATE'] = date_str
-    df_outbound_grouped['DATE'] = date_str
 
     # Reorder columns
     df_inbound_grouped = df_inbound_grouped[['DATE', 'NO OF UNITS', 'TIME', 'FROM', 'TO', 'CREW']]
@@ -1234,7 +1222,6 @@ def upload_view(request):
             })
         except Exception as e:
             return render(request, 'duty/upload.html', {'error': str(e)})
-
     return render(request, 'duty/upload.html')
 
 # View for downloading files
