@@ -357,10 +357,14 @@ def duty_card_no_autocomplete(request):
         duty_card_nos = list(set(qs))
         return JsonResponse(duty_card_nos, safe=False)
 
-from datetime import datetime,date    
+from django.http import JsonResponse
+from datetime import datetime
+from .models import DutyCardTrip  # Ensure this imports your model correctly
+
+
 def get_duty_card_details(request):
     """
-    Fetch details of a duty card including trips.
+    Fetch details of a duty card, including trips and links to route details.
     """
     if 'duty_card_no' in request.GET:
         duty_card_no = request.GET.get('duty_card_no')
@@ -384,13 +388,16 @@ def get_duty_card_details(request):
                 'shift_time': trip.shift_time.strftime("%H:%M") if trip.shift_time else '',
                 'trip_type': normalized_trip_type,
                 'date': trip.date.strftime("%Y-%m-%d") if hasattr(trip, 'date') else datetime.today().strftime("%Y-%m-%d"),
-                'head_count': trip.head_count if hasattr(trip, 'head_count') else 0  # Add other fields as needed
+                'head_count': trip.head_count if hasattr(trip, 'head_count') else 0,  # Add other fields as needed
+                # Generate a dynamic link to route details
+                'details_link': f"/route-details/?route={trip.route_name}&shift_time={trip.shift_time.strftime('%H:%M') if trip.shift_time else ''}&type={normalized_trip_type}"
             }
             trip_details.append(trip_info)
 
         return JsonResponse({'trips': trip_details}, safe=False)
 
     return JsonResponse({'error': 'Duty card number not provided'}, status=400)
+
 
 @login_required
 def route_autocomplete(request):
@@ -907,6 +914,12 @@ def download_fleet_report(request):
     
     return response
 
+from django.db.models import Q
+from django.http import JsonResponse
+from django.shortcuts import render
+from .models import StmRoute
+
+
 def ajax_search_route(request):
     if request.method == 'GET':
         # Retrieve filter inputs
@@ -943,11 +956,17 @@ def ajax_search_route(request):
 
         for route in routes:
             # Filter related tables based on optional parameters
-            pickup_points = route.pickup_points.filter(pick_up_point__icontains=pick_up_point) if pick_up_point else route.pickup_points.all()
+            pickup_points = (
+                route.pickup_points.filter(pick_up_point__icontains=pick_up_point)
+                if pick_up_point else route.pickup_points.all()
+            )
             if stop_id:
                 pickup_points = pickup_points.filter(stop_id__icontains=stop_id)
 
-            shift_times = route.shift_times.filter(shift_time__icontains=shift_time) if shift_time else route.shift_times.all()
+            shift_times = (
+                route.shift_times.filter(shift_time__icontains=shift_time)
+                if shift_time else route.shift_times.all()
+            )
 
             # Build unique route data for JSON response only if related data matches
             if pickup_points.exists() or not pick_up_point:
@@ -958,92 +977,89 @@ def ajax_search_route(request):
                         route_data.append({
                             'route_code': route.route,
                             'route_name': route.route,
-                            'route_type': route.route_type,
+                            'route_type': route.route_type,  # Include route type
                             'work_hub': route.work_hub,
                             'connection_from': route.connection_from,
                             'connection_to': route.connection_to,
                             'shift_time': shift.shift_time.strftime('%H:%M') if shift.shift_time else '-',
+                            # Generate a dynamic link including route type
+                            'link': f"/route-details/?route={route.route}&shift_time={shift.shift_time.strftime('%H:%M') if shift.shift_time else ''}&type={route.route_type}"
                         })
 
         # Return JSON response for AJAX request
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return JsonResponse({'routes': route_data})
 
+        # If not an AJAX request, render the template with routes
         return render(request, 'duty/search_form_with_results.html', {'routes': route_data})
 
+    # Return error page for invalid requests
     return render(request, 'duty/error_page.html', {'error': 'Invalid request'})
+
 
 from datetime import datetime, time
 from django.shortcuts import render
+from .models import StmRoute, StmShiftTime, StmPickupPoint
+
 
 def route_details(request):
-    """
-    Retrieve and display route details based on route_name and optional filters.
-    """
+    # Retrieve input parameters from the request
     route_name = request.GET.get('route')
+    route_type = request.GET.get('type')  # Route Type: Optional
     shift_time = request.GET.get('shift_time')
 
+    # Debugging: Log received parameters
+    print(f"Route: {route_name}, Type: {route_type}, Shift Time: {shift_time}")
+
+    # Validate required inputs
     if not route_name:
-        return render(request, 'duty/stm_timetable.html', {
-            'error': 'Route name is required.',
-            'route_data_list': []
-        })
+        return render(request, 'duty/error_page.html', {'error': 'Route is missing. Please provide a valid route.'})
+    if not shift_time:
+        return render(request, 'duty/error_page.html', {'error': 'Shift time is missing. Please specify a valid shift time.'})
 
-    # Base query
-    route_qs = StmRoute.objects.filter(route__iexact=route_name)
+    # If type is missing, infer it from the database
+    if not route_type:
+        matching_routes = StmRoute.objects.filter(route__iexact=route_name).distinct()
+        if matching_routes.count() == 1:
+            # Automatically set the route type if only one exists
+            route_type = matching_routes.first().route_type
+        else:
+            return render(request, 'duty/error_page.html', {'error': 'Route type is missing and cannot be inferred. Please specify Inbound or Outbound.'})
 
+    # Filter the route based on route_name, route_type, and shift_time
+    route_qs = StmRoute.objects.filter(route__iexact=route_name, route_type__iexact=route_type)
     if not route_qs.exists():
-        return render(request, 'duty/stm_timetable.html', {
-            'error': 'No matching routes found.',
-            'route_data_list': []
-        })
+        return render(request, 'duty/error_page.html', {'error': 'No matching route found for the specified type and shift time.'})
 
     route_data_list = []
+
+    # Iterate through matching routes
     for route in route_qs:
-        # Parse shift_time if provided
-        parsed_shift_time = None
-        if shift_time:
-            try:
-                parsed_shift_time = datetime.strptime(shift_time, "%H:%M").time()
-            except ValueError:
-                return render(request, 'duty/stm_timetable.html', {
-                    'error': 'Invalid shift time format.',
-                    'route_data_list': []
-                })
+        # Filter shift times for the route
+        shift_times = StmShiftTime.objects.filter(route=route, shift_time=shift_time).order_by('stop_order')
+        if not shift_times.exists():
+            continue
 
-        # Filter shifts by parsed_shift_time if provided
-        shift_times = StmShiftTime.objects.filter(route=route)
-        if parsed_shift_time:
-            shift_times = shift_times.filter(shift_time=parsed_shift_time)
-
-        # Map stop orders to shift times
-        stop_order_to_times = {}
-        for shift in shift_times:
-            time_value = shift.time
-            special_time_value = shift.special_time
-
-            # Ensure the time and special_time are valid before processing
-            formatted_time = (
-                time_value.strftime('%H:%M') if isinstance(time_value, time) else str(time_value)
-            )
-            formatted_special_time = (
-                special_time_value.strftime('%H:%M') if isinstance(special_time_value, time) else str(special_time_value) or '-'
-            )
-
-            stop_order_to_times[shift.stop_order] = {
-                'time': formatted_time,
-                'special_time': formatted_special_time,
+        # Create a mapping of stop order to times
+        stop_order_to_times = {
+            shift.stop_order: {
+                'time': shift.time if isinstance(shift.time, str) else (shift.time.strftime('%H:%M') if shift.time else '-'),
+                'special_time': shift.special_time if isinstance(shift.special_time, str) else (shift.special_time.strftime('%H:%M') if shift.special_time else '-')
             }
+            for shift in shift_times
+        }
 
+        # Get all pickup points for the route
         pickup_points = StmPickupPoint.objects.filter(route=route).order_by('pick_up_point_order_id')
+
+        # Prepare route data
         route_data = {
             'route_name': route.route,
             'route_type': route.route_type,
             'operating_days_1': route.operating_days_1,
             'operating_days_2': route.operating_days_2,
             'work_hub': route.work_hub,
-            'connection_from': route.connection_from,
-            'connection_to': route.connection_to,
+            'shift_time': shift_time,
             'pickup_points': [
                 {
                     'stop_id': point.stop_id,
@@ -1054,10 +1070,11 @@ def route_details(request):
                 for point in pickup_points
             ]
         }
+
         route_data_list.append(route_data)
 
+    # Render the results on the timetable template
     return render(request, 'duty/stm_timetable.html', {'route_data_list': route_data_list})
-
 
 def connection_from_autocomplete(request):
     if 'term' in request.GET:

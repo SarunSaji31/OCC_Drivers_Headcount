@@ -308,7 +308,8 @@
                           <label>Route Name</label>
                           ${tripData.route_name ? `
                               <div style="display: flex; align-items: center;">
-                                  <a href="/route-details/?route=${encodeURIComponent(tripData.route_name)}${tripData.shift_time ? `&shift_time=${encodeURIComponent(tripData.shift_time)}` : ''}" class="form-control" style="text-decoration: underline;" target="_blank">
+                                  <a href="/route-details/?route=${encodeURIComponent(tripData.route_name)}&shift_time=${encodeURIComponent(tripData.shift_time || '')}&type=${encodeURIComponent(tripData.trip_type || '')}" 
+                                    class="form-control" style="text-decoration: underline;" target="_blank">
                                       Routes
                                   </a>
                                   <input 
@@ -361,6 +362,7 @@
               tripCount++;
               updateFormIndices();
           }
+
 
 
           function updateFormIndices() {
