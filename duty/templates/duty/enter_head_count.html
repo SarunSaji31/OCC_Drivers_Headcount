@@ -249,7 +249,7 @@
             <strong>Error:</strong> {{ error_message }}
         </div>
         {% endif %}
-        
+
         {% if success_message %}
         <div class="alert alert-success">
             <strong>Success:</strong> {{ success_message }}
@@ -284,6 +284,7 @@
         </form>
     </div>
 
+
     <!-- Footer -->
     <footer class="footer">
         <p>&copy; Emirates Airline Staff Transport Project.</p>
@@ -306,10 +307,19 @@
                       <div class="col-md-3 mb-3">
                           <label>Route Name</label>
                           ${tripData.route_name ? `
-                              <a href="/route-details/?route=${encodeURIComponent(tripData.route_name)}&shift_time=${encodeURIComponent(tripData.shift_time)}" class="form-control" target="_blank">
-                                  ${tripData.route_name}
-                              </a>
-                              <input type="hidden" name="drivertrip_set-${index}-route_name" value="${tripData.route_name}" required>
+                              <div style="display: flex; align-items: center;">
+                                  <a href="/route-details/?route=${encodeURIComponent(tripData.route_name)}${tripData.shift_time ? `&shift_time=${encodeURIComponent(tripData.shift_time)}` : ''}" class="form-control" style="text-decoration: underline;" target="_blank">
+                                      Routes
+                                  </a>
+                                  <input 
+                                      type="text" 
+                                      name="drivertrip_set-${index}-route_name" 
+                                      class="form-control" 
+                                      value="${tripData.route_name}" 
+                                      style="margin-left: 10px;" 
+                                      required
+                                  />
+                              </div>
                           ` : `
                               <input type="text" name="drivertrip_set-${index}-route_name" class="form-control" placeholder="Enter Route Name" required>
                           `}
@@ -319,7 +329,6 @@
                           <select name="drivertrip_set-${index}-trip_type" class="form-control" required>
                               <option value="inbound" ${tripData.trip_type === 'inbound' ? 'selected' : ''}>Inbound</option>
                               <option value="outbound" ${tripData.trip_type === 'outbound' || !tripData.trip_type ? 'selected' : ''}>Outbound</option>
-
                           </select>
                       </div>
                       <div class="col-md-2 mb-3">
@@ -352,6 +361,7 @@
               tripCount++;
               updateFormIndices();
           }
+
 
           function updateFormIndices() {
               $('.trip-form-container').each(function(index) {

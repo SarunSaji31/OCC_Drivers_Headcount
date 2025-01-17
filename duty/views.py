@@ -101,7 +101,10 @@ def submission_history(request):
 
 @login_required
 def enter_head_count(request):
-    """Handle the form for entering headcount details."""
+    """
+    Handle the form for entering headcount details.
+    Display success message on the same page without redirection.
+    """
     staff_id = request.user.username
     driver = DriverImportLog.objects.filter(staff_id=staff_id).first()
 
@@ -111,6 +114,7 @@ def enter_head_count(request):
         })
 
     staff_name = driver.driver_name or staff_id
+    success_message = None  # To hold the success message
 
     if request.method == 'POST':
         trip_formset = DriverTripFormSet(request.POST, prefix='drivertrip_set')
@@ -156,8 +160,7 @@ def enter_head_count(request):
                 trip.driver = driver
                 trip.duty_card = duty_card
                 trip.save()
-            messages.success(request, "Headcount successfully submitted.")
-            return redirect('success')  # Ensure 'success' is defined in your URL patterns
+            success_message = "The headcount has been successfully saved."  # Set success message
         else:
             return render(request, 'duty/enter_head_count.html', {
                 'trip_formset': trip_formset,
@@ -169,6 +172,7 @@ def enter_head_count(request):
     return render(request, 'duty/enter_head_count.html', {
         'trip_formset': trip_formset,
         'staff_name': staff_name,
+        'success_message': success_message,  # Pass success message to template
     })
 
 
@@ -353,7 +357,7 @@ def duty_card_no_autocomplete(request):
         duty_card_nos = list(set(qs))
         return JsonResponse(duty_card_nos, safe=False)
 
-from datetime import datetime,date  
+from datetime import datetime,date    
 def get_duty_card_details(request):
     """
     Fetch details of a duty card including trips.
@@ -969,43 +973,67 @@ def ajax_search_route(request):
 
     return render(request, 'duty/error_page.html', {'error': 'Invalid request'})
 
+from datetime import datetime, time
+from django.shortcuts import render
 
 def route_details(request):
-    # Retrieve input parameters from the request
+    """
+    Retrieve and display route details based on route_name and optional filters.
+    """
     route_name = request.GET.get('route')
-    route_type = request.GET.get('type')  # Optional
     shift_time = request.GET.get('shift_time')
-    connection_from = request.GET.get('connection_from')  # New field
-    connection_to = request.GET.get('connection_to')  # New field
 
-    # Validate and fetch data based on route and shift time
-    if route_type:
-        route_qs = StmRoute.objects.filter(route__iexact=route_name, route_type=route_type)
-    else:
-        route_qs = StmRoute.objects.filter(route__iexact=route_name)
+    if not route_name:
+        return render(request, 'duty/stm_timetable.html', {
+            'error': 'Route name is required.',
+            'route_data_list': []
+        })
 
-    # Apply connection_from and connection_to filters if provided
-    if connection_from:
-        route_qs = route_qs.filter(connection_from__icontains=connection_from)
-    if connection_to:
-        route_qs = route_qs.filter(connection_to__icontains=connection_to)
+    # Base query
+    route_qs = StmRoute.objects.filter(route__iexact=route_name)
 
     if not route_qs.exists():
-        return render(request, 'duty/error_page.html', {'error': 'No matching route found.'})
+        return render(request, 'duty/stm_timetable.html', {
+            'error': 'No matching routes found.',
+            'route_data_list': []
+        })
 
     route_data_list = []
     for route in route_qs:
-        shift_times = StmShiftTime.objects.filter(route=route, shift_time=shift_time).order_by('stop_order')
-        if not shift_times.exists():
-            continue
+        # Parse shift_time if provided
+        parsed_shift_time = None
+        if shift_time:
+            try:
+                parsed_shift_time = datetime.strptime(shift_time, "%H:%M").time()
+            except ValueError:
+                return render(request, 'duty/stm_timetable.html', {
+                    'error': 'Invalid shift time format.',
+                    'route_data_list': []
+                })
 
-        stop_order_to_times = {
-            shift.stop_order: {
-                'time': shift.time.strftime('%H:%M') if shift.time and not isinstance(shift.time, str) else shift.time,
-                'special_time': shift.special_time.strftime('%H:%M') if shift.special_time and not isinstance(shift.special_time, str) else shift.special_time or '-'
+        # Filter shifts by parsed_shift_time if provided
+        shift_times = StmShiftTime.objects.filter(route=route)
+        if parsed_shift_time:
+            shift_times = shift_times.filter(shift_time=parsed_shift_time)
+
+        # Map stop orders to shift times
+        stop_order_to_times = {}
+        for shift in shift_times:
+            time_value = shift.time
+            special_time_value = shift.special_time
+
+            # Ensure the time and special_time are valid before processing
+            formatted_time = (
+                time_value.strftime('%H:%M') if isinstance(time_value, time) else str(time_value)
+            )
+            formatted_special_time = (
+                special_time_value.strftime('%H:%M') if isinstance(special_time_value, time) else str(special_time_value) or '-'
+            )
+
+            stop_order_to_times[shift.stop_order] = {
+                'time': formatted_time,
+                'special_time': formatted_special_time,
             }
-            for shift in shift_times
-        }
 
         pickup_points = StmPickupPoint.objects.filter(route=route).order_by('pick_up_point_order_id')
         route_data = {
@@ -1014,9 +1042,8 @@ def route_details(request):
             'operating_days_1': route.operating_days_1,
             'operating_days_2': route.operating_days_2,
             'work_hub': route.work_hub,
-            'connection_from': route.connection_from,  
-            'connection_to': route.connection_to,      
-            'shift_time': shift_time,
+            'connection_from': route.connection_from,
+            'connection_to': route.connection_to,
             'pickup_points': [
                 {
                     'stop_id': point.stop_id,
