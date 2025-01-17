@@ -358,7 +358,7 @@ def duty_card_no_autocomplete(request):
         return JsonResponse(duty_card_nos, safe=False)
 
 from django.http import JsonResponse
-from datetime import datetime
+from datetime import datetime,date
 from .models import DutyCardTrip  # Ensure this imports your model correctly
 
 
