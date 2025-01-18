@@ -642,29 +642,20 @@ def add_reports(request):
     return render(request, 'duty/Ekg_report.html', {'formset': formset})
 
 from django.db import transaction
-
 @login_required
 def add_delay_report(request):
     """Handles detailed validation and processing of delay reports."""
-    logger.info("add_delay_report view called")
-
-    # Create a formset for multiple delay forms
     DelayDataFormSet = formset_factory(DelayDataForm, extra=1)
 
     if request.method == 'POST':
-        logger.info("POST request detected")
         formset = DelayDataFormSet(request.POST)
         total_valid_forms = 0
         missing_fields_message = ""
 
         if formset.is_valid():
-            logger.info("Formset is valid")
             try:
-                with transaction.atomic():  # Ensure atomicity for database operations
+                with transaction.atomic():
                     for i, form in enumerate(formset):
-                        logger.info(f"Processing form {i + 1}")
-
-                        # Safely retrieve form data
                         date = form.cleaned_data.get('date')
                         route = form.cleaned_data.get('route')
                         std = form.cleaned_data.get('std')
@@ -672,70 +663,40 @@ def add_delay_report(request):
                         sta = form.cleaned_data.get('sta')
                         ata = form.cleaned_data.get('ata')
 
-                        # Validate required fields
                         if not date or not route or not std or not atd or not sta or not ata:
-                            logger.warning(f"Form {i + 1} is missing required fields. Skipping this form.")
                             missing_fields_message += f"Form {i + 1}: Required fields are missing.<br>"
                             continue
 
                         try:
-                            # Ensure valid date format
                             if isinstance(date, str):
                                 date = datetime.strptime(date, "%Y-%m-%d").date()
 
-                            # Calculate delay
                             sta_time = datetime.combine(date, sta)
                             ata_time = datetime.combine(date, ata)
                             delay_minutes = int((ata_time - sta_time).total_seconds() // 60)
 
-                            # Save the form instance
                             delay_instance = form.save(commit=False)
                             delay_instance.date = date
                             delay_instance.delay = f"{delay_minutes // 60:02}:{delay_minutes % 60:02}"
                             delay_instance.save()
-                            logger.info(f"Form {i + 1} saved successfully.")
                             total_valid_forms += 1
 
                         except Exception as e:
-                            logger.error(f"Error processing form {i + 1}: {str(e)}")
                             missing_fields_message += f"Form {i + 1}: {str(e)}<br>"
                             continue
 
             except Exception as e:
-                logger.critical(f"Transaction failed: {str(e)}")
-                return JsonResponse({
-                    'status': 'error',
-                    'message': 'An error occurred while saving data.',
-                    'details': str(e)
-                })
+                return JsonResponse({'status': 'error', 'message': str(e)})
 
             if total_valid_forms == 0:
-                logger.warning("No valid forms submitted.")
-                return JsonResponse({
-                    'status': 'error',
-                    'message': 'No valid forms submitted. Please check the data.',
-                    'details': missing_fields_message
-                })
+                return JsonResponse({'status': 'error', 'message': 'No valid forms submitted.'})
 
-            logger.info(f"{total_valid_forms} forms processed successfully.")
-            return JsonResponse({
-                'status': 'success',
-                'message': f'{total_valid_forms} forms processed successfully.'
-            })
-
+            return JsonResponse({'status': 'success', 'message': f'{total_valid_forms} forms processed successfully.'})
         else:
-            logger.error("Formset validation failed")
-            logger.error(f"Errors: {formset.errors}")
-            return JsonResponse({
-                'status': 'error',
-                'message': 'Invalid form data. Please correct the errors.',
-                'errors': formset.errors
-            })
+            return JsonResponse({'status': 'error', 'message': 'Invalid form data.', 'errors': formset.errors})
 
-    # Handle GET request
     formset = DelayDataFormSet()
     return render(request, 'duty/add_delay_report.html', {'formset': formset})
-
 
 
 @login_required

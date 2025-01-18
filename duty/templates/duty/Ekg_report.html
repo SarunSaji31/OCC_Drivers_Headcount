@@ -266,64 +266,101 @@
         document.addEventListener('DOMContentLoaded', function () {
             const formsetContainer = document.getElementById('formset-container');
             const addFormButton = document.getElementById('addFormButton');
+            const saveButton = document.getElementById('saveButton');
             const templateForm = document.querySelector('.delay-form').cloneNode(true);
+            const messageContainer = document.createElement('div'); // Create a container for success/error messages
             let formCount = 1;
-
+    
+            messageContainer.id = 'message-container';
+            messageContainer.style.display = 'none';
+            messageContainer.style.marginTop = '20px';
+            formsetContainer.parentElement.insertBefore(messageContainer, formsetContainer);
+    
             function addNewDelayForm() {
                 const newForm = templateForm.cloneNode(true);
                 newForm.querySelectorAll('input').forEach(input => input.value = '');
                 newForm.querySelectorAll('textarea').forEach(textarea => textarea.value = '');
                 newForm.querySelectorAll('.error-message').forEach(error => error.style.display = 'none');
-
+    
                 newForm.querySelectorAll('input, select, textarea').forEach(function (input) {
                     input.name = input.name.replace('form-0-', `form-${formCount}-`);
                 });
-
+    
                 formsetContainer.appendChild(newForm);
-
+    
                 newForm.querySelector('input[name^="form-"][name$="sta"]').addEventListener('change', calculateDelay);
                 newForm.querySelector('input[name^="form-"][name$="ata"]').addEventListener('change', calculateDelay);
-
+    
                 newForm.querySelector('.remove-button').addEventListener('click', function () {
                     formsetContainer.removeChild(newForm);
                 });
-
+    
                 formCount++;
-
+    
                 document.getElementById('id_form-TOTAL_FORMS').value = formCount;
             }
-
+    
             addFormButton.addEventListener('click', addNewDelayForm);
-
+    
             function calculateDelay() {
                 const form = this.closest('.delay-form');
                 const staInput = form.querySelector('input[name^="form-"][name$="sta"]').value;
                 const ataInput = form.querySelector('input[name^="form-"][name$="ata"]').value;
-
+    
                 if (staInput && ataInput) {
                     const staTime = new Date(`1970-01-01T${staInput}:00`);
                     const ataTime = new Date(`1970-01-01T${ataInput}:00`);
-
+    
                     const delayMinutes = Math.floor((ataTime - staTime) / 60000);
-
+    
                     if (!isNaN(delayMinutes)) {
                         form.querySelector('input[name^="form-"][name$="delay"]').value = delayMinutes >= 0 ? delayMinutes : '0';
                     }
                 }
             }
-
+    
             document.querySelector('input[name="form-0-sta"]').addEventListener('change', calculateDelay);
             document.querySelector('input[name="form-0-ata"]').addEventListener('change', calculateDelay);
-
+    
             document.querySelector('.remove-button').addEventListener('click', function () {
                 const form = this.closest('.delay-form');
                 if (formsetContainer.children.length > 1) {
                     formsetContainer.removeChild(form);
                 }
             });
+    
+            // Handle form submission with AJAX
+            saveButton.addEventListener('click', function (e) {
+                e.preventDefault(); // Prevent default form submission
+    
+                const formData = new FormData(document.getElementById('DelayDataFormSet'));
+    
+                fetch(document.getElementById('DelayDataFormSet').action, {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': formData.get('csrfmiddlewaretoken') },
+                    body: new URLSearchParams(formData)
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            messageContainer.className = 'alert alert-success';
+                            messageContainer.innerText = data.message;
+                        } else {
+                            messageContainer.className = 'alert alert-danger';
+                            messageContainer.innerText = data.message || 'An error occurred.';
+                        }
+                        messageContainer.style.display = 'block';
+                    })
+                    .catch(error => {
+                        messageContainer.className = 'alert alert-danger';
+                        messageContainer.innerText = 'An unexpected error occurred.';
+                        messageContainer.style.display = 'block';
+                        console.error('Error:', error);
+                    });
+            });
         });
     </script>
-
+    
 </body>
 
 </html>
