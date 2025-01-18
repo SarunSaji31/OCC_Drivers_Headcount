@@ -1207,6 +1207,7 @@ def process_data(df, specific_groupings, name_mapping, direction):
             crew_count = 0
             valid_buildings = []
 
+            # Loop through buildings in the group
             for building in buildings:
                 if building in df.columns:
                     building_value = row[building]
@@ -1214,17 +1215,19 @@ def process_data(df, specific_groupings, name_mapping, direction):
                         crew_count += building_value
                         valid_buildings.append(name_mapping.get(building, building))
 
+            # Add to grouped data if crew count > 0
             if crew_count > 0:
                 grouped_data.append({
                     "DATE": (datetime.now() + timedelta(days=1)).strftime("%d-%b"),  # Updated format
                     "NO OF UNITS": calculate_units(crew_count),
                     "TIME": formatted_time,
                     "FROM": ", ".join(valid_buildings) if direction == "Inbound" else "EAC-C",
-                    "TO": "EAC-C" if direction == "Inbound" else group_name,
+                    "TO": "EAC-C" if direction == "Inbound" else ", ".join(valid_buildings),
                     "CREW": crew_count
                 })
 
     return pd.DataFrame(grouped_data)
+
 
 # File processing function
 def process_files(inbound_file, outbound_file):
