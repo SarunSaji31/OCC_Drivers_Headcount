@@ -110,6 +110,16 @@
             </div>
         </div>
 
+        <!-- Most Delayed Trips Section -->
+        <div class="row mt-5">
+            <div class="col-md-12">
+                <div class="card p-4 chart-container">
+                    <h3 class="text-center">Most Delayed Trips (Monthly)</h3>
+                    <canvas id="mostDelayedTripsChart"></canvas>
+                </div>
+            </div>
+        </div>
+
         <!-- Report Download Section -->
         <div class="row mt-5">
             <div class="col-md-12 text-center">
@@ -136,6 +146,7 @@
     </div>
 
     <script>
+        window.mostDelayedTripsChart = null;
         // Function to get the current day name and day number (e.g., "Sat-19")
         function getFormattedDate() {
             const today = new Date();
@@ -158,59 +169,45 @@
                 $('#total-delay-count').text(data.total_delay_count);
                 $('#total-breakdown-count').text(data.total_breakdown_count);
 
-                // Update chart data dynamically
+                // Update fleet delay chart dynamically
                 const ctx = document.getElementById('fleet-delay-chart').getContext('2d');
-                const delayChart = new Chart(ctx, {
+                new Chart(ctx, {
                     type: 'bar',
                     data: {
                         labels: ['Delays', 'Breakdowns'],
-                        datasets: [{
-                            label: 'Daily',
-                            data: [data.daily_delay_count, data.daily_breakdown_count],
-                            backgroundColor: 'rgba(54, 162, 235, 0.2)',
-                            borderColor: 'rgba(54, 162, 235, 1)',
-                            borderWidth: 1
-                        }, {
-                            label: 'Monthly',
-                            data: [data.monthly_delay_count, data.monthly_breakdown_count],
-                            backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                            borderColor: 'rgba(75, 192, 192, 1)',
-                            borderWidth: 1
-                        }, {
-                            label: 'Total',
-                            data: [data.total_delay_count, data.total_breakdown_count],
-                            backgroundColor: 'rgba(153, 102, 255, 0.2)',
-                            borderColor: 'rgba(153, 102, 255, 1)',
-                            borderWidth: 1
-                        }]
+                        datasets: [
+                            {
+                                label: 'Daily',
+                                data: [data.daily_delay_count, data.daily_breakdown_count],
+                                backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                                borderColor: 'rgba(54, 162, 235, 1)',
+                                borderWidth: 1
+                            },
+                            {
+                                label: 'Monthly',
+                                data: [data.monthly_delay_count, data.monthly_breakdown_count],
+                                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                                borderColor: 'rgba(75, 192, 192, 1)',
+                                borderWidth: 1
+                            },
+                            {
+                                label: 'Total',
+                                data: [data.total_delay_count, data.total_breakdown_count],
+                                backgroundColor: 'rgba(153, 102, 255, 0.2)',
+                                borderColor: 'rgba(153, 102, 255, 1)',
+                                borderWidth: 1
+                            }
+                        ]
                     },
                     options: {
                         plugins: {
-                            tooltip: {
-                                callbacks: {
-                                    label: function(tooltipItem) {
-                                        const datasetLabel = tooltipItem.dataset.label || '';
-                                        let value = tooltipItem.raw;
-                                        let label = `${datasetLabel}: ${value}`;
-
-                                        // For daily data, show the day name and day number (e.g., "Sat-19")
-                                        if (tooltipItem.dataset.label === 'Daily') {
-                                            const dateWithDay = getFormattedDate();
-                                            label = `Daily (${dateWithDay}): ${value}`;
-                                        }
-                                        // For monthly data, only show the month name
-                                        if (tooltipItem.dataset.label === 'Monthly') {
-                                            label = `${datasetLabel} (${new Date().toLocaleDateString('en', { month: 'long' })}): ${value}`;
-                                        }
-
-                                        // For total data, just display "Total"
-                                        if (tooltipItem.dataset.label === 'Total') {
-                                            label = `Total: ${value}`;
-                                        }
-
-                                        return label;
-                                    }
-                                }
+                            legend: {
+                                display: true,
+                                position: 'top'
+                            },
+                            title: {
+                                display: true,
+                                text: 'Fleet Delays and Breakdowns'
                             }
                         },
                         scales: {
@@ -220,6 +217,101 @@
                         }
                     }
                 });
+
+                // Fetch and display "Most Delayed Trips" chart
+                fetchMostDelayedTrips();
+            });
+        }
+
+        function fetchMostDelayedTrips() {
+            $.getJSON('/get-most-delayed-trips-api', function (data) {
+                // Check if data exists
+                if (!data || data.length === 0) {
+                    console.error("No data available for Most Delayed Trips chart.");
+                    document.getElementById('mostDelayedTripsChart').innerHTML = 'No data available';
+                    return;
+                }
+
+                const ctx = document.getElementById('mostDelayedTripsChart').getContext('2d');
+
+                // Extract labels (route + STA) and delay counts
+                const labels = data.map(item => `${item.route} (${item.sta})`);
+                const delayCounts = data.map(item => item.delay_count);
+
+                console.log("Labels: ", labels);
+                console.log("Delay Counts: ", delayCounts);
+
+                // Destroy existing chart instance if it exists
+                if (window.mostDelayedTripsChart instanceof Chart) {
+                    window.mostDelayedTripsChart.destroy();
+                }
+
+                // Create the bar chart
+                window.mostDelayedTripsChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Delay Count',
+                            data: delayCounts,
+                            backgroundColor: 'rgba(54, 162, 235, 0.7)', // Bar color
+                            borderColor: 'rgba(54, 162, 235, 1)', // Border color
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top'
+                            },
+                            title: {
+                                display: true,
+                                text: 'Top 5 Most Delayed Trips (Monthly)',
+                                font: {
+                                    size: 16
+                                }
+                            }
+                        },
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Routes',
+                                    font: {
+                                        size: 14
+                                    }
+                                },
+                                ticks: {
+                                    autoSkip: false,
+                                    maxRotation: 45,
+                                    minRotation: 0
+                                }
+                            },
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    precision: 0, // Display only integers
+                                    font: {
+                                        size: 12
+                                    }
+                                },
+                                title: {
+                                    display: true,
+                                    text: 'Delay Count',
+                                    font: {
+                                        size: 14
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }).fail(function () {
+                console.error("Error fetching data for Most Delayed Trips chart.");
+                document.getElementById('mostDelayedTripsChart').innerHTML = 'Error loading chart data.';
             });
         }
 

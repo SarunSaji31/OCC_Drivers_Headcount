@@ -1238,3 +1238,58 @@ def download_file(request, filename):
     if os.path.exists(file_path):
         return FileResponse(open(file_path, 'rb'), as_attachment=True, filename=filename)
     return HttpResponse("File not found.", status=404)
+
+from django.shortcuts import render
+from django.http import JsonResponse
+from django.db.models import F, ExpressionWrapper, DurationField, Count
+from django.utils.timezone import now
+from datetime import timedelta
+from .models import DelayData
+
+def stm_dashboard(request):
+    """
+    Render the STM dashboard with the most delayed trips for the current month.
+    """
+    start_of_month = now().replace(day=1).date()
+    today = now().date()
+
+    delayed_trips = (
+        DelayData.objects.annotate(
+            delay_duration=ExpressionWrapper(F('ata') - F('sta'), output_field=DurationField())
+        )
+        .filter(date__gte=start_of_month, date__lte=today, delay_duration__gt=timedelta(minutes=30))
+        .annotate(delay_count=Count('id'))
+        .values('route', 'sta', 'delay_count')
+        .order_by('-delay_count')
+    )
+
+    # Convert sta to string for the template
+    for trip in delayed_trips:
+        trip['sta'] = str(trip['sta'])
+
+    context = {
+        'delayed_trips': delayed_trips,
+    }
+    return render(request, 'duty/STM_dashboard.html', context)
+
+def get_most_delayed_trips_api(request):
+    """
+    API endpoint to fetch the most delayed trips for the current month.
+    """
+    start_of_month = now().replace(day=1).date()
+    today = now().date()
+
+    # Query to get delay counts grouped by route and STA
+    delayed_trips = (
+        DelayData.objects.filter(date__gte=start_of_month, date__lte=today)
+        .values('route', 'sta')  # Group by route and STA
+        .annotate(delay_count=Count('id'))  # Count occurrences for each group
+        .order_by('-delay_count')[:5]  # Get top 5 most delayed routes
+    )
+
+    # Convert STA to string for better readability
+    for trip in delayed_trips:
+        trip['sta'] = str(trip['sta'])
+
+    return JsonResponse(list(delayed_trips), safe=False)
+
