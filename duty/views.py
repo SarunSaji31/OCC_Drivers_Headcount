@@ -369,8 +369,8 @@ def get_duty_card_details(request):
     if 'duty_card_no' in request.GET:
         duty_card_no = request.GET.get('duty_card_no')
 
-        # Fetch trips from the database
-        trips = DutyCardTrip.objects.filter(duty_card_no=duty_card_no)
+        # Fetch trips from the database and order by pick_up_time
+        trips = DutyCardTrip.objects.filter(duty_card_no=duty_card_no).order_by('pick_up_time')
 
         if not trips.exists():
             return JsonResponse({'error': 'No trips found for the provided duty card number.'}, status=404)
@@ -388,7 +388,7 @@ def get_duty_card_details(request):
                 'shift_time': trip.shift_time.strftime("%H:%M") if trip.shift_time else '',
                 'trip_type': normalized_trip_type,
                 'date': trip.date.strftime("%Y-%m-%d") if hasattr(trip, 'date') else datetime.today().strftime("%Y-%m-%d"),
-                'head_count': trip.head_count if hasattr(trip, 'head_count') else 0,  # Add other fields as needed
+                'head_count': trip.head_count if hasattr(trip, 'head_count') else 0,
                 # Generate a dynamic link to route details
                 'details_link': f"/route-details/?route={trip.route_name}&shift_time={trip.shift_time.strftime('%H:%M') if trip.shift_time else ''}&type={normalized_trip_type}"
             }
