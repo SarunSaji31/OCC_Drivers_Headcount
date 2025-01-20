@@ -8,7 +8,7 @@ from .views import (
     stm_dashboard,
     fleet_counts_api,
     download_fleet_report,
-    get_most_delayed_trips_api
+    get_most_delayed_trips_api,
 )
 
 urlpatterns = [
@@ -81,7 +81,11 @@ urlpatterns = [
 
     # Most Delayed Trips API
     path('get-most-delayed-trips-api/', get_most_delayed_trips_api, name='get_most_delayed_trips_api'),
-    path('submission-history/', views.submission_history, name='submission_history'),
+    # submission history
+    path('submission-history/', views.submission_history, name='submission_history'),   
+    path('user_submission_history/', views.submission_history, name='user_submission_history'),
+
+    
 ]
 
 # Serve static and media files during development
