@@ -627,77 +627,83 @@ def add_reports(request):
         formset = DelayDataFormSet(request.POST)
 
         if formset.is_valid():
-            logger.info("Formset is valid, saving forms")
-            for form in formset:
-                try:
-                    logger.info(f"Saving form with data: {form.cleaned_data}")
-                    form.save()
-                except Exception as e:
-                    logger.error(f"Error saving form: {e}")
-            return redirect('success')
+            try:
+                with transaction.atomic():
+                    for form in formset:
+                        if form.cleaned_data:  # Skip empty forms
+                            logger.info(f"Saving form with data: {form.cleaned_data}")
+                            form.save()
+                    return JsonResponse({'status': 'success', 'message': 'Forms saved successfully!'})
+            except Exception as e:
+                logger.error(f"Error saving forms: {e}")
+                return JsonResponse({'status': 'error', 'message': 'An error occurred while saving the forms.'})
         else:
             logger.error(f"Formset validation failed: {formset.errors}")
+            return JsonResponse({'status': 'error', 'message': 'Invalid form data.', 'errors': formset.errors})
 
     formset = DelayDataFormSet()
     return render(request, 'duty/Ekg_report.html', {'formset': formset})
 
+
+
+from datetime import datetime, timedelta
+from django.http import JsonResponse
 from django.db import transaction
+from django.forms import formset_factory
+from django.contrib.auth.decorators import login_required
+from .forms import DelayDataForm
+
 @login_required
 def add_delay_report(request):
-    """Handles detailed validation and processing of delay reports."""
+    """Handles adding and validating delay reports with AJAX responses."""
     DelayDataFormSet = formset_factory(DelayDataForm, extra=1)
 
     if request.method == 'POST':
         formset = DelayDataFormSet(request.POST)
         total_valid_forms = 0
-        missing_fields_message = ""
+        error_messages = []
 
         if formset.is_valid():
             try:
                 with transaction.atomic():
                     for i, form in enumerate(formset):
-                        date = form.cleaned_data.get('date')
-                        route = form.cleaned_data.get('route')
-                        std = form.cleaned_data.get('std')
-                        atd = form.cleaned_data.get('atd')
-                        sta = form.cleaned_data.get('sta')
-                        ata = form.cleaned_data.get('ata')
-
-                        if not date or not route or not std or not atd or not sta or not ata:
-                            missing_fields_message += f"Form {i + 1}: Required fields are missing.<br>"
-                            continue
-
                         try:
-                            if isinstance(date, str):
-                                date = datetime.strptime(date, "%Y-%m-%d").date()
+                            instance = form.save(commit=False)
+                            date = form.cleaned_data.get('date')
+                            sta = form.cleaned_data.get('sta')
+                            ata = form.cleaned_data.get('ata')
 
-                            sta_time = datetime.combine(date, sta)
-                            ata_time = datetime.combine(date, ata)
-                            delay_minutes = int((ata_time - sta_time).total_seconds() // 60)
+                            if date and sta and ata:
+                                # Calculate delay as a timedelta
+                                delay_timedelta = datetime.combine(date, ata) - datetime.combine(date, sta)
+                                if delay_timedelta.total_seconds() >= 0:  # Ensure delay is not negative
+                                    instance.delay = (datetime.min + delay_timedelta).time()  # Store as time
+                                else:
+                                    instance.delay = None  # Set delay to None if ATA < STA
 
-                            delay_instance = form.save(commit=False)
-                            delay_instance.date = date
-                            delay_instance.delay = f"{delay_minutes // 60:02}:{delay_minutes % 60:02}"
-                            delay_instance.save()
+                            # Save the instance to the database
+                            instance.save()
                             total_valid_forms += 1
-
                         except Exception as e:
-                            missing_fields_message += f"Form {i + 1}: {str(e)}<br>"
-                            continue
+                            error_messages.append(f"Form {i + 1}: {str(e)}")
+
+                if total_valid_forms == 0:
+                    return JsonResponse({'status': 'error', 'message': 'No valid forms submitted.'})
+
+                return JsonResponse({'status': 'success', 'message': f'{total_valid_forms} form(s) processed successfully.'})
 
             except Exception as e:
                 return JsonResponse({'status': 'error', 'message': str(e)})
 
-            if total_valid_forms == 0:
-                return JsonResponse({'status': 'error', 'message': 'No valid forms submitted.'})
-
-            return JsonResponse({'status': 'success', 'message': f'{total_valid_forms} forms processed successfully.'})
-        else:
-            return JsonResponse({'status': 'error', 'message': 'Invalid form data.', 'errors': formset.errors})
+        # Handle invalid forms
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Invalid form data.',
+            'errors': formset.errors,
+        })
 
     formset = DelayDataFormSet()
     return render(request, 'duty/add_delay_report.html', {'formset': formset})
-
 
 @login_required
 @user_in_driverimportlog_required
@@ -1293,3 +1299,89 @@ def get_most_delayed_trips_api(request):
 
     return JsonResponse(list(delayed_trips), safe=False)
 
+
+from datetime import datetime
+from django.http import JsonResponse
+from django.db.models import Q
+from .models import DelayData, BreakdownReport
+
+
+def filter_dashboard(request):
+    filter_type = request.GET.get('filter_type')
+    filter_value = request.GET.get('filter_value')
+
+    # Debugging: Log incoming parameters
+    print(f"Filter Type: {filter_type}, Filter Value: {filter_value}")
+
+    # Validate input
+    if not filter_type or not filter_value:
+        return JsonResponse({'error': 'Missing filter_type or filter_value.'}, status=400)
+
+    if filter_type != 'until_date':
+        return JsonResponse({'error': 'Invalid filter type. Expected "until_date".'}, status=400)
+
+    try:
+        # Parse the selected date
+        selected_date = datetime.strptime(filter_value, '%Y-%m-%d').date()
+    except ValueError:
+        return JsonResponse({'error': 'Invalid filter_value format. Must be YYYY-MM-DD.'}, status=400)
+
+    try:
+        # Fetch statistics up to the selected date
+        daily_delays = DelayData.objects.filter(date=selected_date).count()
+        daily_breakdowns = BreakdownReport.objects.filter(breakdown_datetime__date=selected_date).count()
+
+        monthly_delays = DelayData.objects.filter(
+            Q(date__month=selected_date.month, date__year=selected_date.year) & Q(date__lte=selected_date)
+        ).count()
+        monthly_breakdowns = BreakdownReport.objects.filter(
+            Q(breakdown_datetime__month=selected_date.month, breakdown_datetime__year=selected_date.year) &
+            Q(breakdown_datetime__date__lte=selected_date)
+        ).count()
+
+        yearly_delays = DelayData.objects.filter(
+            Q(date__year=selected_date.year) & Q(date__lte=selected_date)
+        ).count()
+        yearly_breakdowns = BreakdownReport.objects.filter(
+            Q(breakdown_datetime__year=selected_date.year) & Q(breakdown_datetime__date__lte=selected_date)
+        ).count()
+
+        # Build and return the response
+        return JsonResponse({
+            'daily_delays': daily_delays,
+            'daily_breakdowns': daily_breakdowns,
+            'monthly_delays': monthly_delays,
+            'monthly_breakdowns': monthly_breakdowns,
+            'yearly_delays': yearly_delays,
+            'yearly_breakdowns': yearly_breakdowns,
+            'chart_data': generate_chart_data(
+                daily_delays, daily_breakdowns, monthly_delays, monthly_breakdowns, yearly_delays, yearly_breakdowns
+            )
+        })
+
+    except Exception as e:
+        print(f"Unexpected error: {e}")
+        return JsonResponse({'error': 'An unexpected error occurred.'}, status=500)
+
+
+def generate_chart_data(daily_delays, daily_breakdowns, monthly_delays, monthly_breakdowns, yearly_delays, yearly_breakdowns):
+    """Generate chart data for the response."""
+    return {
+        'labels': ['Daily', 'Monthly', 'Yearly'],
+        'datasets': [
+            {
+                'label': 'Delays',
+                'data': [daily_delays, monthly_delays, yearly_delays],
+                'backgroundColor': 'rgba(75, 192, 192, 0.6)',
+                'borderColor': 'rgba(75, 192, 192, 1)',
+                'borderWidth': 1
+            },
+            {
+                'label': 'Breakdowns',
+                'data': [daily_breakdowns, monthly_breakdowns, yearly_breakdowns],
+                'backgroundColor': 'rgba(255, 99, 132, 0.6)',
+                'borderColor': 'rgba(255, 99, 132, 1)',
+                'borderWidth': 1
+            }
+        ]
+    }

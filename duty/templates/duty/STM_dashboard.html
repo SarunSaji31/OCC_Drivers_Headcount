@@ -14,41 +14,68 @@
     <!-- Custom CSS for additional styling -->
     <style>
         body {
-            background-color: #f8f9fa;
+            background-color: #f4f7fc;
+            font-family: 'Arial', sans-serif;
+            color: #333;
         }
+
+        .container {
+            max-width: 1200px;
+            margin: 30px auto;
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
         h1 {
-            margin-top: 30px;
-            color: #343a40;
+            color: #1e3d73;
+            font-weight: 700;
+            margin-bottom: 20px;
         }
+
         .card {
-            border-radius: 10px;
-            box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.1);
+            border: none;
+            border-radius: 8px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
         }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #1e3d73;
+        }
+
         .chart-container {
             position: relative;
             height: 400px;
         }
+
         .btn-custom {
             margin-top: 20px;
-            border-radius: 20px;
+            border-radius: 50px;
             padding: 10px 30px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
         }
 
         /* Back link style */
         .back-link {
             display: inline-block;
-            color: #007bff;
+            font-size: 16px;
             font-weight: 500;
+            color: #1e3d73;
             text-decoration: none;
-            padding: 10px 20px;
-            background-color: #f1f1f1;
+            background-color: #f9fbfd;
+            padding: 10px 15px;
             border-radius: 5px;
-            transition: background-color 0.3s ease, box-shadow 0.3s ease;
-            margin-bottom: 20px;
+            box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
         }
 
         .back-link:hover {
-            background-color: #e0e0e0;
+            color: #003b99;
+            background-color: #e3f2fd;
             box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
             text-decoration: none;
         }
@@ -57,46 +84,86 @@
             margin-right: 8px;
         }
 
+        .stat-value {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        label {
+            font-weight: bold;
+            color: #495057;
+        }
+
+        .form-control {
+            border-radius: 5px;
+        }
+
+        .btn-success, .btn-primary {
+            padding: 10px 20px;
+            border-radius: 50px;
+        }
+
+        .btn-success:hover {
+            background-color: #28a745;
+        }
+
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+
+        .text-center h3 {
+            margin-bottom: 20px;
+        }
+
         @media (max-width: 768px) {
+            h1 {
+                font-size: 24px;
+            }
+
             .back-link {
-                font-size: 16px;
-                padding: 8px 15px;
+                font-size: 14px;
+                padding: 8px 12px;
+            }
+
+            .stat-value {
+                font-size: 18px;
             }
         }
     </style>
 </head>
 <body>
-    <div class="container mt-5">
-        <!-- Link to go back to Subcategory Page -->
+    <div class="container">
+        <!-- Back to Subcategory Page -->
         <a href="/subcategory/" class="back-link">
             <i class="fas fa-arrow-left"></i> Back to Subcategory
         </a>
 
-        <h1 class="text-center">EK-STM Fleet Delays and Breakdowns Dashboard</h1>
+        <h1 class="text-center">Fleet Delays and Breakdowns Dashboard</h1>
 
-        <!-- Daily, Monthly, and Total Statistics Section -->
+        <!-- Statistics Section -->
         <div class="row mt-4">
             <div class="col-md-4">
-                <div class="card p-4">
+                <div class="card p-3 text-center">
                     <h3 class="card-title">Daily Statistics</h3>
-                    <p>Delays: <span id="daily-delay-count" class="text-primary fw-bold">Loading...</span></p>
-                    <p>Breakdowns: <span id="daily-breakdown-count" class="text-primary fw-bold">Loading...</span></p>
+                    <p class="stat-value text-primary">Delays: <span id="daily-delay-count">Loading...</span></p>
+                    <p class="stat-value text-primary">Breakdowns: <span id="daily-breakdown-count">Loading...</span></p>
                 </div>
             </div>
 
             <div class="col-md-4">
-                <div class="card p-4">
+                <div class="card p-3 text-center">
                     <h3 class="card-title">Monthly Statistics</h3>
-                    <p>Delays: <span id="monthly-delay-count" class="text-success fw-bold">Loading...</span></p>
-                    <p>Breakdowns: <span id="monthly-breakdown-count" class="text-success fw-bold">Loading...</span></p>
+                    <p class="stat-value text-success">Delays: <span id="monthly-delay-count">Loading...</span></p>
+                    <p class="stat-value text-success">Breakdowns: <span id="monthly-breakdown-count">Loading...</span></p>
                 </div>
             </div>
 
             <div class="col-md-4">
-                <div class="card p-4">
+                <div class="card p-3 text-center">
                     <h3 class="card-title">Yearly Statistics</h3>
-                    <p>Total Delays: <span id="total-delay-count" class="text-warning fw-bold">Loading...</span></p>
-                    <p>Total Breakdowns: <span id="total-breakdown-count" class="text-warning fw-bold">Loading...</span></p>
+                    <p class="stat-value text-warning">Delays: <span id="total-delay-count">Loading...</span></p>
+                    <p class="stat-value text-warning">Breakdowns: <span id="total-breakdown-count">Loading...</span></p>
                 </div>
             </div>
         </div>
@@ -122,12 +189,23 @@
             </div>
         </div>
 
+        <div class="row justify-content-center mt-5">
+            <div class="col-md-5">
+                <div class="card p-4 shadow-sm text-center">
+                    <h5 class="fw-bold mb-3">Filter Dashboard</h5>
+                    <label for="date-filter" class="form-label fw-bold">Select Date:</label>
+                    <input type="date" id="date-filter" class="form-control mb-3">
+                    <button class="btn btn-primary btn-custom w-100" id="apply-filters">Apply Filters</button>
+                </div>
+            </div>
+        </div>
+        
         <!-- Report Download Section -->
         <div class="row mt-5">
             <div class="col-md-12 text-center">
                 <form method="GET" action="{% url 'download_fleet_report' %}">
                     <div class="form-group mb-3">
-                        <label for="report-type" class="form-label fw-bold">Select Report Type:</label>
+                        <label for="report-type">Select Report Type:</label>
                         <select id="report-type" name="report_type" class="form-select w-50 mx-auto">
                             <option value="daily">Daily</option>
                             <option value="monthly">Monthly</option>
@@ -135,7 +213,7 @@
                         </select>
                     </div>
                     <div class="form-group mb-3">
-                        <label for="report-category" class="form-label fw-bold">Select Report Category:</label>
+                        <label for="report-category">Select Report Category:</label>
                         <select id="report-category" name="report_category" class="form-select w-50 mx-auto">
                             <option value="delay">Delays</option>
                             <option value="breakdown">Breakdowns</option>
@@ -148,6 +226,99 @@
     </div>
 
     <script>
+        $(document).ready(function () {
+        let fleetChartInstance = null; // Track the current Chart instance
+
+        // Function to update dashboard data
+        function updateDashboard(filterType, filterValue) {
+            const url = '/filter-dashboard/';
+            const data = {
+                filter_type: filterType,
+                filter_value: filterValue,
+            };
+
+            console.log('Sending data to API:', data); // Debugging
+
+            $.ajax({
+                url: url,
+                data: data,
+                success: function (response) {
+                    console.log('API Response:', response);
+
+                    // Update statistics
+                    $('#daily-delay-count').text(response.daily_delays || 0);
+                    $('#daily-breakdown-count').text(response.daily_breakdowns || 0);
+                    $('#monthly-delay-count').text(response.monthly_delays || 0);
+                    $('#monthly-breakdown-count').text(response.monthly_breakdowns || 0);
+                    $('#total-delay-count').text(response.yearly_delays || 0);
+                    $('#total-breakdown-count').text(response.yearly_breakdowns || 0);
+
+                    // Update the chart
+                    if (response.chart_data) {
+                        updateChart(response.chart_data);
+                    }
+                },
+                error: function (xhr) {
+                    console.error('Error:', xhr.responseText);
+                    alert('Error fetching data: ' + xhr.responseText);
+                }
+            });
+        }
+
+        // Function to update the chart dynamically
+        function updateChart(chartData) {
+            const ctx = document.getElementById('fleet-delay-chart').getContext('2d');
+
+            // Destroy the previous chart instance if it exists
+            if (fleetChartInstance) {
+                console.log('Destroying existing chart instance...');
+                fleetChartInstance.destroy();
+            }
+
+            // Create a new chart instance
+            console.log('Creating new chart instance...');
+            fleetChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: chartData.labels,
+                    datasets: chartData.datasets
+                },
+                options: {
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        },
+                        title: {
+                            display: true,
+                            text: 'Fleet Delays and Breakdowns'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Apply filters when the user selects a date
+        $('#apply-filters').click(function () {
+            const selectedDate = $('#date-filter').val();
+
+            if (selectedDate) {
+                // Fetch filtered data
+                updateDashboard('until_date', selectedDate);
+            } else {
+                alert('Please select a date to filter the dashboard.');
+            }
+        });
+
+        // Initial load with the current date
+
+    });
+
         window.mostDelayedTripsChart = null;
         // Function to get the current day name and day number (e.g., "Sat-19")
         function getFormattedDate() {
@@ -322,7 +493,8 @@
 
         // Call the function to update the dashboard when the page loads
         $(document).ready(function() {
-            updateDashboard();
+            const today = new Date().toISOString().split('T')[0];
+            updateDashboard('until_date', today);
         });
     </script>
 

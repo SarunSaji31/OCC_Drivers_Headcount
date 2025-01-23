@@ -83,9 +83,8 @@ urlpatterns = [
     path('get-most-delayed-trips-api/', get_most_delayed_trips_api, name='get_most_delayed_trips_api'),
     # submission history
     path('submission-history/', views.submission_history, name='submission_history'),   
-    path('user_submission_history/', views.submission_history, name='user_submission_history'),
-
-    
+    path('user_submission_history/', views.submission_history, name='user_submission_history'),  
+    path('filter-dashboard/', views.filter_dashboard, name='filter_dashboard'), 
 ]
 
 # Serve static and media files during development

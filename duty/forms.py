@@ -88,17 +88,54 @@ class SetNewPasswordForm(forms.Form):
 
 from django import forms
 from .models import DelayData
+from datetime import datetime, timedelta
 
 class DelayDataForm(forms.ModelForm):
     class Meta:
         model = DelayData
-        fields = ['date', 'route', 'in_out', 'std', 'atd', 'sta', 'ata', 'staff_count', 'remarks']
+        fields = ['date', 'route', 'in_out', 'std', 'atd', 'sta', 'ata', 'staff_count', 'remarks', 'delay']
+        widgets = {
+            'delay': forms.TimeInput(attrs={'readonly': True}),  # Ensure the delay field is read-only
+        }
 
     def clean_date(self):
         date = self.cleaned_data.get('date')
         if not date:
             raise forms.ValidationError("Date is required.")
         return date
+
+    def clean(self):
+        cleaned_data = super().clean()
+        std = cleaned_data.get('std')  
+        atd = cleaned_data.get('atd')  
+        sta = cleaned_data.get('sta')  
+        ata = cleaned_data.get('ata')  
+        date = cleaned_data.get('date')  
+
+        # Ensure all time fields are provided
+        if not all([std, atd, sta, ata]):
+            raise forms.ValidationError("All time fields (STD, ATD, STA, ATA) are required.")
+
+        # Validate STA (Scheduled Time of Arrival) and ATA (Actual Time of Arrival)
+        if sta and ata:
+            if ata < sta:
+                raise forms.ValidationError("ATA (Actual Time of Arrival) cannot be earlier than STA (Scheduled Time of Arrival).")
+
+        # Validate STD (Scheduled Time of Departure) and ATD (Actual Time of Departure)
+        if std and atd:
+            if atd < std:
+                raise forms.ValidationError("ATD (Actual Time of Departure) cannot be earlier than STD (Scheduled Time of Departure).")
+
+        # Calculate delay (STA to ATA) in HH:MM format if all required fields are present
+        if sta and ata and date:
+            delay_timedelta = datetime.combine(date, ata) - datetime.combine(date, sta)
+            if delay_timedelta.total_seconds() >= 0:  # Ensure delay is non-negative
+                delay_time = (datetime.min + delay_timedelta).time()
+                cleaned_data['delay'] = delay_time  # Set the delay field in cleaned data
+            else:
+                cleaned_data['delay'] = None  
+
+        return cleaned_data
 
 
 class BreakdownReportForm(forms.ModelForm):

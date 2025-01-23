@@ -45,8 +45,6 @@ class DriverTrip(models.Model):
     def __str__(self):
         return f"{self.driver.driver_name} - {self.route_name}"
     
-from django.db import models
-
 class DelayData(models.Model):
     date = models.DateField(null=False, blank=False, verbose_name="Date of Delay")
     route = models.CharField(max_length=255)
@@ -55,12 +53,13 @@ class DelayData(models.Model):
     atd = models.TimeField()  
     sta = models.TimeField()  
     ata = models.TimeField()  
-    delay = models.CharField(max_length=8)  # Sufficient for HH:MM format
+    delay = models.TimeField(blank=True, null=True) 
     staff_count = models.IntegerField()
     remarks = models.TextField(blank=True, null=True)
 
     def __str__(self):
         return f"Delay on {self.date} for Route {self.route}"
+
 
 
     
