@@ -1385,3 +1385,35 @@ def generate_chart_data(daily_delays, daily_breakdowns, monthly_delays, monthly_
             }
         ]
     }
+
+# View function that skips authentication:
+from django.shortcuts import render
+from .models import DelayData, BreakdownReport
+from django.db.models import Count, ExpressionWrapper, DurationField, F
+from datetime import timedelta
+
+def public_stm_dashboard(request):
+    logger.info("Accessing public STM dashboard.")
+    start_of_month = now().replace(day=1).date()
+    today = now().date()
+    
+    try:
+        delayed_trips = (
+            DelayData.objects.annotate(
+                delay_duration=ExpressionWrapper(F('ata') - F('sta'), output_field=DurationField())
+            )
+            .filter(date__gte=start_of_month, date__lte=today, delay_duration__gt=timedelta(minutes=30))
+            .annotate(delay_count=Count('id'))
+            .values('route', 'sta', 'delay_count')
+            .order_by('-delay_count')
+        )
+        logger.info(f"Delayed trips fetched: {len(delayed_trips)}")
+
+    except Exception as e:
+        logger.error(f"Error fetching delayed trips: {e}")
+        delayed_trips = []
+
+    for trip in delayed_trips:
+        trip['sta'] = str(trip['sta'])
+
+    return render(request, 'duty/STM_dashboard.html', {'delayed_trips': delayed_trips})
