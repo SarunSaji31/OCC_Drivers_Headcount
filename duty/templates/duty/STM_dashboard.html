@@ -1,446 +1,346 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fleet Delays and Breakdowns Dashboard</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fleet Delays and Breakdowns Dashboard</title>
 
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: '#1e3a8a',
-                        secondary: '#f3f4f6',
-                        accent: '#3b82f6',
-                    },
-                },
-            },
-        };
-    </script>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#1e3a8a',
+            secondary: '#f3f4f6',
+            accent: '#3b82f6',
+          },
+        },
+      },
+    };
+  </script>
 
-    <!-- Font Awesome for Icons -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet">
+  <!-- Font Awesome for Icons -->
+  <link
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"
+    rel="stylesheet"
+  />
 
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    <!-- jQuery CDN -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <!-- jQuery CDN -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+  <!-- CSS to ensure canvas fills its container -->
+  <style>
+    canvas {
+      width: 100% !important;
+      height: 100% !important;
+    }
+  </style>
 </head>
 <body class="bg-secondary text-gray-800 font-sans">
-    <div class="w-full mx-auto p-6">
-        <!-- Header Section -->
-        <div class="flex items-center justify-between mb-6">
-            <a href="/subcategory/" class="inline-block text-primary bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-lg shadow-sm transition-all duration-300">
-                <i class="fas fa-arrow-left mr-2"></i> Back to Subcategory
-            </a>
-            <h1 class="text-4xl font-extrabold text-primary">Fleet Dashboard</h1>
-        </div>
-
-        <!-- Statistics Section -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div class="bg-white rounded-lg shadow-lg p-6 text-center">
-                <h3 id="daily-stats-title" class="text-lg font-semibold text-primary">
-                Daily Statistics ( <span id="current-date"></span>)   
-                </h3>           
-                <p class="text-2xl font-bold text-blue-500 mt-2">Delays: <span id="daily-delay-count">Loading...</span></p>
-                <p class="text-2xl font-bold text-blue-500">Breakdowns: <span id="daily-breakdown-count">Loading...</span></p>
-            </div>
-
-            <div class="bg-white rounded-lg shadow-lg p-6 text-center">
-                <h3 id="monthly-stats-title" class="text-lg font-semibold text-primary">
-                    Monthly Statistics (Month: <span id="current-month"></span>)
-                </h3>            
-                <p class="text-2xl font-bold text-green-500 mt-2">Delays: <span id="monthly-delay-count">Loading...</span></p>
-                <p class="text-2xl font-bold text-green-500">Breakdowns: <span id="monthly-breakdown-count">Loading...</span></p>
-            </div>
-
-            <div class="bg-white rounded-lg shadow-lg p-6 text-center">
-                <h3 class="text-lg font-semibold text-primary">Yearly Statistics</h3>
-                <p class="text-2xl font-bold text-yellow-500 mt-2">Delays: <span id="total-delay-count">Loading...</span></p>
-                <p class="text-2xl font-bold text-yellow-500">Breakdowns: <span id="total-breakdown-count">Loading...</span></p>
-            </div>
-        </div>
-
-        <!-- Charts Section -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
-            <div class="bg-white rounded-lg shadow-lg p-6">
-                <h3 class="text-xl font-bold text-primary text-center mb-4">Fleet Delay and Breakdown</h3>
-                <div class="relative h-[400px] w-full">
-                    <canvas id="fleet-delay-chart" class="w-full h-full"></canvas>
-                </div>
-            </div>
-
-            <div class="bg-white rounded-lg shadow-lg p-6">
-                <h3 class="text-xl font-bold text-primary text-center mb-4">Most Delayed Trips (Monthly)</h3>
-                <div class="relative h-[400px] w-full">
-                    <canvas id="mostDelayedTripsChart" class="w-full h-full"></canvas>
-                </div>
-            </div>
-        </div>
-
-        <!-- Filter Dashboard Section -->
-        <div class="bg-white rounded-lg shadow-lg p-6 mt-8">
-            <h3 class="text-lg font-bold text-center mb-4">Filter Dashboard</h3>
-            <div class="flex flex-col items-center">
-                <label for="date-filter" class="block font-semibold mb-2">Select Date:</label>
-                <input type="date" id="date-filter" class="w-full md:w-1/3 p-2 border rounded-lg mb-4">
-                <button id="apply-filters" class="w-full md:w-1/3 bg-primary text-white py-2 rounded-lg hover:bg-blue-600 transition-all duration-300">Apply Filters</button>
-            </div>
-        </div>
-
-        <!-- Report Download Section -->
-        <div class="bg-white rounded-lg shadow-lg p-6 mt-8 text-center">
-            <h3 class="text-lg font-bold mb-4">Download Report</h3>
-            <form method="GET" action="{% url 'download_fleet_report' %}" class="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-                <div>
-                    <label for="report-type" class="block font-semibold">Select Report Type:</label>
-                    <select id="report-type" name="report_type" class="w-full p-2 border rounded-lg">
-                        <option value="daily">Daily</option>
-                        <option value="monthly">Monthly</option>
-                        <option value="total">Yearly</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="report-category" class="block font-semibold">Select Report Category:</label>
-                    <select id="report-category" name="report_category" class="w-full p-2 border rounded-lg">
-                        <option value="delay">Delays</option>
-                        <option value="breakdown">Breakdowns</option>
-                    </select>
-                </div>
-                <div class="col-span-1 md:col-span-2">
-                    <button type="submit" class="w-full bg-green-500 text-white py-2 rounded-lg hover:bg-green-600 transition-all duration-300">Download Report</button>
-                </div>
-            </form>
-        </div>
+  <div class="w-full mx-auto p-6">
+    <!-- Header Section -->
+    <div class="flex items-center justify-between mb-6">
+      <a
+        href="/subcategory/"
+        class="inline-block text-primary bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-lg shadow-sm transition-all duration-300"
+      >
+        <i class="fas fa-arrow-left mr-2"></i> Back to Subcategory
+      </a>
+      <h1 class="text-4xl font-extrabold text-primary">Fleet Dashboard</h1>
     </div>
 
-    <script>
-        document.addEventListener("DOMContentLoaded", () => {
-            const currentDateElement = document.getElementById("current-date");
-            const currentMonthElement = document.getElementById("current-month");
-            const dateFilter = document.getElementById("date-filter");
-            const applyFiltersButton = document.getElementById("apply-filters");
+    <!-- Statistics Section -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="bg-white rounded-lg shadow-lg p-6 text-center">
+        <h3 id="daily-stats-title" class="text-lg font-semibold text-primary">
+          Daily Statistics ( <span id="current-date"></span> )
+        </h3>
+        <p class="text-2xl font-bold text-blue-500 mt-2">
+          Delays: <span id="daily-delay-count">Loading...</span>
+        </p>
+        <p class="text-2xl font-bold text-blue-500">
+          Breakdowns: <span id="daily-breakdown-count">Loading...</span>
+        </p>
+      </div>
 
-            // Helper functions
-            function formatDate(date) {
-                const options = { day: "2-digit", month: "2-digit", weekday: "short" };
-                return new Date(date).toLocaleDateString("en-US", options).replace(",", "");
-            }
+      <div class="bg-white rounded-lg shadow-lg p-6 text-center">
+        <h3 id="monthly-stats-title" class="text-lg font-semibold text-primary">
+          Monthly Statistics (Month: <span id="current-month"></span>)
+        </h3>
+        <p class="text-2xl font-bold text-green-500 mt-2">
+          Delays: <span id="monthly-delay-count">Loading...</span>
+        </p>
+        <p class="text-2xl font-bold text-green-500">
+          Breakdowns: <span id="monthly-breakdown-count">Loading...</span>
+        </p>
+      </div>
 
-            function formatMonth(date) {
-                const options = { month: "long" };
-                return new Date(date).toLocaleDateString("en-US", options);
-            }
+      <div class="bg-white rounded-lg shadow-lg p-6 text-center">
+        <h3 class="text-lg font-semibold text-primary">Yearly Statistics</h3>
+        <p class="text-2xl font-bold text-yellow-500 mt-2">
+          Delays: <span id="total-delay-count">Loading...</span>
+        </p>
+        <p class="text-2xl font-bold text-yellow-500">
+          Breakdowns: <span id="total-breakdown-count">Loading...</span>
+        </p>
+      </div>
+    </div>
 
-            // Set the default values on page load
-            const today = new Date();
-            const todayString = today.toISOString().split("T")[0]; // Format as YYYY-MM-DD
-            dateFilter.value = todayString; // Set the date picker to today's date
-            updateDisplay(todayString); // Update the display with today's details
+    <!-- Charts Section -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+      <!-- Fleet Delay and Breakdown Chart (Daily Data) -->
+      <div class="bg-white rounded-lg shadow-lg p-6">
+        <h3 class="text-xl font-bold text-primary text-center mb-4">
+          Fleet Delay and Breakdown
+        </h3>
+        <div class="relative h-[400px] w-full">
+          <canvas id="fleet-delay-chart" class="w-full h-full"></canvas>
+        </div>
+      </div>
 
-            // Event listener for Apply Filters button
-            applyFiltersButton.addEventListener("click", () => {
-                const selectedDate = dateFilter.value;
+      <!-- Most Delayed Trips (Monthly) Chart -->
+      <div class="bg-white rounded-lg shadow-lg p-6">
+        <h3 class="text-xl font-bold text-primary text-center mb-4">
+          Most Delayed Trips (Monthly)
+        </h3>
+        <div class="relative h-[400px] w-full">
+          <canvas id="mostDelayedTripsChart" class="w-full h-full"></canvas>
+        </div>
+      </div>
+    </div>
 
-                if (selectedDate) {
-                    updateDisplay(selectedDate);
-                } else {
-                    alert("Please select a valid date!");
-                }
-            });
+    <!-- Filter Dashboard Section -->
+    <div class="bg-white rounded-lg shadow-lg p-6 mt-8">
+      <h3 class="text-lg font-bold text-center mb-4">Filter Dashboard</h3>
+      <div class="flex flex-col items-center">
+        <label for="date-filter" class="block font-semibold mb-2">Select Date:</label>
+        <input
+          type="date"
+          id="date-filter"
+          class="w-full md:w-1/3 p-2 border rounded-lg mb-4"
+        />
+        <button
+          id="apply-filters"
+          class="w-full md:w-1/3 bg-primary text-white py-2 rounded-lg hover:bg-blue-600 transition-all duration-300"
+        >
+          Apply Filters
+        </button>
+      </div>
+    </div>
 
-            // Function to update the displayed date and month
-            function updateDisplay(selectedDate) {
-                const todayString = new Date().toISOString().split("T")[0]; // Today's date in YYYY-MM-DD
-                const isToday = selectedDate === todayString;
+    <!-- Report Download Section -->
+    <div class="bg-white rounded-lg shadow-lg p-6 mt-8 text-center">
+      <h3 class="text-lg font-bold mb-4">Download Report</h3>
+      <form
+        method="GET"
+        action="{% url 'download_fleet_report' %}"
+        class="grid grid-cols-1 md:grid-cols-2 gap-4 items-center"
+      >
+        <div>
+          <label for="report-type" class="block font-semibold">Select Report Type:</label>
+          <select
+            id="report-type"
+            name="report_type"
+            class="w-full p-2 border rounded-lg"
+          >
+            <option value="daily">Daily</option>
+            <option value="monthly">Monthly</option>
+            <option value="total">Yearly</option>
+          </select>
+        </div>
+        <div>
+          <label for="report-category" class="block font-semibold">Select Report Category:</label>
+          <select
+            id="report-category"
+            name="report_category"
+            class="w-full p-2 border rounded-lg"
+          >
+            <option value="delay">Delays</option>
+            <option value="breakdown">Breakdowns</option>
+          </select>
+        </div>
+        <div class="col-span-1 md:col-span-2">
+          <button
+            type="submit"
+            class="w-full bg-green-500 text-white py-2 rounded-lg hover:bg-green-600 transition-all duration-300"
+          >
+            Download Report
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
 
-                // Update Daily Statistics
-                if (isToday) {
-                    currentDateElement.textContent = "Today";
-                } else {
-                    currentDateElement.textContent = formatDate(selectedDate); // Format as DD-MM, DAY
-                }
+  <script>
+    $(document).ready(function () {
+      // --- Setup Date Filter and Display ---
+      var dateFilter = $("#date-filter");
+      var currentDateElement = $("#current-date");
+      var currentMonthElement = $("#current-month");
 
-                // Update Monthly Statistics
-                currentMonthElement.textContent = formatMonth(selectedDate); // Format as full month name
-            }
-        });
+      function formatDate(date) {
+        var options = { day: "2-digit", month: "2-digit", weekday: "short" };
+        return new Date(date)
+          .toLocaleDateString("en-US", options)
+          .replace(",", "");
+      }
 
+      function formatMonth(date) {
+        var options = { month: "long" };
+        return new Date(date).toLocaleDateString("en-US", options);
+      }
 
-        $(document).ready(function () {
-        let fleetChartInstance = null; // Track the current Chart instance
+      function updateDisplay(selectedDate) {
+        var todayStr = new Date().toISOString().split("T")[0];
+        var isToday = selectedDate === todayStr;
+        currentDateElement.text(isToday ? "Today" : formatDate(selectedDate));
+        currentMonthElement.text(formatMonth(selectedDate));
+      }
 
-        // Function to update dashboard data
-        function updateDashboard(filterType, filterValue) {
-            const url = '/filter-dashboard/';
-            const data = {
-                filter_type: filterType,
-                filter_value: filterValue,
-            };
+      // --- Global Functions for Updating Dashboard ---
+      var fleetChartInstance = null;
+      window.updateDashboard = function (filterType, filterValue) {
+        $.ajax({
+          url: "/filter-dashboard/",
+          data: { filter_type: filterType, filter_value: filterValue },
+          success: function (response) {
+            // Update Statistics
+            $("#daily-delay-count").text(response.daily_delays || 0);
+            $("#daily-breakdown-count").text(response.daily_breakdowns || 0);
+            $("#monthly-delay-count").text(response.monthly_delays || 0);
+            $("#monthly-breakdown-count").text(response.monthly_breakdowns || 0);
+            $("#total-delay-count").text(response.yearly_delays || 0);
+            $("#total-breakdown-count").text(response.yearly_breakdowns || 0);
 
-            console.log('Sending data to API:', data); // Debugging
-
-            $.ajax({
-                url: url,
-                data: data,
-                success: function (response) {
-                    console.log('API Response:', response);
-
-                    // Update statistics
-                    $('#daily-delay-count').text(response.daily_delays || 0);
-                    $('#daily-breakdown-count').text(response.daily_breakdowns || 0);
-                    $('#monthly-delay-count').text(response.monthly_delays || 0);
-                    $('#monthly-breakdown-count').text(response.monthly_breakdowns || 0);
-                    $('#total-delay-count').text(response.yearly_delays || 0);
-                    $('#total-breakdown-count').text(response.yearly_breakdowns || 0);
-
-                    // Update the chart
-                    if (response.chart_data) {
-                        updateChart(response.chart_data);
-                    }
-                },
-                error: function (xhr) {
-                    console.error('Error:', xhr.responseText);
-                    alert('Error fetching data: ' + xhr.responseText);
-                }
-            });
-        }
-
-        // Function to update the chart dynamically
-        function updateChart(chartData) {
-            const ctx = document.getElementById('fleet-delay-chart').getContext('2d');
-
-            // Destroy the previous chart instance if it exists
+            // Update Fleet Delay Chart (Daily Data)
+            var ctx = document.getElementById("fleet-delay-chart").getContext("2d");
             if (fleetChartInstance) {
-                console.log('Destroying existing chart instance...');
-                fleetChartInstance.destroy();
+              fleetChartInstance.destroy();
             }
-
-            // Create a new chart instance
-            console.log('Creating new chart instance...');
             fleetChartInstance = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: chartData.labels,
-                    datasets: chartData.datasets
+              type: "bar",
+              data: {
+                labels: response.chart_data.labels,
+                datasets: response.chart_data.datasets,
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: { display: true, position: "top" },
+                  title: {
+                    display: true,
+                    text: "Fleet Delays and Breakdowns (Daily)",
+                    font: { size: 16 },
+                  },
                 },
-                options: {
-                    plugins: {
-                        legend: {
-                            display: true,
-                            position: 'top'
-                        },
-                        title: {
-                            display: true,
-                            text: 'Fleet Delays and Breakdowns'
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true
-                        }
-                    }
-                }
+                scales: { y: { beginAtZero: true } },
+              },
             });
-        }
+          },
+          error: function (xhr) {
+            console.error("Error fetching dashboard data:", xhr.responseText);
+          },
+        });
+      };
 
-        // Apply filters when the user selects a date
-        $('#apply-filters').click(function () {
-            const selectedDate = $('#date-filter').val();
-
-            if (selectedDate) {
-                // Fetch filtered data
-                updateDashboard('until_date', selectedDate);
-            } else {
-                alert('Please select a date to filter the dashboard.');
+      window.fetchMostDelayedTrips = function () {
+        // For the monthly chart, send the selected_date (the back-end will use the entire month)
+        var selectedDate = dateFilter.val() || new Date().toISOString().split("T")[0];
+        $.getJSON(
+          "/get-most-delayed-trips-api",
+          { selected_date: selectedDate },
+          function (data) {
+            if (!data || data.length === 0) {
+              $("#mostDelayedTripsChart").html("No data available");
+              return;
             }
+            var ctx = document.getElementById("mostDelayedTripsChart").getContext("2d");
+            var labels = data.map(function (item) {
+              return item.route + " (" + item.sta + ")";
+            });
+            var delayCounts = data.map(function (item) {
+              return item.delay_count;
+            });
+            if (window.mostDelayedTripsChart instanceof Chart) {
+              window.mostDelayedTripsChart.destroy();
+            }
+            window.mostDelayedTripsChart = new Chart(ctx, {
+              type: "bar",
+              data: {
+                labels: labels,
+                datasets: [
+                  {
+                    label: "Delay Count",
+                    data: delayCounts,
+                    backgroundColor: "rgba(54, 162, 235, 0.7)",
+                    borderColor: "rgba(54, 162, 235, 1)",
+                    borderWidth: 1,
+                  },
+                ],
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: { display: true, position: "top" },
+                  title: {
+                    display: true,
+                    text: "Top 5 Most Delayed Trips (Monthly)",
+                    font: { size: 16 },
+                  },
+                },
+                scales: {
+                  x: {
+                    title: {
+                      display: true,
+                      text: "Routes",
+                      font: { size: 14 },
+                    },
+                    ticks: { autoSkip: false, maxRotation: 45, minRotation: 0 },
+                  },
+                  y: {
+                    beginAtZero: true,
+                    ticks: { precision: 0, font: { size: 12 } },
+                    title: {
+                      display: true,
+                      text: "Delay Count",
+                      font: { size: 14 },
+                    },
+                  },
+                },
+              },
+            });
+          }
+        ).fail(function () {
+          $("#mostDelayedTripsChart").html("Error loading chart data.");
         });
+      };
 
-        // Initial load with the current date
+      // --- Set Default Date and Initial Load ---
+      var today = new Date().toISOString().split("T")[0];
+      dateFilter.val(today);
+      updateDisplay(today);
+      updateDashboard("until_date", today);
+      fetchMostDelayedTrips();
 
+      // --- Apply Filters Button ---
+      $("#apply-filters").click(function () {
+        var selectedDate = dateFilter.val();
+        if (selectedDate) {
+          updateDisplay(selectedDate);
+          updateDashboard("until_date", selectedDate);
+          fetchMostDelayedTrips();
+        } else {
+          alert("Please select a valid date!");
+        }
+      });
     });
-
-        window.mostDelayedTripsChart = null;
-        // Function to get the current day name and day number (e.g., "Sat-19")
-        function getFormattedDate() {
-            const today = new Date();
-            const options = { weekday: 'short', day: 'numeric' }; // Short day name (e.g., "Sat") and numeric day (e.g., "19")
-            return today.toLocaleDateString('en-US', options).replace(',', '-');
-        }
-
-        // Function to update the dashboard with data
-        function updateDashboard() {
-            $.getJSON("{% url 'fleet_counts_api' %}", function(data) {
-                // Update daily statistics
-                $('#daily-delay-count').text(data.daily_delay_count);
-                $('#daily-breakdown-count').text(data.daily_breakdown_count);
-
-                // Update monthly statistics
-                $('#monthly-delay-count').text(data.monthly_delay_count);
-                $('#monthly-breakdown-count').text(data.monthly_breakdown_count);
-
-                // Update total statistics
-                $('#total-delay-count').text(data.total_delay_count);
-                $('#total-breakdown-count').text(data.total_breakdown_count);
-
-                // Update fleet delay chart dynamically
-                const ctx = document.getElementById('fleet-delay-chart').getContext('2d');
-                new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: ['Delays', 'Breakdowns'],
-                        datasets: [
-                            {
-                                label: 'Daily',
-                                data: [data.daily_delay_count, data.daily_breakdown_count],
-                                backgroundColor: 'rgba(54, 162, 235, 0.2)',
-                                borderColor: 'rgba(54, 162, 235, 1)',
-                                borderWidth: 1
-                            },
-                            {
-                                label: 'Monthly',
-                                data: [data.monthly_delay_count, data.monthly_breakdown_count],
-                                backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                                borderColor: 'rgba(75, 192, 192, 1)',
-                                borderWidth: 1
-                            },
-                            {
-                                label: 'Total',
-                                data: [data.total_delay_count, data.total_breakdown_count],
-                                backgroundColor: 'rgba(153, 102, 255, 0.2)',
-                                borderColor: 'rgba(153, 102, 255, 1)',
-                                borderWidth: 1
-                            }
-                        ]
-                    },
-                    options: {
-                        plugins: {
-                            legend: {
-                                display: true,
-                                position: 'top'
-                            },
-                            title: {
-                                display: true,
-                                text: 'Fleet Delays and Breakdowns',
-                                font: {
-                                    size: 16
-                                      }       
-                            }
-                        },
-                        scales: {
-                            y: {
-                                beginAtZero: true
-                            }
-                        }
-                    }
-                });
-
-                // Fetch and display "Most Delayed Trips" chart
-                fetchMostDelayedTrips();
-            });
-        }
-
-        function fetchMostDelayedTrips() {
-            $.getJSON('/get-most-delayed-trips-api', function (data) {
-                // Check if data exists
-                if (!data || data.length === 0) {
-                    console.error("No data available for Most Delayed Trips chart.");
-                    document.getElementById('mostDelayedTripsChart').innerHTML = 'No data available';
-                    return;
-                }
-
-                const ctx = document.getElementById('mostDelayedTripsChart').getContext('2d');
-
-                // Extract labels (route + STA) and delay counts
-                const labels = data.map(item => `${item.route} (${item.sta})`);
-                const delayCounts = data.map(item => item.delay_count);
-
-                console.log("Labels: ", labels);
-                console.log("Delay Counts: ", delayCounts);
-
-                // Destroy existing chart instance if it exists
-                if (window.mostDelayedTripsChart instanceof Chart) {
-                    window.mostDelayedTripsChart.destroy();
-                }
-
-                // Create the bar chart
-                window.mostDelayedTripsChart = new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                            label: 'Delay Count',
-                            data: delayCounts,
-                            backgroundColor: 'rgba(54, 162, 235, 0.7)', // Bar color
-                            borderColor: 'rgba(54, 162, 235, 1)', // Border color
-                            borderWidth: 1
-                        }]
-                    },
-                    options: {
-                        plugins: {
-                            legend: {
-                                display: true,
-                                position: 'top'
-                            },
-                            title: {
-                                display: true,
-                                text: 'Top 5 Most Delayed Trips (Monthly)',
-                                font: {
-                                    size: 16
-                                }
-                            }
-                        },
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: {
-                            x: {
-                                title: {
-                                    display: true,
-                                    text: 'Routes',
-                                    font: {
-                                        size: 14
-                                    }
-                                },
-                                ticks: {
-                                    autoSkip: false,
-                                    maxRotation: 45,
-                                    minRotation: 0
-                                }
-                            },
-                            y: {
-                                beginAtZero: true,
-                                ticks: {
-                                    precision: 0, // Display only integers
-                                    font: {
-                                        size: 12
-                                    }
-                                },
-                                title: {
-                                    display: true,
-                                    text: 'Delay Count',
-                                    font: {
-                                        size: 14
-                                    }
-                                }
-                            }
-                        }
-                    }
-                });
-            }).fail(function () {
-                console.error("Error fetching data for Most Delayed Trips chart.");
-                document.getElementById('mostDelayedTripsChart').innerHTML = 'Error loading chart data.';
-            });
-        }
-
-        // Call the function to update the dashboard when the page loads
-        $(document).ready(function() {
-            const today = new Date().toISOString().split('T')[0];
-            updateDashboard('until_date', today);
-        });
-    </script>
+  </script>
 </body>
 </html>

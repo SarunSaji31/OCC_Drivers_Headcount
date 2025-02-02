@@ -1278,33 +1278,51 @@ def stm_dashboard(request):
     }
     return render(request, 'duty/STM_dashboard.html', context)
 
+from datetime import datetime
+from django.http import JsonResponse
+from django.db.models import Count
+from .models import DelayData
+
 def get_most_delayed_trips_api(request):
     """
-    API endpoint to fetch the most delayed trips for the current month.
+    Returns the top 5 most delayed trips for the current month up to the selected date.
+    
+    If a GET parameter "selected_date" (format: YYYY-MM-DD) is provided, the query
+    will use that date as the upper bound (i.e. records from the 1st of the month until the selected date).
+    If no date is provided, it defaults to today's date.
     """
-    start_of_month = now().replace(day=1).date()
-    today = now().date()
+    selected_date_str = request.GET.get('selected_date')
+    if selected_date_str:
+        try:
+            selected_date = datetime.strptime(selected_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            from django.utils.timezone import now
+            selected_date = now().date()
+    else:
+        from django.utils.timezone import now
+        selected_date = now().date()
 
-    # Query to get delay counts grouped by route and STA
+    # Use records only from the beginning of the month until the selected date.
+    month_start = selected_date.replace(day=1)
+    month_end = selected_date  # upper bound is the selected date
+
     delayed_trips = (
-        DelayData.objects.filter(date__gte=start_of_month, date__lte=today)
-        .values('route', 'sta')  # Group by route and STA
-        .annotate(delay_count=Count('id'))  # Count occurrences for each group
-        .order_by('-delay_count')[:5]  # Get top 5 most delayed routes
+        DelayData.objects.filter(date__gte=month_start, date__lte=month_end)
+        .values('route', 'sta')
+        .annotate(delay_count=Count('id'))
+        .order_by('-delay_count')[:5]
     )
 
-    # Convert STA to string for better readability
+    # Convert the 'sta' field to string for display purposes.
     for trip in delayed_trips:
         trip['sta'] = str(trip['sta'])
 
     return JsonResponse(list(delayed_trips), safe=False)
 
-
 from datetime import datetime
 from django.http import JsonResponse
 from django.db.models import Q
 from .models import DelayData, BreakdownReport
-
 
 def filter_dashboard(request):
     filter_type = request.GET.get('filter_type')

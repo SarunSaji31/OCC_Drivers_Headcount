@@ -3,11 +3,12 @@
 {% block title %}Sign Up - OCC-EKG Project{% endblock %}
 
 {% block content %}
-<div class="container mx-auto mt-10 px-6 py-8 bg-white rounded-lg shadow-lg max-w-md">
-    <h3 class="text-center text-2xl font-semibold text-gray-800 mb-6">Create Your Account</h3>
+<div class="col-md-6 col-lg-4">
+    <div class="card p-4">
+        <h3 class="text-center mb-4">Create Your Account</h3>
 
-    {% if form.errors %}
-        <div class="bg-red-100 text-red-800 border border-red-400 rounded-lg p-4 mb-4">
+        {% if form.errors %}
+        <div class="alert alert-danger">
             <ul>
                 {% for field in form %}
                     {% for error in field.errors %}
@@ -19,34 +20,43 @@
                 {% endfor %}
             </ul>
         </div>
-    {% endif %}
+        {% endif %}
 
-    <form method="post">
-        {% csrf_token %}
-        <div class="mb-4">
-            <label for="id_staff_id" class="block text-lg font-medium text-gray-700">Staff ID</label>
-            <input type="text" id="id_staff_id" name="staff_id" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" value="{{ form.staff_id.value|default_if_none:'' }}" placeholder="Enter your Staff ID" required>
-        </div>
+        <form method="post">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label for="staff_id" class="form-label">Staff ID</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-person-badge"></i></span>
+                    <input type="text" id="staff_id" name="staff_id" class="form-control" value="{{ form.staff_id.value|default_if_none:'' }}" placeholder="Enter your Staff ID" required>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label for="email" class="form-label">Email Address</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                    <input type="email" id="email" name="email" class="form-control" value="{{ form.email.value|default_if_none:'' }}" placeholder="Enter your email address" required>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label for="password1" class="form-label">Create a Password</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-key"></i></span>
+                    <input type="password" id="password1" name="password1" class="form-control" placeholder="Create a password" required>
+                </div>
+                <small class="form-text">Your password must be at least 8 characters long.</small>
+            </div>
+            <div class="mb-3">
+                <label for="password2" class="form-label">Confirm Password</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-key-fill"></i></span>
+                    <input type="password" id="password2" name="password2" class="form-control" placeholder="Confirm your password" required>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Sign Up</button>
+        </form>
 
-        <div class="mb-4">
-            <label for="id_email" class="block text-lg font-medium text-gray-700">Email Address</label>
-            <input type="email" id="id_email" name="email" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" value="{{ form.email.value|default_if_none:'' }}" placeholder="Enter your email address" required>
-        </div>
-
-        <div class="mb-4">
-            <label for="id_password1" class="block text-lg font-medium text-gray-700">Create a Password</label>
-            <input type="password" id="id_password1" name="password1" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Create a password" required>
-            <small class="text-sm text-gray-600">Your password must be at least 8 characters long.</small>
-        </div>
-
-        <div class="mb-4">
-            <label for="id_password2" class="block text-lg font-medium text-gray-700">Confirm Password</label>
-            <input type="password" id="id_password2" name="password2" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Confirm your password" required>
-        </div>
-
-        <button type="submit" class="w-full py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">Sign Up</button>
-    </form>
-
-    <p class="text-center mt-4 text-gray-600">Already have an account? <a href="{% url 'login' %}" class="text-indigo-600 hover:underline">Log in here</a>.</p>
+        <p class="text-center mt-3">Already have an account? <a href="{% url 'login' %}">Log in here</a>.</p>
+    </div>
 </div>
 {% endblock %}
