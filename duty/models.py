@@ -26,6 +26,7 @@ class DutyCardTrip(models.Model):
     def __str__(self):
         return f"{self.duty_card_no} - {self.route_name}"
 
+
 class DriverTrip(models.Model):
     INBOUND_OUTBOUND_CHOICES = [
         ('inbound', 'Inbound'),
@@ -44,7 +45,9 @@ class DriverTrip(models.Model):
 
     def __str__(self):
         return f"{self.driver.driver_name} - {self.route_name}"
-    
+
+
+# Move DelayData out of DriverTrip so that it can be imported directly.
 class DelayData(models.Model):
     date = models.DateField(null=False, blank=False, verbose_name="Date of Delay")
     route = models.CharField(max_length=255)
@@ -61,35 +64,32 @@ class DelayData(models.Model):
         return f"Delay on {self.date} for Route {self.route}"
 
 
-
-    
 class BreakdownReport(models.Model):
-   # Section A Fields
-   report_datetime = models.DateTimeField(auto_now_add=True)  # Auto-add the report submission date and time
-   breakdown_datetime = models.DateTimeField()  # Breakdown date and time
-   location = models.CharField(max_length=255)  # Breakdown location
-   route_number = models.CharField(max_length=100)  # Route number
-   trip_work_order = models.CharField(max_length=100)  # Work order number
-   passengers_involved = models.PositiveIntegerField()  # Number of passengers involved
-   ek_staff_numbers = models.TextField(blank=True, null=True)  # EK staff numbers
-   non_ek_passenger_details = models.TextField(blank=True, null=True)  # Details of non-EK passengers
-   injured_passengers = models.PositiveIntegerField(default=0)  # Number of injured passengers
-   action_taken_for_injured = models.TextField(blank=True, null=True)  # Action taken for injured passengers
-   vehicle_damage = models.BooleanField(default=False)  # Whether there was vehicle damage (Yes/No)
-   driver_name = models.CharField(max_length=100)  # Driver's name
-   driver_id = models.CharField(max_length=100)  # Driver's ID number
-   driver_shift = models.CharField(max_length=100)  # Driver's shift
-   breakdown_description = models.TextField()  # Description of the breakdown
-   ek_vehicles_involved = models.PositiveIntegerField(default=0)  # Number of EK vehicles involved
-   vehicle_make_plate = models.CharField(max_length=100)  # Vehicle make and plate number
-   replacement_vehicle = models.CharField(max_length=100, blank=True, null=True)  # Replacement vehicle number (if applicable)
-   reported_to_person = models.CharField(max_length=100)  # Person at EK the incident was reported to
-   reported_datetime = models.DateTimeField()  # Date and time the breakdown was reported
+    # Section A Fields
+    report_datetime = models.DateTimeField(auto_now_add=True)  # Auto-add the report submission date and time
+    breakdown_datetime = models.DateTimeField()  # Breakdown date and time
+    location = models.CharField(max_length=255)  # Breakdown location
+    route_number = models.CharField(max_length=100)  # Route number
+    trip_work_order = models.CharField(max_length=100)  # Work order number
+    passengers_involved = models.PositiveIntegerField()  # Number of passengers involved
+    ek_staff_numbers = models.TextField(blank=True, null=True)  # EK staff numbers
+    non_ek_passenger_details = models.TextField(blank=True, null=True)  # Details of non-EK passengers
+    injured_passengers = models.PositiveIntegerField(default=0)  # Number of injured passengers
+    action_taken_for_injured = models.TextField(blank=True, null=True)  # Action taken for injured passengers
+    vehicle_damage = models.BooleanField(default=False)  # Whether there was vehicle damage (Yes/No)
+    driver_name = models.CharField(max_length=100)  # Driver's name
+    driver_id = models.CharField(max_length=100)  # Driver's ID number
+    driver_shift = models.CharField(max_length=100)  # Driver's shift
+    breakdown_description = models.TextField()  # Description of the breakdown
+    ek_vehicles_involved = models.PositiveIntegerField(default=0)  # Number of EK vehicles involved
+    vehicle_make_plate = models.CharField(max_length=100)  # Vehicle make and plate number
+    replacement_vehicle = models.CharField(max_length=100, blank=True, null=True)  # Replacement vehicle number (if applicable)
+    reported_to_person = models.CharField(max_length=100)  # Person at EK the incident was reported to
+    reported_datetime = models.DateTimeField()  # Date and time the breakdown was reported
 
-   def __str__(self):
-       return f"Breakdown Report {self.id} - {self.breakdown_datetime}" 
+    def __str__(self):
+        return f"Breakdown Report {self.id} - {self.breakdown_datetime}" 
 
-from django.db import models
 
 class StmRoute(models.Model):
     route_id = models.CharField(max_length=50, unique=True, db_column='R_id')  # Unique route ID
@@ -107,6 +107,7 @@ class StmRoute(models.Model):
     class Meta:
         db_table = 'Stm_Routes'
 
+
 class StmPickupPoint(models.Model):
     route = models.ForeignKey(StmRoute, on_delete=models.CASCADE, db_column='R_id', related_name='pickup_points')
     stop_id = models.CharField(max_length=100, db_column='Stop_Id')
@@ -120,7 +121,7 @@ class StmPickupPoint(models.Model):
         db_table = 'Stm_Pickup_Points'
         ordering = ['pick_up_point_order_id']
 
-        
+
 class StmShiftTime(models.Model):
     route = models.ForeignKey(StmRoute, on_delete=models.CASCADE, db_column='R_id', related_name='shift_times')
     time = models.CharField(max_length=50, null=True, blank=True, db_column='Time')
@@ -133,4 +134,4 @@ class StmShiftTime(models.Model):
 
     class Meta:
         db_table = 'Stm_ShiftTime'
-        ordering = ['stop_order', 'time']  # Orders by stop_order and then by time
+        ordering = ['stop_order', 'time']

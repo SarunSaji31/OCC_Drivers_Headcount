@@ -1319,6 +1319,61 @@ def get_most_delayed_trips_api(request):
 
     return JsonResponse(list(delayed_trips), safe=False)
 
+from datetime import datetime, timedelta
+from django.http import JsonResponse
+from django.db.models import ExpressionWrapper, F, DurationField
+from duty.models import DelayData  # Ensure this import works after moving DelayData to the top level
+
+def get_otp_chart_data(request):
+    """
+    Returns OTP data for a given period: daily, monthly, or yearly.
+    Expects GET parameters:
+      - period: "daily", "monthly", or "yearly"
+      - selected_date: in YYYY-MM-DD format (if not provided, defaults to today)
+    
+    OTP is computed by checking if (atd - std) > 10 minutes (trip failure).
+    Returns JSON: 
+      { "labels": ["On Time", "Not On Time"], "data": [on_time_count, failure_count] }
+    """
+    period = request.GET.get("period", "daily").lower()
+    selected_date_str = request.GET.get("selected_date")
+    if selected_date_str:
+        try:
+            selected_date = datetime.strptime(selected_date_str, "%Y-%m-%d").date()
+        except ValueError:
+            from django.utils.timezone import now
+            selected_date = now().date()
+    else:
+        from django.utils.timezone import now
+        selected_date = now().date()
+
+    qs = DelayData.objects.all()
+    if period == "daily":
+        qs = qs.filter(date=selected_date)
+    elif period == "monthly":
+        month_start = selected_date.replace(day=1)
+        qs = qs.filter(date__gte=month_start, date__lte=selected_date)
+    elif period == "yearly":
+        year_start = selected_date.replace(month=1, day=1)
+        qs = qs.filter(date__gte=year_start, date__lte=selected_date)
+    else:
+        qs = qs.filter(date=selected_date)
+
+    # Annotate each record with delay_duration = atd - std.
+    qs = qs.annotate(
+        delay_duration=ExpressionWrapper(F("atd") - F("std"), output_field=DurationField())
+    )
+    total_count = qs.count()
+    failure_count = qs.filter(delay_duration__gt=timedelta(minutes=10)).count()
+    on_time_count = total_count - failure_count
+
+    data = {
+        "labels": ["On Time", "Not On Time"],
+        "data": [on_time_count, failure_count],
+    }
+    return JsonResponse(data)
+
+
 from datetime import datetime
 from django.http import JsonResponse
 from django.db.models import Q

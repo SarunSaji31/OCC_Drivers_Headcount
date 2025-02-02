@@ -86,6 +86,7 @@ urlpatterns = [
     path('user_submission_history/', views.submission_history, name='user_submission_history'),  
     path('filter-dashboard/', views.filter_dashboard, name='filter_dashboard'), 
     path('public-stm-dashboard/', views.public_stm_dashboard, name='public_stm_dashboard'),
+    path('get-otp-chart-data/', views.get_otp_chart_data, name='get_otp_chart_data'),
 
 ]
 
