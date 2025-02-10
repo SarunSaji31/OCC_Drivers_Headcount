@@ -6,11 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Enter Head Count - OCC-EKG Project</title>
 
-    <!-- Bootstrap 5.1.3 CSS (without integrity check) -->
-    <link
-      rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css"
-    />
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
 
     <!-- Font Awesome 5.15.3 -->
     <link
@@ -25,6 +22,7 @@
     />
 
     <style>
+      /* Custom styles that are not Tailwind-based */
       body {
         font-family: "Arial", sans-serif;
         background: url("{% static 'occ_background_img.png' %}") no-repeat
@@ -32,412 +30,339 @@
         background-size: cover;
         color: #333;
       }
-      .navbar {
-        background-color: #6c757d;
-      }
-      .navbar-brand,
-      .nav-link {
-        color: rgb(5, 5, 5) !important;
-      }
-      .navbar-brand {
-        font-weight: bold;
-        font-size: 1.25rem;
-      }
-      .navbar-toggler {
-        border-color: rgba(255, 255, 255, 0.1);
-      }
-      .navbar-toggler-icon {
-        display: inline-block;
-        width: 1.5em;
-        height: 1.5em;
-        background-size: 100%;
-        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba(0, 0, 0, 0.5)' stroke-width='2' stroke-linecap='round' stroke-miterlimit='10' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
-      }
-
-      .header-section {
-        text-align: center;
-        padding: 40px 20px;
-        background: rgba(233, 236, 239, 0.85);
-        color: #333;
-        position: relative;
-        margin-bottom: 30px;
-        border-bottom: 1px solid #ccc;
-      }
-      .header-section h1 {
-        font-size: 2rem;
-        margin-bottom: 10px;
-        font-weight: 700;
-      }
-      .header-section p {
-        font-size: 1rem;
-        margin-bottom: 20px;
-      }
-      .header-section img {
-        position: absolute;
-        top: 10px;
-        left: 25px;
-        width: 100px;
-      }
-      .form-container {
-        background-color: rgba(255, 255, 255, 0.9);
-        padding: 40px;
-        border-radius: 10px;
-        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.05);
-        margin-top: 20px;
-        max-width: 800px;
-        margin-left: auto;
-        margin-right: auto;
-        border: 1px solid #ddd;
-      }
-      .form-group label {
-        font-weight: 500;
-        font-size: 1rem;
-        color: #555;
-      }
-      .form-control {
-        border-radius: 0.25rem;
-        border: 1px solid #ccc;
-        height: 38px;
-        transition: border-color 0.3s ease;
-      }
-      .form-control:focus {
-        border-color: #007bff;
-        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
-      }
-      .form-control::placeholder {
-        color: #888;
-        font-style: italic;
-        font-size: 0.9rem;
-      }
-      .btn-primary,
-      .btn-success {
-        border-radius: 0.25rem;
-        font-weight: bold;
-        padding: 10px 20px;
-      }
-      .add-icon {
-        cursor: pointer;
-        color: #28a745;
-        font-size: 24px;
-        font-weight: bold;
-        text-align: center;
-        align-self: center;
-        margin-bottom: 20px;
-      }
-      .remove-trip {
-        cursor: pointer;
-        font-weight: bold;
-        color: #dc3545;
-      }
-      .button-container {
-        display: flex;
-        gap: 10px;
-        margin-top: 20px;
-        justify-content: center;
-      }
-      .footer {
-        background: #e9ecef;
-        color: #333;
-        text-align: center;
-        padding: 10px 0;
-        margin-top: 30px;
-        border-top: 1px solid #ccc;
-      }
-      .footer p {
-        margin: 0;
-        font-size: 0.9rem;
-      }
-      .trip-form-container {
-        border-bottom: 1px solid #ddd;
-        padding-bottom: 20px;
-        margin-bottom: 20px;
-      }
-      .driver-form-container {
-        margin-bottom: 40px;
-      }
-      .navbar-text {
-        position: absolute;
-        right: 20px;
-        top: 10px;
-        color: rgb(0, 0, 0);
-        font-weight: bold;
-      }
-      @media (max-width: 768px) {
-        .header-section img {
-          width: 70px;
-          top: 5px;
-          left: 10px;
-        }
-        .header-section {
-          padding: 30px 10px;
-        }
-        .header-section h1 {
-          font-size: 1.75rem;
-        }
-        .header-section p {
-          font-size: 0.95rem;
-        }
-        .form-container {
-          padding: 20px;
-        }
-        .navbar-text {
-          right: 10px;
-          top: 5px;
-        }
-        .navbar-nav {
-          flex-direction: column;
-          align-items: flex-start;
-        }
-        .nav-item {
-          width: 100%;
-          text-align: left;
-        }
-      }
     </style>
   </head>
-
-  <body>
+  <body class="bg-cover bg-center">
     <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-light" style="background-color: rgba(235, 235, 235, 0.8); border-bottom: 2px solid #ccc; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
-      <button
-        class="navbar-toggler"
-        type="button"
-        data-bs-toggle="collapse"
-        data-bs-target="#navbarNav"
-        aria-controls="navbarNav"
-        aria-expanded="false"
-        aria-label="Toggle navigation"
-      >
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div class="collapse navbar-collapse" id="navbarNav">
-        <ul class="navbar-nav ml-auto">
-          <li class="nav-item">
-            <a class="nav-link" href="/" style="color: black;">Home</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="/report/" style="color: black;">Reports</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="/dashboard/" style="color: black;">Dashboard</a>
-          </li>
-          <li class="nav-item">
-            <span class="navbar-text" style="color: black;">Welcome, {{ staff_name }}!</span>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="/user_submission_history/" style="color: black;">Submission History</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="/logout/" style="color: black;">Logout</a>
-          </li>
-        </ul>
+    <nav class="bg-gray-200 bg-opacity-80 border-b-2 border-gray-300 shadow-sm">
+      <div class="container mx-auto px-4 flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+          <a href="/" class="text-black font-bold text-xl">Home</a>
+          <a href="/report/" class="text-black">Reports</a>
+          <a href="/dashboard/" class="text-black">Dashboard</a>
+        </div>
+        <div class="hidden md:flex items-center space-x-4">
+          <span class="text-black font-bold">Welcome, {{ staff_name }}!</span>
+          <a href="/user_submission_history/" class="text-black">Submission History</a>
+          <a href="/logout/" class="text-black">Logout</a>
+        </div>
+        <!-- Mobile nav toggle button -->
+        <div class="md:hidden">
+          <button id="nav-toggle" class="block md:hidden focus:outline-none">
+            <svg
+              class="h-8 w-8 text-black" 
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24" 
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M4 6h16M4 12h16M4 18h16"
+              ></path>
+            </svg>
+          </button>          
+        </div>
+      </div>
+      <!-- Mobile Menu -->
+      <div class="md:hidden hidden" id="mobile-menu">
+        <div class="px-4 pt-2 pb-3 space-y-1">
+          <a href="/" class="block text-black">Home</a>
+          <a href="/report/" class="block text-black">Reports</a>
+          <a href="/dashboard/" class="block text-black">Dashboard</a>
+          <span class="block text-black font-bold">Welcome, {{ staff_name }}!</span>
+          <a href="/user_submission_history/" class="block text-black">Submission History</a>
+          <a href="/logout/" class="block text-black">Logout</a>
+        </div>
       </div>
     </nav>
-    
 
     <!-- Header Section -->
-    <div class="header-section">
-      <img src="https://et.ae/wp-content/uploads/2024/12/logo-1.svg" alt="Logo">
-        <h1>Enter Head Count Details</h1>
-        <p>Manage and track driver details and trip information efficiently.</p>
+    <div class="relative text-center py-10 px-5 bg-gray-100 bg-opacity-90 text-gray-800 mb-8 border-b border-gray-300">
+      <img
+        src="https://et.ae/wp-content/uploads/2024/12/logo-1.svg"
+        alt="Logo"
+        class="absolute top-4 left-6 w-24 md:w-28"
+      />
+      <h1 class="text-3xl md:text-4xl font-bold mb-2">Enter Head Count Details</h1>
+      <p class="text-base mb-5">
+        Manage and track driver details and trip information efficiently.
+      </p>
     </div>
 
     <!-- Form Container -->
-    <div class="container form-container">
-        {% if error_message %}
-        <div class="alert alert-danger">
-            <strong>Error:</strong> {{ error_message }}
+    <div
+      class="container mx-auto max-w-3xl bg-white bg-opacity-90 p-10 rounded-lg shadow-md border border-gray-300"
+    >
+      {% if error_message %}
+      <div class="mb-4 p-4 bg-red-100 text-red-700 rounded">
+        <strong>Error:</strong> {{ error_message }}
+      </div>
+      {% endif %}
+
+      {% if success_message %}
+      <div class="mb-4 p-4 bg-green-100 text-green-700 rounded">
+        <strong>Success:</strong> {{ success_message }}
+      </div>
+      {% endif %}
+
+      <form id="driver-trip-form" method="post">
+        {% csrf_token %}
+        <div class="mb-6">
+          <input
+            type="hidden"
+            id="id_staff_id"
+            name="staff_id"
+            value="{{ user.username }}"
+          />
+          <input
+            type="hidden"
+            id="id_driver_name"
+            name="driver_name"
+            value="{{ staff_name }}"
+          />
+          <div class="mb-4">
+            <label for="id_duty_card_no" class="block text-gray-700 font-medium mb-2"
+              >Duty Card No</label
+            >
+            <input
+              type="text"
+              id="id_duty_card_no"
+              name="duty_card_no"
+              class="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-blue-500"
+              placeholder="e.g., A012"
+              required
+            />
+          </div>
         </div>
-        {% endif %}
 
-        {% if success_message %}
-        <div class="alert alert-success">
-            <strong>Success:</strong> {{ success_message }}
+        <div id="trip-entries" class="space-y-6">
+          <!-- Trip form entries will be dynamically added here -->
         </div>
-        {% endif %}
 
-        <form id="driver-trip-form" method="post">
-            {% csrf_token %}
-            <div class="driver-form-container">
-                <div class="form-row">
-                    <input type="hidden" id="id_staff_id" name="staff_id" value="{{ user.username }}">
-                    <input type="hidden" id="id_driver_name" name="driver_name" value="{{ staff_name }}">
-                    <div class="form-group col-md-4">
-                        <label for="id_duty_card_no" class="form-label">Duty Card No</label>
-                        <input type="text" id="id_duty_card_no" name="duty_card_no" class="form-control" placeholder="e.g., A012" required>
-                    </div>
-                </div>
-            </div>
+        <input
+          type="hidden"
+          name="drivertrip_set-TOTAL_FORMS"
+          id="id_drivertrip_set-TOTAL_FORMS"
+          value="0"
+        />
+        <input type="hidden" name="drivertrip_set-INITIAL_FORMS" value="0" />
+        <input type="hidden" name="drivertrip_set-MIN_NUM_FORMS" value="0" />
+        <input type="hidden" name="drivertrip_set-MAX_NUM_FORMS" value="1000" />
 
-            <div id="trip-entries" class="mt-4">
-                <!-- Trip form entries will be dynamically added here -->
-            </div>
-
-            <input type="hidden" name="drivertrip_set-TOTAL_FORMS" id="id_drivertrip_set-TOTAL_FORMS" value="0">
-            <input type="hidden" name="drivertrip_set-INITIAL_FORMS" value="0">
-            <input type="hidden" name="drivertrip_set-MIN_NUM_FORMS" value="0">
-            <input type="hidden" name="drivertrip_set-MAX_NUM_FORMS" value="1000">
-            <div id="button-container" class="button-container mt-4">
-                <div id="add-row" class="add-icon">+</div>
-                <button type="submit" class="btn btn-success" id="submit-button">Submit</button>
-            </div>
-        </form>
+        <div
+          id="button-container"
+          class="mt-6 flex items-center space-x-4 justify-center"
+        >
+          <div id="add-row" class="cursor-pointer text-green-600 text-2xl font-bold">
+            +
+          </div>
+          <button
+            type="submit"
+            class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded"
+            id="submit-button"
+          >
+            Submit
+          </button>
+        </div>
+      </form>
     </div>
 
-
     <!-- Footer -->
-    <footer class="footer">
-        <p>&copy; Emirates Airline Staff Transport Project.</p>
+    <footer
+      class="bg-gray-200 text-gray-800 text-center py-4 mt-8 border-t border-gray-300"
+    >
+      <p>&copy; Emirates Airline Staff Transport Project.</p>
     </footer>
 
     <!-- Scripts -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-..." crossorigin="anonymous"></script>
+    <!-- Removed Bootstrap JS -->
 
-
-   <!-- JS for Trip Row Manipulation -->
     <script>
-      $(document).ready(function() {
-          var tripCount = 0;
+      // Mobile Navbar Toggle
+      document
+        .getElementById("nav-toggle")
+        .addEventListener("click", function () {
+          var mobileMenu = document.getElementById("mobile-menu");
+          mobileMenu.classList.toggle("hidden");
+        });
 
-          function addTripRow(tripData = {}, index) {
-              var newRow = `
-                  <div class="form-row trip-form-container" data-index="${index}">
-                      <div class="col-md-3 mb-3">
-                          <label>Route Name</label>
-                          ${tripData.route_name ? `
-                              <div style="display: flex; align-items: center;">
-                                  <a href="/route-details/?route=${encodeURIComponent(tripData.route_name)}&shift_time=${encodeURIComponent(tripData.shift_time || '')}&type=${encodeURIComponent(tripData.trip_type || '')}" 
-                                    class="form-control" style="text-decoration: underline;" target="_blank">
-                                      Routes
-                                  </a>
-                                  <input 
-                                      type="text" 
-                                      name="drivertrip_set-${index}-route_name" 
-                                      class="form-control" 
-                                      value="${tripData.route_name}" 
-                                      style="margin-left: 10px;" 
-                                      required
-                                  />
-                              </div>
-                          ` : `
-                              <input type="text" name="drivertrip_set-${index}-route_name" class="form-control" placeholder="Enter Route Name" required>
-                          `}
+      $(document).ready(function () {
+        var tripCount = 0;
+
+        function addTripRow(tripData = {}, index) {
+          var newRow = `
+              <div class="trip-form-container border-b border-gray-300 pb-5 mb-5" data-index="${index}">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                  <div>
+                    <label class="block text-gray-700 font-medium mb-1">Route Name</label>
+                    ${
+                      tripData.route_name
+                        ? `
+                      <div class="flex items-center">
+                        <a href="/route-details/?route=${encodeURIComponent(
+                          tripData.route_name
+                        )}&shift_time=${encodeURIComponent(
+                          tripData.shift_time || ""
+                        )}&type=${encodeURIComponent(
+                            tripData.trip_type || ""
+                          )}" 
+                           class="underline text-blue-600" target="_blank">
+                          Routes
+                        </a>
+                        <input 
+                          type="text" 
+                          name="drivertrip_set-${index}-route_name" 
+                          class="ml-4 w-full border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-blue-500" 
+                          value="${tripData.route_name}" 
+                          required
+                        />
                       </div>
-                      <div class="col-md-2 mb-3">
-                          <label>Type</label>
-                          <select name="drivertrip_set-${index}-trip_type" class="form-control" required>
-                              <option value="inbound" ${tripData.trip_type === 'inbound' ? 'selected' : ''}>Inbound</option>
-                              <option value="outbound" ${tripData.trip_type === 'outbound' || !tripData.trip_type ? 'selected' : ''}>Outbound</option>
-                          </select>
-                      </div>
-                      <div class="col-md-2 mb-3">
-                          <label>Pick Up Time</label>
-                          <input type="time" name="drivertrip_set-${index}-pick_up_time" class="form-control" value="${tripData.pick_up_time || ''}" required>
-                      </div>
-                      <div class="col-md-2 mb-3">
-                          <label>Drop Off Time</label>
-                          <input type="time" name="drivertrip_set-${index}-drop_off_time" class="form-control" value="${tripData.drop_off_time || ''}" required>
-                      </div>
-                      <div class="col-md-2 mb-3">
-                          <label>Shift Time</label>
-                          <input type="time" name="drivertrip_set-${index}-shift_time" class="form-control" value="${tripData.shift_time || ''}" required>
-                      </div>
-                      <div class="col-md-3 mb-3">
-                          <label>Date</label>
-                          <input type="date" name="drivertrip_set-${index}-date" class="form-control" value="${tripData.date || ''}" required>
-                      </div>
-                      <div class="col-md-2 mb-3">
-                          <label>Head Count</label>
-                          <input type="number" name="drivertrip_set-${index}-head_count" class="form-control" placeholder="Enter Head Count" value="${tripData.head_count || ''}" min="0" max="47" required>
-                      </div>
-                      <div class="col-md-1 remove-trip-container mb-3">
-                          <span class="remove-trip">Remove</span>
-                      </div>
+                    `
+                        : `
+                      <input type="text" name="drivertrip_set-${index}-route_name" class="w-full border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-blue-500" placeholder="Enter Route Name" required>
+                    `
+                    }
                   </div>
-              `;
+                  <div>
+                    <label class="block text-gray-700 font-medium mb-1">Type</label>
+                    <select name="drivertrip_set-${index}-trip_type" class="w-full border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-blue-500" required>
+                      <option value="inbound" ${
+                        tripData.trip_type === "inbound" ? "selected" : ""
+                      }>Inbound</option>
+                      <option value="outbound" ${
+                        tripData.trip_type === "outbound" || !tripData.trip_type
+                          ? "selected"
+                          : ""
+                      }>Outbound</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-gray-700 font-medium mb-1">Pick Up Time</label>
+                    <input type="time" name="drivertrip_set-${index}-pick_up_time" class="w-full border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-blue-500" value="${
+                      tripData.pick_up_time || ""
+                    }" required>
+                  </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                  <div>
+                    <label class="block text-gray-700 font-medium mb-1">Drop Off Time</label>
+                    <input type="time" name="drivertrip_set-${index}-drop_off_time" class="w-full border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-blue-500" value="${
+                      tripData.drop_off_time || ""
+                    }" required>
+                  </div>
+                  <div>
+                    <label class="block text-gray-700 font-medium mb-1">Shift Time</label>
+                    <input type="time" name="drivertrip_set-${index}-shift_time" class="w-full border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-blue-500" value="${
+                      tripData.shift_time || ""
+                    }" required>
+                  </div>
+                  <div>
+                    <label class="block text-gray-700 font-medium mb-1">Date</label>
+                    <input type="date" name="drivertrip_set-${index}-date" class="w-full border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-blue-500" value="${
+                      tripData.date || ""
+                    }" required>
+                  </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+                  <div>
+                    <label class="block text-gray-700 font-medium mb-1">Head Count</label>
+                    <input type="number" name="drivertrip_set-${index}-head_count" class="w-full border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-blue-500" placeholder="Enter Head Count" value="${
+                      tripData.head_count || ""
+                    }" min="0" max="47" required>
+                  </div>
+                  <div class="text-right">
+                    <span class="remove-trip cursor-pointer text-red-600 font-bold">Remove</span>
+                  </div>
+                </div>
+              </div>
+          `;
 
-              $('#trip-entries').append(newRow);
-              tripCount++;
-              updateFormIndices();
-          }
+          $("#trip-entries").append(newRow);
+          tripCount++;
+          updateFormIndices();
+        }
 
-
-
-          function updateFormIndices() {
-              $('.trip-form-container').each(function(index) {
-                  $(this).attr('data-index', index);
-                  $(this).find('input, select').each(function() {
-                      const name = $(this).attr('name');
-                      const newName = name.replace(/\d+/, index);
-                      $(this).attr('name', newName);
-                  });
+        function updateFormIndices() {
+          $(".trip-form-container").each(function (index) {
+            $(this).attr("data-index", index);
+            $(this)
+              .find("input, select")
+              .each(function () {
+                const name = $(this).attr("name");
+                const newName = name.replace(/\d+/, index);
+                $(this).attr("name", newName);
               });
-              $('#id_drivertrip_set-TOTAL_FORMS').val(tripCount);
+          });
+          $("#id_drivertrip_set-TOTAL_FORMS").val(tripCount);
+        }
+
+        $("#add-row").on("click", function () {
+          addTripRow({}, tripCount);
+          $("#submit-button").show();
+        });
+
+        $(document).on("click", ".remove-trip", function () {
+          $(this).closest(".trip-form-container").remove();
+          tripCount--;
+          updateFormIndices();
+
+          if (tripCount === 0) {
+            $("#submit-button").hide();
           }
+        });
 
-          $('#add-row').on('click', function() {
-              addTripRow({}, tripCount);
-              $('#submit-button').show();
-          });
+        $("#submit-button").hide();
 
-          $(document).on('click', '.remove-trip', function() {
-              $(this).closest('.trip-form-container').remove();
-              tripCount--;
-              updateFormIndices();
-
-              if (tripCount === 0) {
-                  $('#submit-button').hide();
-              }
-          });
-
-          $('#submit-button').hide();
-
-          $("#id_duty_card_no").autocomplete({
-              source: function(request, response) {
-                  $.ajax({
-                      url: "{% url 'duty-card-no-autocomplete' %}",
-                      dataType: "json",
-                      data: { term: request.term },
-                      success: function(data) {
-                          response($.map(data, function(item) {
-                              return { label: item, value: item };
-                          }));
-                      },
-                      error: function(xhr, status, error) {
-                          console.log("Error fetching autocomplete data:", error);
-                      }
-                  });
+        $("#id_duty_card_no").autocomplete({
+          source: function (request, response) {
+            $.ajax({
+              url: "{% url 'duty-card-no-autocomplete' %}",
+              dataType: "json",
+              data: { term: request.term },
+              success: function (data) {
+                response(
+                  $.map(data, function (item) {
+                    return { label: item, value: item };
+                  })
+                );
               },
-              minLength: 2,
-              select: function(event, ui) {
-                  $.ajax({
-                      url: "{% url 'get-duty-card-details' %}",
-                      dataType: "json",
-                      data: { duty_card_no: ui.item.value },
-                      success: function(data) {
-                          $('#trip-entries').empty();
-                          tripCount = 0;
-                          data.trips.forEach(function(trip, index) {
-                              addTripRow(trip, index);
-                          });
-                          if (tripCount > 0) {
-                              $('#submit-button').show();
-                          }
-                      },
-                      error: function(xhr, status, error) {
-                          console.log("Error fetching duty card details:", error);
-                      }
-                  });
+              error: function (xhr, status, error) {
+                console.log("Error fetching autocomplete data:", error);
               },
-              focus: function(event, ui) {
-                  event.preventDefault();
-                  $(this).val(ui.item.label);
-              }
-              
-          });
+            });
+          },
+          minLength: 2,
+          select: function (event, ui) {
+            $.ajax({
+              url: "{% url 'get-duty-card-details' %}",
+              dataType: "json",
+              data: { duty_card_no: ui.item.value },
+              success: function (data) {
+                $("#trip-entries").empty();
+                tripCount = 0;
+                data.trips.forEach(function (trip, index) {
+                  addTripRow(trip, index);
+                });
+                if (tripCount > 0) {
+                  $("#submit-button").show();
+                }
+              },
+              error: function (xhr, status, error) {
+                console.log("Error fetching duty card details:", error);
+              },
+            });
+          },
+          focus: function (event, ui) {
+            event.preventDefault();
+            $(this).val(ui.item.label);
+          },
+        });
       });
-    </script>   
-</body>
+    </script>
+  </body>
 </html>

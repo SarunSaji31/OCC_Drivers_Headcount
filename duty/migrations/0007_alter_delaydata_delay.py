@@ -2,7 +2,6 @@
 
 from django.db import migrations, models
 
-
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -13,7 +12,6 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="delaydata",
             name="delay",
-            field=models.CharField(blank=True, default=1, max_length=5),
-            preserve_default=False,
+            field=models.TimeField(blank=True, null=True),
         ),
     ]
