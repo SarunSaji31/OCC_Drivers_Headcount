@@ -143,6 +143,10 @@
           </div>
         </div>
       </div>
+      <!-- Full form definitions for OTP chart labels -->
+      <div class="mt-4 text-center text-sm text-gray-600">
+        <p><strong>OT</strong> = On Time, <strong>NST</strong> = Not Started On Time</p>
+      </div>
     </div>
 
     <!-- Filter Dashboard Section -->
@@ -257,7 +261,6 @@
       };
 
       window.fetchMostDelayedTrips = function () {
-        // For the monthly chart, use the selected date (filtering from the 1st of month to selected date)
         var selectedDate = dateFilter.val() || new Date().toISOString().split("T")[0];
         $.getJSON(
           "/get-most-delayed-trips-api",
@@ -336,9 +339,8 @@
           { period: period, selected_date: dateFilter.val() },
           function (data) {
             var ctx = document.getElementById(canvasId).getContext("2d");
-            // Use short labels: "OT" and "NST"
+            // Use short labels: "OT" (On Time) and "NST" (Not On Time)
             var labels = ["OT", "NST"];
-            // If a chart already exists for this canvas, destroy it.
             if (window[canvasId + "Chart"] instanceof Chart) {
               window[canvasId + "Chart"].destroy();
             }
@@ -366,14 +368,14 @@
                       size: 14,
                     },
                     formatter: function(value, context) {
-                      // Use short label and count in the center: e.g., "OT: 35"
                       return context.chart.data.labels[context.dataIndex] + ": " + value;
                     }
                   },
                   legend: { position: "top" },
                   title: { 
                     display: true, 
-                    text: period.charAt(0).toUpperCase() + period.slice(1) + " OTP" 
+                    text: period.charAt(0).toUpperCase() + period.slice(1) + " OTP", 
+                    font: { size: 16 }
                   },
                 },
               },
@@ -402,7 +404,6 @@
           updateDisplay(selectedDate);
           updateDashboard("until_date", selectedDate);
           fetchMostDelayedTrips();
-          // Update OTP donut charts:
           fetchOtpChart("daily", "otp-daily-chart");
           fetchOtpChart("monthly", "otp-monthly-chart");
           fetchOtpChart("yearly", "otp-yearly-chart");
