@@ -1285,26 +1285,36 @@ from .models import DelayData
 
 def get_most_delayed_trips_api(request):
     """
-    Returns the top 5 most delayed trips for the current month up to the selected date.
-    
-    If a GET parameter "selected_date" (format: YYYY-MM-DD) is provided, the query
-    will use that date as the upper bound (i.e. records from the 1st of the month until the selected date).
-    If no date is provided, it defaults to today's date.
+    Returns the top 5 most delayed trips.
+    Accepts either:
+      - "selected_month" in "YYYY-MM" format for full-month data, or
+      - "selected_date" in "YYYY-MM-DD" format to use records from the 1st until that date.
     """
-    selected_date_str = request.GET.get('selected_date')
-    if selected_date_str:
+    selected_month_str = request.GET.get('selected_month')
+    if selected_month_str:
         try:
-            selected_date = datetime.strptime(selected_date_str, '%Y-%m-%d').date()
-        except ValueError:
-            from django.utils.timezone import now
+            year, month = selected_month_str.split('-')
+            selected_year = int(year)
+            selected_month = int(month)
+            selected_date = date(selected_year, selected_month, 1)
+            last_day = calendar.monthrange(selected_year, selected_month)[1]
+            month_start = selected_date
+            month_end = date(selected_year, selected_month, last_day)
+        except Exception:
             selected_date = now().date()
+            month_start = selected_date.replace(day=1)
+            month_end = selected_date
     else:
-        from django.utils.timezone import now
-        selected_date = now().date()
-
-    # Use records only from the beginning of the month until the selected date.
-    month_start = selected_date.replace(day=1)
-    month_end = selected_date  # upper bound is the selected date
+        selected_date_str = request.GET.get('selected_date')
+        if selected_date_str:
+            try:
+                selected_date = datetime.strptime(selected_date_str, '%Y-%m-%d').date()
+            except ValueError:
+                selected_date = now().date()
+        else:
+            selected_date = now().date()
+        month_start = selected_date.replace(day=1)
+        month_end = selected_date
 
     delayed_trips = (
         DelayData.objects.filter(date__gte=month_start, date__lte=month_end)
@@ -1313,11 +1323,12 @@ def get_most_delayed_trips_api(request):
         .order_by('-delay_count')[:5]
     )
 
-    # Convert the 'sta' field to string for display purposes.
+    # Convert non-serializable fields (e.g. time objects) to string.
     for trip in delayed_trips:
         trip['sta'] = str(trip['sta'])
 
     return JsonResponse(list(delayed_trips), safe=False)
+
 
 from datetime import datetime, timedelta
 from django.http import JsonResponse
@@ -1326,40 +1337,45 @@ from duty.models import DelayData  # Ensure this import works after moving Delay
 
 def get_otp_chart_data(request):
     """
-    Returns OTP data for a given period: daily, monthly, or yearly.
-    Expects GET parameters:
+    Returns OTP data for a given period.
+    Expects:
       - period: "daily", "monthly", or "yearly"
-      - selected_date: in YYYY-MM-DD format (if not provided, defaults to today)
-    
-    OTP is computed by checking if (atd - std) > 10 minutes (trip failure).
-    Returns JSON: 
-      { "labels": ["On Time", "Not On Time"], "data": [on_time_count, failure_count] }
+      - For monthly filtering, an optional parameter "selected_month" in "YYYY-MM" format.
+      - Otherwise, "selected_date" in "YYYY-MM-DD" format.
     """
     period = request.GET.get("period", "daily").lower()
-    selected_date_str = request.GET.get("selected_date")
-    if selected_date_str:
+    selected_month_str = request.GET.get("selected_month")
+
+    if selected_month_str:
         try:
-            selected_date = datetime.strptime(selected_date_str, "%Y-%m-%d").date()
-        except ValueError:
-            from django.utils.timezone import now
+            year, month = selected_month_str.split('-')
+            selected_date = date(int(year), int(month), 1)
+        except Exception:
             selected_date = now().date()
     else:
-        from django.utils.timezone import now
-        selected_date = now().date()
+        selected_date_str = request.GET.get("selected_date")
+        if selected_date_str:
+            try:
+                selected_date = datetime.strptime(selected_date_str, "%Y-%m-%d").date()
+            except ValueError:
+                selected_date = now().date()
+        else:
+            selected_date = now().date()
 
     qs = DelayData.objects.all()
     if period == "daily":
         qs = qs.filter(date=selected_date)
     elif period == "monthly":
-        month_start = selected_date.replace(day=1)
-        qs = qs.filter(date__gte=month_start, date__lte=selected_date)
+        # Get the last day of the month.
+        last_day = calendar.monthrange(selected_date.year, selected_date.month)[1]
+        month_end = selected_date.replace(day=last_day)
+        qs = qs.filter(date__gte=selected_date, date__lte=month_end)
     elif period == "yearly":
         year_start = selected_date.replace(month=1, day=1)
         qs = qs.filter(date__gte=year_start, date__lte=selected_date)
     else:
         qs = qs.filter(date=selected_date)
 
-    # Annotate each record with delay_duration = atd - std.
     qs = qs.annotate(
         delay_duration=ExpressionWrapper(F("atd") - F("std"), output_field=DurationField())
     )
@@ -1373,68 +1389,80 @@ def get_otp_chart_data(request):
     }
     return JsonResponse(data)
 
-
-from datetime import datetime
+from datetime import datetime, date, timedelta
+import calendar
 from django.http import JsonResponse
-from django.db.models import Q
+from django.db.models import Count, ExpressionWrapper, DurationField, F, Q
+from django.utils.timezone import now
 from .models import DelayData, BreakdownReport
 
 def filter_dashboard(request):
+    """
+    Returns dashboard statistics.
+    Supports two filter types:
+      - "until_date": expects filter_value in YYYY-MM-DD format (daily filter)
+      - "month": expects filter_value in YYYY-MM format (full month statistics)
+    """
     filter_type = request.GET.get('filter_type')
     filter_value = request.GET.get('filter_value')
-
-    # Debugging: Log incoming parameters
     print(f"Filter Type: {filter_type}, Filter Value: {filter_value}")
 
-    # Validate input
     if not filter_type or not filter_value:
         return JsonResponse({'error': 'Missing filter_type or filter_value.'}, status=400)
 
-    if filter_type != 'until_date':
-        return JsonResponse({'error': 'Invalid filter type. Expected "until_date".'}, status=400)
+    if filter_type == 'until_date':
+        try:
+            selected_date = datetime.strptime(filter_value, '%Y-%m-%d').date()
+        except ValueError:
+            return JsonResponse({'error': 'Invalid filter_value format. Must be YYYY-MM-DD.'}, status=400)
 
-    try:
-        # Parse the selected date
-        selected_date = datetime.strptime(filter_value, '%Y-%m-%d').date()
-    except ValueError:
-        return JsonResponse({'error': 'Invalid filter_value format. Must be YYYY-MM-DD.'}, status=400)
-
-    try:
-        # Fetch statistics up to the selected date
         daily_delays = DelayData.objects.filter(date=selected_date).count()
         daily_breakdowns = BreakdownReport.objects.filter(breakdown_datetime__date=selected_date).count()
 
-        monthly_delays = DelayData.objects.filter(
-            Q(date__month=selected_date.month, date__year=selected_date.year) & Q(date__lte=selected_date)
-        ).count()
-        monthly_breakdowns = BreakdownReport.objects.filter(
-            Q(breakdown_datetime__month=selected_date.month, breakdown_datetime__year=selected_date.year) &
-            Q(breakdown_datetime__date__lte=selected_date)
-        ).count()
+        monthly_delays = DelayData.objects.filter(date__year=selected_date.year,
+                                                   date__month=selected_date.month).count()
+        monthly_breakdowns = BreakdownReport.objects.filter(breakdown_datetime__year=selected_date.year,
+                                                             breakdown_datetime__month=selected_date.month).count()
 
-        yearly_delays = DelayData.objects.filter(
-            Q(date__year=selected_date.year) & Q(date__lte=selected_date)
-        ).count()
-        yearly_breakdowns = BreakdownReport.objects.filter(
-            Q(breakdown_datetime__year=selected_date.year) & Q(breakdown_datetime__date__lte=selected_date)
-        ).count()
+        yearly_delays = DelayData.objects.filter(date__year=selected_date.year).count()
+        yearly_breakdowns = BreakdownReport.objects.filter(breakdown_datetime__year=selected_date.year).count()
 
-        # Build and return the response
-        return JsonResponse({
-            'daily_delays': daily_delays,
-            'daily_breakdowns': daily_breakdowns,
-            'monthly_delays': monthly_delays,
-            'monthly_breakdowns': monthly_breakdowns,
-            'yearly_delays': yearly_delays,
-            'yearly_breakdowns': yearly_breakdowns,
-            'chart_data': generate_chart_data(
-                daily_delays, daily_breakdowns, monthly_delays, monthly_breakdowns, yearly_delays, yearly_breakdowns
-            )
-        })
+    elif filter_type == 'month':
+        # Expecting filter_value in "YYYY-MM" format.
+        try:
+            year_str, month_str = filter_value.split('-')
+            selected_year = int(year_str)
+            selected_month = int(month_str)
+            selected_date = date(selected_year, selected_month, 1)
+        except Exception:
+            return JsonResponse({'error': 'Invalid filter_value format. Must be YYYY-MM.'}, status=400)
 
-    except Exception as e:
-        print(f"Unexpected error: {e}")
-        return JsonResponse({'error': 'An unexpected error occurred.'}, status=500)
+        # For a full month, count all records within that month.
+        daily_delays = DelayData.objects.filter(date=selected_date).count()  # (if needed)
+        daily_breakdowns = BreakdownReport.objects.filter(breakdown_datetime__date=selected_date).count()
+
+        monthly_delays = DelayData.objects.filter(date__year=selected_year,
+                                                   date__month=selected_month).count()
+        monthly_breakdowns = BreakdownReport.objects.filter(breakdown_datetime__year=selected_year,
+                                                             breakdown_datetime__month=selected_month).count()
+
+        yearly_delays = DelayData.objects.filter(date__year=selected_year).count()
+        yearly_breakdowns = BreakdownReport.objects.filter(breakdown_datetime__year=selected_year).count()
+    else:
+        return JsonResponse({'error': 'Invalid filter type. Expected "until_date" or "month".'}, status=400)
+
+    return JsonResponse({
+        'daily_delays': daily_delays,
+        'daily_breakdowns': daily_breakdowns,
+        'monthly_delays': monthly_delays,
+        'monthly_breakdowns': monthly_breakdowns,
+        'yearly_delays': yearly_delays,
+        'yearly_breakdowns': yearly_breakdowns,
+        'chart_data': generate_chart_data(  # Assumes you have this helper function defined.
+            daily_delays, daily_breakdowns, monthly_delays, monthly_breakdowns, yearly_delays, yearly_breakdowns
+        )
+    })
+
 
 
 def generate_chart_data(daily_delays, daily_breakdowns, monthly_delays, monthly_breakdowns, yearly_delays, yearly_breakdowns):
