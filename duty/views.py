@@ -1520,209 +1520,81 @@ def public_stm_dashboard(request):
     return render(request, 'duty/STM_dashboard.html', {'delayed_trips': delayed_trips})
 
 
-# views.py
-from django.shortcuts import render, redirect
-from django.utils import timezone
-from django.views.decorators.http import require_POST
-from django.http import JsonResponse
-from .models import DutyCardTrip, DriverTrip
 
-def interactive_admin(request):
-    """
-    Renders the interactive admin page.
-    Ensure the template is at 'duty/interactive_admin.html'
-    """
-    current_date = timezone.now().strftime("%Y-%m-%d")
-    return render(request, 'duty/interactive_admin.html', {'current_date': current_date})
 
-def search_duty_card(request):
-    """
-    Searches for all DutyCardTrip records by duty_card_no (case-insensitive)
-    and returns all matching records along with any related DriverTrip records as JSON.
-    
-    If exactly one DutyCardTrip is found, returns:
-      {
-         "duty_trip": { ... },
-         "driver_trips": [ ... ]
-      }
-    If multiple DutyCardTrip records are found, returns:
-      {
-         "duty_trips": [
-              { "id": ..., "duty_card_no": ..., "route_name": ..., "trip_type": ..., 
-                "pick_up_time": ..., "drop_off_time": ..., "shift_time": ..., 
-                "capacity": ..., "submission_date": ..., "driver_trips": [ ... ] },
-              { ... },
-              ...
-         ]
-      }
-    """
-    duty_card_no = request.GET.get('duty_card_no', '').strip()
-    if not duty_card_no:
-        return JsonResponse({'error': 'Duty card number is required.'}, status=400)
-    
-    # Retrieve all DutyCardTrip records matching the duty_card_no (ignoring case)
-    duty_trips = DutyCardTrip.objects.filter(duty_card_no__iexact=duty_card_no)
-    if not duty_trips.exists():
-        return JsonResponse({'error': 'Duty card not found.'}, status=404)
-    
-    # Helper function to serialize a DutyCardTrip record.
-    def serialize_duty_trip(trip):
-        return {
-            'id': trip.id,
-            'duty_card_no': trip.duty_card_no,
-            'route_name': trip.route_name,
-            'trip_type': trip.trip_type,
-            'pick_up_time': trip.pick_up_time.strftime("%H:%M") if trip.pick_up_time else "",
-            'drop_off_time': trip.drop_off_time.strftime("%H:%M") if trip.drop_off_time else "",
-            'shift_time': trip.shift_time.strftime("%H:%M") if trip.shift_time else "",
-            'capacity': trip.capacity,
-            'submission_date': trip.submission_date.strftime("%Y-%m-%d") if trip.submission_date else "",
-        }
-    
-    # Helper function to serialize a DriverTrip record.
-    def serialize_driver_trip(trip):
-        driver_obj = trip.driver
-        # Use the driver's 'driver_name' attribute if available; otherwise fallback to string conversion.
-        if driver_obj is None:
-            driver_name = ""
-        else:
-            try:
-                driver_name = driver_obj.driver_name
-            except AttributeError:
-                driver_name = str(driver_obj)
-        return {
-            'id': trip.id,
-            'driver': driver_name,
-            'duty_card': trip.duty_card.duty_card_no if trip.duty_card else "",
-            'route_name': trip.route_name,
-            'trip_type': trip.trip_type,
-            'pick_up_time': trip.pick_up_time.strftime("%H:%M") if trip.pick_up_time else "",
-            'drop_off_time': trip.drop_off_time.strftime("%H:%M") if trip.drop_off_time else "",
-            'shift_time': trip.shift_time.strftime("%H:%M") if trip.shift_time else "",
-            'head_count': trip.head_count,
-            'date': trip.date.strftime("%Y-%m-%d") if trip.date else "",
-        }
-    
-    # Build response:
-    if duty_trips.count() == 1:
-        # Exactly one DutyCardTrip record found
-        duty_trip = duty_trips.first()
-        duty_trip_data = serialize_duty_trip(duty_trip)
-        driver_trips = DriverTrip.objects.filter(duty_card=duty_trip)
-        driver_trips_data = [serialize_driver_trip(dt) for dt in driver_trips]
-        return JsonResponse({
-            'duty_trip': duty_trip_data,
-            'driver_trips': driver_trips_data,
-        })
+from django.shortcuts import render
+from .forms import BusKmTrackingForm
+
+def submit_bus_km(request):
+    success = False  # Flag to indicate a successful submission
+
+    if request.method == "POST":
+        form = BusKmTrackingForm(request.POST)
+        if form.is_valid():
+            form.save()
+            success = True  # Set flag on successful save
+            form = BusKmTrackingForm()  # Reset form after saving
     else:
-        # Multiple DutyCardTrip records found
-        duty_trips_data = []
-        for duty_trip in duty_trips:
-            trip_data = serialize_duty_trip(duty_trip)
-            driver_trips = DriverTrip.objects.filter(duty_card=duty_trip)
-            trip_data['driver_trips'] = [serialize_driver_trip(dt) for dt in driver_trips]
-            duty_trips_data.append(trip_data)
-        return JsonResponse({'duty_trips': duty_trips_data})
+        form = BusKmTrackingForm()
+    
+    context = {
+        'form': form,
+        'success': success,
+    }
+    return render(request, 'duty/submit_bus_km.html', context)
 
-@require_POST
-def duty_card_trip_save(request):
-    """
-    Save a new DutyCardTrip record using form data.
-    """
-    duty_card_no = request.POST.get('duty_card_no')
-    route_name = request.POST.get('route_name')
-    trip_type = request.POST.get('trip_type')
-    pick_up_time = request.POST.get('pick_up_time')
-    drop_off_time = request.POST.get('drop_off_time')
-    shift_time = request.POST.get('shift_time')
-    capacity = request.POST.get('capacity')
-    
-    DutyCardTrip.objects.create(
-        duty_card_no=duty_card_no,
-        route_name=route_name,
-        trip_type=trip_type,
-        pick_up_time=pick_up_time,
-        drop_off_time=drop_off_time,
-        shift_time=shift_time,
-        capacity=capacity,
-    )
-    return redirect('interactive_admin')
 
-@require_POST
-def driver_trip_save(request):
-    """
-    Save a new DriverTrip record using form data.
-    If 'duty_card' is a ForeignKey, this code attempts to resolve it by duty card number.
-    """
-    driver = request.POST.get('driver')
-    duty_card_no = request.POST.get('duty_card')
-    route_name = request.POST.get('route_name')
-    trip_type = request.POST.get('trip_type')
-    pick_up_time = request.POST.get('pick_up_time')
-    drop_off_time = request.POST.get('drop_off_time')
-    shift_time = request.POST.get('shift_time')
-    head_count = request.POST.get('head_count')
-    date = request.POST.get('date')
-    
-    duty_trip = DutyCardTrip.objects.filter(duty_card_no__iexact=duty_card_no).first()
-    
-    DriverTrip.objects.create(
-        driver=driver,
-        duty_card=duty_trip,
-        route_name=route_name,
-        trip_type=trip_type,
-        pick_up_time=pick_up_time,
-        drop_off_time=drop_off_time,
-        shift_time=shift_time,
-        head_count=head_count,
-        date=date,
-    )
-    return redirect('interactive_admin')
+from django.shortcuts import render, redirect
+from .forms import BusKmTrackingForm
+# (Assume you have a DriverTripForm or formset for driver trip details.)
+# from .forms import DriverTripForm  # Uncomment and use if needed
 
-@require_POST
-def update_duty_card_trip(request):
+def submit_driver_trip(request):
     """
-    Update an existing DutyCardTrip record using AJAX POST data.
-    Returns JSON indicating success or error.
+    Step 1: Process driver trip (head count) details.
+    After processing, redirect to the bus & km details page.
     """
-    trip_id = request.POST.get('id')
-    try:
-        duty_trip = DutyCardTrip.objects.get(id=trip_id)
-    except DutyCardTrip.DoesNotExist:
-        return JsonResponse({'error': 'DutyCardTrip not found.'}, status=404)
+    if request.method == "POST":
+        # --- Process and save the driver trip details here ---
+        # For example, if using a form or formset:
+        #
+        # form = DriverTripForm(request.POST)
+        # if form.is_valid():
+        #     form.save()
+        #
+        # Alternatively, process a formset.
+        #
+        # (For this example, we assume the data is processed.)
+        
+        # After processing head count details, redirect:
+        return redirect('submit_bus_km')
     
-    duty_trip.duty_card_no = request.POST.get('duty_card_no')
-    duty_trip.route_name = request.POST.get('route_name')
-    duty_trip.trip_type = request.POST.get('trip_type')
-    duty_trip.pick_up_time = request.POST.get('pick_up_time')
-    duty_trip.drop_off_time = request.POST.get('drop_off_time')
-    duty_trip.shift_time = request.POST.get('shift_time')
-    duty_trip.capacity = request.POST.get('capacity')
-    duty_trip.save()
-    return JsonResponse({'success': True})
+    # Render the head count page.
+    # (This template is provided below.)
+    context = {
+        # Pass any context variables (e.g., error_message, success_message) if needed.
+    }
+    return render(request, 'duty/enter_head_count.html', context)
 
-@require_POST
-def update_driver_trip(request):
+
+def submit_bus_km(request):
     """
-    Update an existing DriverTrip record using AJAX POST data.
-    Returns JSON indicating success or error.
+    Step 2: Render and process the Bus & Km details form.
+    After successful submission, show a success message on the same page.
     """
-    trip_id = request.POST.get('id')
-    try:
-        driver_trip = DriverTrip.objects.get(id=trip_id)
-    except DriverTrip.DoesNotExist:
-        return JsonResponse({'error': 'DriverTrip not found.'}, status=404)
+    success = False  # Flag to indicate successful save
+    if request.method == "POST":
+        form = BusKmTrackingForm(request.POST)
+        if form.is_valid():
+            form.save()
+            success = True
+            # Optionally, reset the form after saving
+            form = BusKmTrackingForm()
+    else:
+        form = BusKmTrackingForm()
     
-    driver_trip.driver = request.POST.get('driver')
-    duty_card_no = request.POST.get('duty_card')
-    duty_trip = DutyCardTrip.objects.filter(duty_card_no__iexact=duty_card_no).first()
-    driver_trip.duty_card = duty_trip
-    driver_trip.route_name = request.POST.get('route_name')
-    driver_trip.trip_type = request.POST.get('trip_type')
-    driver_trip.pick_up_time = request.POST.get('pick_up_time')
-    driver_trip.drop_off_time = request.POST.get('drop_off_time')
-    driver_trip.shift_time = request.POST.get('shift_time')
-    driver_trip.head_count = request.POST.get('head_count')
-    driver_trip.date = request.POST.get('date')
-    driver_trip.save()
-    return JsonResponse({'success': True})
+    context = {
+        'form': form,
+        'success': success,
+    }
+    return render(request, 'duty/submit_bus_km.html', context)

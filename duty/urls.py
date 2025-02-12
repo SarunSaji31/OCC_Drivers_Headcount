@@ -9,12 +9,7 @@ from .views import (
     fleet_counts_api,
     download_fleet_report,
     get_most_delayed_trips_api,
-    interactive_admin,
-    search_duty_card,
-    duty_card_trip_save,
-    driver_trip_save,
-    update_duty_card_trip,
-    update_driver_trip,
+    
 )
 
 urlpatterns = [
@@ -94,7 +89,8 @@ urlpatterns = [
     path('public-stm-dashboard/', views.public_stm_dashboard, name='public_stm_dashboard'),
     path('get-otp-chart-data/', views.get_otp_chart_data, name='get_otp_chart_data'),
 
- 
+    # URL for Bus and Kilometer Submission
+    path('submit-bus-km/', views.submit_bus_km, name='submit_bus_km'),
 ]
 
 # Serve static and media files during development

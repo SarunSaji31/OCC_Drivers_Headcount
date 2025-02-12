@@ -135,3 +135,21 @@ class StmShiftTime(models.Model):
     class Meta:
         db_table = 'Stm_ShiftTime'
         ordering = ['stop_order', 'time']
+
+
+# Bus and Kilometer Model
+from django.db import models
+
+class BusKmTracking(models.Model):
+    bus_no = models.CharField(max_length=20, verbose_name="Bus Number")
+    start_km = models.PositiveIntegerField(verbose_name="Start Kilometer")
+    end_km = models.PositiveIntegerField(verbose_name="End Kilometer")
+    bus_change = models.BooleanField(default=False, verbose_name="Bus Changed (Optional)")
+    start_time = models.TimeField(null=True, blank=True, verbose_name="Start Time (Optional)")
+    end_time = models.TimeField(null=True, blank=True, verbose_name="End Time (Optional)")
+    start_km_change = models.PositiveIntegerField(null=True, blank=True, verbose_name="Start Kilometer (Optional)")
+    end_km_change = models.PositiveIntegerField(null=True, blank=True, verbose_name="End Kilometer (Optional)")
+
+    def __str__(self):
+        return f"Bus {self.bus_no} - Start: {self.start_km}, End: {self.end_km}"
+

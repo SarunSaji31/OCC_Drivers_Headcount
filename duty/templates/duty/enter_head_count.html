@@ -108,40 +108,34 @@
       </div>
       {% endif %}
 
+      <!-- The form will be processed by the submit_driver_trip view -->
       <form id="driver-trip-form" method="post">
         {% csrf_token %}
-        <div class="mb-6">
+        <!-- Hidden inputs for staff info -->
+        <input type="hidden" id="id_staff_id" name="staff_id" value="{{ user.username }}" />
+        <input type="hidden" id="id_driver_name" name="driver_name" value="{{ staff_name }}" />
+
+        <!-- Example: A field for Duty Card No -->
+        <div class="mb-4">
+          <label for="id_duty_card_no" class="block text-gray-700 font-medium mb-2">
+            Duty Card No
+          </label>
           <input
-            type="hidden"
-            id="id_staff_id"
-            name="staff_id"
-            value="{{ user.username }}"
+            type="text"
+            id="id_duty_card_no"
+            name="duty_card_no"
+            class="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-blue-500"
+            placeholder="e.g., A012"
+            required
           />
-          <input
-            type="hidden"
-            id="id_driver_name"
-            name="driver_name"
-            value="{{ staff_name }}"
-          />
-          <div class="mb-4">
-            <label for="id_duty_card_no" class="block text-gray-700 font-medium mb-2"
-              >Duty Card No</label
-            >
-            <input
-              type="text"
-              id="id_duty_card_no"
-              name="duty_card_no"
-              class="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-blue-500"
-              placeholder="e.g., A012"
-              required
-            />
-          </div>
         </div>
 
+        <!-- Trip Entries Container -->
         <div id="trip-entries" class="space-y-6">
-          <!-- Trip form entries will be dynamically added here -->
+          <!-- Trip form entries will be dynamically added here via JavaScript -->
         </div>
 
+        <!-- Management fields for formset (if applicable) -->
         <input
           type="hidden"
           name="drivertrip_set-TOTAL_FORMS"
@@ -152,13 +146,8 @@
         <input type="hidden" name="drivertrip_set-MIN_NUM_FORMS" value="0" />
         <input type="hidden" name="drivertrip_set-MAX_NUM_FORMS" value="1000" />
 
-        <div
-          id="button-container"
-          class="mt-6 flex items-center space-x-4 justify-center"
-        >
-          <div id="add-row" class="cursor-pointer text-green-600 text-2xl font-bold">
-            +
-          </div>
+        <div id="button-container" class="mt-6 flex items-center space-x-4 justify-center">
+          <div id="add-row" class="cursor-pointer text-green-600 text-2xl font-bold">+</div>
           <button
             type="submit"
             class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded"
@@ -171,25 +160,19 @@
     </div>
 
     <!-- Footer -->
-    <footer
-      class="bg-gray-200 text-gray-800 text-center py-4 mt-8 border-t border-gray-300"
-    >
+    <footer class="bg-gray-200 text-gray-800 text-center py-4 mt-8 border-t border-gray-300">
       <p>&copy; Emirates Airline Staff Transport Project.</p>
     </footer>
 
     <!-- Scripts -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
-    <!-- Removed Bootstrap JS -->
-
     <script>
       // Mobile Navbar Toggle
-      document
-        .getElementById("nav-toggle")
-        .addEventListener("click", function () {
-          var mobileMenu = document.getElementById("mobile-menu");
-          mobileMenu.classList.toggle("hidden");
-        });
+      document.getElementById("nav-toggle").addEventListener("click", function () {
+        var mobileMenu = document.getElementById("mobile-menu");
+        mobileMenu.classList.toggle("hidden");
+      });
 
       $(document).ready(function () {
         var tripCount = 0;
@@ -202,78 +185,44 @@
                     <label class="block text-gray-700 font-medium mb-1">Route Name</label>
                     ${
                       tripData.route_name
-                        ? `
-                      <div class="flex items-center">
-                        <a href="/route-details/?route=${encodeURIComponent(
-                          tripData.route_name
-                        )}&shift_time=${encodeURIComponent(
-                          tripData.shift_time || ""
-                        )}&type=${encodeURIComponent(
-                            tripData.trip_type || ""
-                          )}" 
-                           class="underline text-blue-600" target="_blank">
-                          Routes
-                        </a>
-                        <input 
-                          type="text" 
-                          name="drivertrip_set-${index}-route_name" 
-                          class="ml-4 w-full border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-blue-500" 
-                          value="${tripData.route_name}" 
-                          required
-                        />
-                      </div>
-                    `
-                        : `
-                      <input type="text" name="drivertrip_set-${index}-route_name" class="w-full border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-blue-500" placeholder="Enter Route Name" required>
-                    `
+                        ? `<div class="flex items-center">
+                             <a href="/route-details/?route=${encodeURIComponent(tripData.route_name)}&shift_time=${encodeURIComponent(tripData.shift_time || "")}&type=${encodeURIComponent(tripData.trip_type || "")}" 
+                                class="underline text-blue-600" target="_blank">Routes</a>
+                             <input type="text" name="drivertrip_set-${index}-route_name" class="ml-4 w-full border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-blue-500" value="${tripData.route_name}" required />
+                           </div>`
+                        : `<input type="text" name="drivertrip_set-${index}-route_name" class="w-full border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-blue-500" placeholder="Enter Route Name" required>`
                     }
                   </div>
                   <div>
                     <label class="block text-gray-700 font-medium mb-1">Type</label>
                     <select name="drivertrip_set-${index}-trip_type" class="w-full border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-blue-500" required>
-                      <option value="inbound" ${
-                        tripData.trip_type === "inbound" ? "selected" : ""
-                      }>Inbound</option>
-                      <option value="outbound" ${
-                        tripData.trip_type === "outbound" || !tripData.trip_type
-                          ? "selected"
-                          : ""
-                      }>Outbound</option>
+                      <option value="inbound" ${tripData.trip_type === "inbound" ? "selected" : ""}>Inbound</option>
+                      <option value="outbound" ${tripData.trip_type === "outbound" || !tripData.trip_type ? "selected" : ""}>Outbound</option>
                     </select>
                   </div>
                   <div>
                     <label class="block text-gray-700 font-medium mb-1">Pick Up Time</label>
-                    <input type="time" name="drivertrip_set-${index}-pick_up_time" class="w-full border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-blue-500" value="${
-                      tripData.pick_up_time || ""
-                    }" required>
+                    <input type="time" name="drivertrip_set-${index}-pick_up_time" class="w-full border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-blue-500" value="${tripData.pick_up_time || ""}" required>
                   </div>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                   <div>
                     <label class="block text-gray-700 font-medium mb-1">Drop Off Time</label>
-                    <input type="time" name="drivertrip_set-${index}-drop_off_time" class="w-full border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-blue-500" value="${
-                      tripData.drop_off_time || ""
-                    }" required>
+                    <input type="time" name="drivertrip_set-${index}-drop_off_time" class="w-full border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-blue-500" value="${tripData.drop_off_time || ""}" required>
                   </div>
                   <div>
                     <label class="block text-gray-700 font-medium mb-1">Shift Time</label>
-                    <input type="time" name="drivertrip_set-${index}-shift_time" class="w-full border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-blue-500" value="${
-                      tripData.shift_time || ""
-                    }" required>
+                    <input type="time" name="drivertrip_set-${index}-shift_time" class="w-full border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-blue-500" value="${tripData.shift_time || ""}" required>
                   </div>
                   <div>
                     <label class="block text-gray-700 font-medium mb-1">Date</label>
-                    <input type="date" name="drivertrip_set-${index}-date" class="w-full border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-blue-500" value="${
-                      tripData.date || ""
-                    }" required>
+                    <input type="date" name="drivertrip_set-${index}-date" class="w-full border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-blue-500" value="${tripData.date || ""}" required>
                   </div>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
                   <div>
                     <label class="block text-gray-700 font-medium mb-1">Head Count</label>
-                    <input type="number" name="drivertrip_set-${index}-head_count" class="w-full border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-blue-500" placeholder="Enter Head Count" value="${
-                      tripData.head_count || ""
-                    }" min="0" max="47" required>
+                    <input type="number" name="drivertrip_set-${index}-head_count" class="w-full border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-blue-500" placeholder="Enter Head Count" value="${tripData.head_count || ""}" min="0" max="47" required>
                   </div>
                   <div class="text-right">
                     <span class="remove-trip cursor-pointer text-red-600 font-bold">Remove</span>
@@ -290,13 +239,11 @@
         function updateFormIndices() {
           $(".trip-form-container").each(function (index) {
             $(this).attr("data-index", index);
-            $(this)
-              .find("input, select")
-              .each(function () {
-                const name = $(this).attr("name");
-                const newName = name.replace(/\d+/, index);
-                $(this).attr("name", newName);
-              });
+            $(this).find("input, select").each(function () {
+              const name = $(this).attr("name");
+              const newName = name.replace(/\d+/, index);
+              $(this).attr("name", newName);
+            });
           });
           $("#id_drivertrip_set-TOTAL_FORMS").val(tripCount);
         }
@@ -310,7 +257,6 @@
           $(this).closest(".trip-form-container").remove();
           tripCount--;
           updateFormIndices();
-
           if (tripCount === 0) {
             $("#submit-button").hide();
           }
@@ -325,11 +271,9 @@
               dataType: "json",
               data: { term: request.term },
               success: function (data) {
-                response(
-                  $.map(data, function (item) {
-                    return { label: item, value: item };
-                  })
-                );
+                response($.map(data, function (item) {
+                  return { label: item, value: item };
+                }));
               },
               error: function (xhr, status, error) {
                 console.log("Error fetching autocomplete data:", error);

@@ -174,3 +174,33 @@ from django import forms
 
 class UploadFileForm(forms.Form):
     file = forms.FileField(label="Upload Combined File (Inbound & Outbound)")
+
+
+
+# Bus Kilometer Tracking Form using the BusDetails model
+from django import forms
+from .models import BusKmTracking  # Now this model exists
+
+class BusKmTrackingForm(forms.ModelForm):
+    class Meta:
+        model = BusKmTracking
+        fields = [
+            'bus_no',
+            'start_km',
+            'end_km',
+            'bus_change',       # This field name matches the model
+            'start_time',
+            'end_time',
+            'start_km_change',
+            'end_km_change',
+        ]
+        widgets = {
+            'bus_no': forms.TextInput(attrs={'class': 'form-control'}),
+            'start_km': forms.NumberInput(attrs={'class': 'form-control'}),
+            'end_km': forms.NumberInput(attrs={'class': 'form-control'}),
+            'bus_change': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'start_time': forms.TimeInput(attrs={'class': 'form-control', 'type': 'time'}),
+            'end_time': forms.TimeInput(attrs={'class': 'form-control', 'type': 'time'}),
+            'start_km_change': forms.NumberInput(attrs={'class': 'form-control'}),
+            'end_km_change': forms.NumberInput(attrs={'class': 'form-control'}),
+        }

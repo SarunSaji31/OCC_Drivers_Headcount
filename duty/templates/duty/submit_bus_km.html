@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Submitting Bus & Km</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+  <div class="min-h-screen flex items-center justify-center">
+    <div class="w-full max-w-2xl bg-white shadow-lg rounded-lg p-6">
+      <h1 class="text-2xl font-bold text-gray-800 mb-4 text-center">Submitting Bus & Km</h1>
+
+      <!-- Display success message if data is saved -->
+      {% if success %}
+      <div class="mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
+        Data saved successfully!
+      </div>
+      {% endif %}
+
+      <form method="POST" class="space-y-4">
+        {% csrf_token %}
+        <!-- Loop over each field in the form and render it individually -->
+        {% for field in form %}
+          <div class="mb-4">
+            <label for="{{ field.id_for_label }}" class="block text-gray-700 font-medium mb-1">
+              {{ field.label }}
+            </label>
+            {{ field }}
+            {% if field.help_text %}
+              <small class="text-gray-500">{{ field.help_text }}</small>
+            {% endif %}
+            {% if field.errors %}
+              {% for error in field.errors %}
+                <p class="text-red-500 text-xs italic">{{ error }}</p>
+              {% endfor %}
+            {% endif %}
+          </div>
+        {% empty %}
+          <!-- If there are no fields, show a message for debugging -->
+          <p class="text-red-500">No fields to display. Please check your form definition.</p>
+        {% endfor %}
+        <button 
+          type="submit" 
+          id="submit-button" 
+          class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-green-400">
+          Submit
+        </button>
+      </form>
+    </div>
+  </div>
+</body>
+</html>
