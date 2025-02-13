@@ -1329,11 +1329,12 @@ def get_most_delayed_trips_api(request):
 
     return JsonResponse(list(delayed_trips), safe=False)
 
-
-from datetime import datetime, timedelta
+from datetime import datetime, date, timedelta
+import calendar
 from django.http import JsonResponse
 from django.db.models import ExpressionWrapper, F, DurationField
-from duty.models import DelayData  # Ensure this import works after moving DelayData to the top level
+from django.utils.timezone import now
+from duty.models import DelayData  # Ensure this import works correctly
 
 def get_otp_chart_data(request):
     """
@@ -1349,9 +1350,11 @@ def get_otp_chart_data(request):
     if selected_month_str:
         try:
             year, month = selected_month_str.split('-')
+            # For monthly charts, always start at the first day of the month.
             selected_date = date(int(year), int(month), 1)
         except Exception:
-            selected_date = now().date()
+            # Fallback to the first day of the current month if parsing fails.
+            selected_date = now().date().replace(day=1)
     else:
         selected_date_str = request.GET.get("selected_date")
         if selected_date_str:
@@ -1360,12 +1363,15 @@ def get_otp_chart_data(request):
             except ValueError:
                 selected_date = now().date()
         else:
-            selected_date = now().date()
+            # If no date is provided and we're in monthly mode, use the first day of the current month.
+            selected_date = now().date().replace(day=1) if period == "monthly" else now().date()
 
     qs = DelayData.objects.all()
     if period == "daily":
         qs = qs.filter(date=selected_date)
     elif period == "monthly":
+        # Ensure we start from the first day of the month
+        selected_date = selected_date.replace(day=1)
         # Get the last day of the month.
         last_day = calendar.monthrange(selected_date.year, selected_date.month)[1]
         month_end = selected_date.replace(day=last_day)
@@ -1388,6 +1394,7 @@ def get_otp_chart_data(request):
         "data": [on_time_count, failure_count],
     }
     return JsonResponse(data)
+
 
 from datetime import datetime, date, timedelta
 import calendar
