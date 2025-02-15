@@ -72,9 +72,12 @@ def home(request):
     }
     return render(request, 'duty/home.html', context)
 
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
+from .models import BusKmTracking, DriverImportLog, DriverTrip
+
 @login_required
 def submission_history(request):
-    """Display a summary of the submission history of the logged-in user."""
     staff_id = request.user.username
     driver = DriverImportLog.objects.filter(staff_id=staff_id).first()
 
@@ -83,28 +86,31 @@ def submission_history(request):
             'error_message': "No submission history found for this user."
         })
 
-    # Group submissions by date and duty card number
-    submissions = DriverTrip.objects.filter(driver=driver).order_by('-date')
+    # Group DriverTrip submissions by (formatted_date, duty_card_no) if needed.
+    driver_trips = DriverTrip.objects.filter(driver=driver).order_by('-date')
     submission_summary = {}
-    for trip in submissions:
-        key = (trip.date, trip.duty_card.duty_card_no)
+    for trip in driver_trips:
+        formatted_date = trip.date.strftime("%Y-%m-%d")
+        duty_no = trip.duty_card.duty_card_no if trip.duty_card else "N/A"
+        key = (formatted_date, duty_no)
         if key not in submission_summary:
             submission_summary[key] = []
         submission_summary[key].append(trip)
-
+    
+    # Retrieve BusKmTracking entries for this driver.
+    # We'll use the submission_date from BusKmTracking directly.
+    bus_km_entries = BusKmTracking.objects.filter(driver=driver).order_by('-id')
+    
     context = {
         'staff_name': driver.driver_name,
         'submission_summary': submission_summary,
+        'bus_km_entries': bus_km_entries,
     }
-
     return render(request, 'duty/user_submission_history.html', context)
+
 
 @login_required
 def enter_head_count(request):
-    """
-    Handle the form for entering headcount details.
-    Display success message on the same page without redirection.
-    """
     staff_id = request.user.username
     driver = DriverImportLog.objects.filter(staff_id=staff_id).first()
 
@@ -114,7 +120,6 @@ def enter_head_count(request):
         })
 
     staff_name = driver.driver_name or staff_id
-    success_message = None  # To hold the success message
 
     if request.method == 'POST':
         trip_formset = DriverTripFormSet(request.POST, prefix='drivertrip_set')
@@ -160,7 +165,8 @@ def enter_head_count(request):
                 trip.driver = driver
                 trip.duty_card = duty_card
                 trip.save()
-            success_message = "The headcount has been successfully saved."  # Set success message
+            # Redirect to the Bus/Km details page
+            return redirect('submit_bus_km')
         else:
             return render(request, 'duty/enter_head_count.html', {
                 'trip_formset': trip_formset,
@@ -172,7 +178,6 @@ def enter_head_count(request):
     return render(request, 'duty/enter_head_count.html', {
         'trip_formset': trip_formset,
         'staff_name': staff_name,
-        'success_message': success_message,  # Pass success message to template
     })
 
 
@@ -356,11 +361,9 @@ def duty_card_no_autocomplete(request):
         qs = DutyCardTrip.objects.filter(duty_card_no__icontains=term).values_list('duty_card_no', flat=True)
         duty_card_nos = list(set(qs))
         return JsonResponse(duty_card_nos, safe=False)
-
+from datetime import datetime  # now using the datetime class directly
 from django.http import JsonResponse
-from datetime import datetime,date
-from .models import DutyCardTrip  # Ensure this imports your model correctly
-
+from .models import DutyCardTrip
 
 def get_duty_card_details(request):
     """
@@ -368,7 +371,6 @@ def get_duty_card_details(request):
     """
     if 'duty_card_no' in request.GET:
         duty_card_no = request.GET.get('duty_card_no')
-
         # Fetch trips from the database and order by pick_up_time
         trips = DutyCardTrip.objects.filter(duty_card_no=duty_card_no).order_by('pick_up_time')
 
@@ -377,19 +379,18 @@ def get_duty_card_details(request):
 
         trip_details = []
         for trip in trips:
-            # Normalize the trip_type field
+            # Normalize the trip_type field (adjust as needed)
             normalized_trip_type = 'inbound' if trip.trip_type and trip.trip_type.lower() in ['in', 'inbound'] else 'outbound'
 
-            # Prepare trip details for the response
             trip_info = {
                 'route_name': trip.route_name,
                 'pick_up_time': trip.pick_up_time.strftime("%H:%M") if trip.pick_up_time else '',
                 'drop_off_time': trip.drop_off_time.strftime("%H:%M") if trip.drop_off_time else '',
                 'shift_time': trip.shift_time.strftime("%H:%M") if trip.shift_time else '',
                 'trip_type': normalized_trip_type,
-                'date': trip.date.strftime("%Y-%m-%d") if hasattr(trip, 'date') else datetime.today().strftime("%Y-%m-%d"),
+                # If the trip has a date, format it; otherwise, use today's date.
+                'date': trip.date.strftime("%Y-%m-%d") if hasattr(trip, 'date') and trip.date else datetime.today().strftime("%Y-%m-%d"),
                 'head_count': trip.head_count if hasattr(trip, 'head_count') else 0,
-                # Generate a dynamic link to route details
                 'details_link': f"/route-details/?route={trip.route_name}&shift_time={trip.shift_time.strftime('%H:%M') if trip.shift_time else ''}&type={normalized_trip_type}"
             }
             trip_details.append(trip_info)
@@ -397,7 +398,6 @@ def get_duty_card_details(request):
         return JsonResponse({'trips': trip_details}, safe=False)
 
     return JsonResponse({'error': 'Duty card number not provided'}, status=400)
-
 
 @login_required
 def route_autocomplete(request):
@@ -553,6 +553,11 @@ def dashboard_data(request):
     return JsonResponse(data)
 
 
+from datetime import datetime
+from django.http import JsonResponse
+from django.utils import timezone
+from .models import DutyCardTrip, DriverTrip, BusKmTracking
+
 def duty_card_submission_data(request):
     """Returns duty card submission data as a JSON response."""
     date_filter = request.GET.get('date', datetime.today().strftime('%Y-%m-%d'))
@@ -560,21 +565,32 @@ def duty_card_submission_data(request):
     if request.GET.get('download') == 'xlsx':
         return download_duty_card_data_as_excel(date_filter)
 
-    date_filter_start = timezone.make_aware(datetime.combine(datetime.strptime(date_filter, '%Y-%m-%d'), datetime.min.time()))
-    date_filter_end = timezone.make_aware(datetime.combine(datetime.strptime(date_filter, '%Y-%m-%d'), datetime.max.time()))
+    date_filter_start = timezone.make_aware(
+        datetime.combine(datetime.strptime(date_filter, '%Y-%m-%d'), datetime.min.time())
+    )
+    date_filter_end = timezone.make_aware(
+        datetime.combine(datetime.strptime(date_filter, '%Y-%m-%d'), datetime.max.time())
+    )
 
     duty_card_trips = DutyCardTrip.objects.values('duty_card_no').distinct()
     total_duty_cards = duty_card_trips.count()
 
-    submitted_duty_cards = DriverTrip.objects.filter(date__range=(date_filter_start, date_filter_end)).values('duty_card').distinct()
+    submitted_duty_cards = DriverTrip.objects.filter(
+        date__range=(date_filter_start, date_filter_end)
+    ).values('duty_card').distinct()
     submitted_cards = submitted_duty_cards.count()
 
     pending_cards = total_duty_cards - submitted_cards if total_duty_cards > submitted_cards else 0
+
+    # Count Bus & KM submissions.
+    # If you add a creation timestamp, you could filter by date as well.
+    bus_km_submissions = BusKmTracking.objects.all().count()
 
     data = {
         'total_duty_cards': total_duty_cards,
         'submitted_cards': submitted_cards,
         'pending_cards': pending_cards,
+        'bus_km_submissions': bus_km_submissions,
     }
 
     return JsonResponse(data)
@@ -1395,7 +1411,6 @@ def get_otp_chart_data(request):
     }
     return JsonResponse(data)
 
-
 from datetime import datetime, date, timedelta
 import calendar
 from django.http import JsonResponse
@@ -1527,81 +1542,50 @@ def public_stm_dashboard(request):
     return render(request, 'duty/STM_dashboard.html', {'delayed_trips': delayed_trips})
 
 
-
-
-from django.shortcuts import render
-from .forms import BusKmTrackingForm
-
-def submit_bus_km(request):
-    success = False  # Flag to indicate a successful submission
-
-    if request.method == "POST":
-        form = BusKmTrackingForm(request.POST)
-        if form.is_valid():
-            form.save()
-            success = True  # Set flag on successful save
-            form = BusKmTrackingForm()  # Reset form after saving
-    else:
-        form = BusKmTrackingForm()
-    
-    context = {
-        'form': form,
-        'success': success,
-    }
-    return render(request, 'duty/submit_bus_km.html', context)
-
-
+from datetime import date
 from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
 from .forms import BusKmTrackingForm
-# (Assume you have a DriverTripForm or formset for driver trip details.)
-# from .forms import DriverTripForm  # Uncomment and use if needed
+from .models import DriverImportLog, DutyCardTrip, BusKmTracking, DriverTrip
 
+@login_required
 def submit_driver_trip(request):
     """
-    Step 1: Process driver trip (head count) details.
-    After processing, redirect to the bus & km details page.
+    Process driver trip (head count) details.
+    After processing, redirect to the Bus & Km details page.
     """
     if request.method == "POST":
-        # --- Process and save the driver trip details here ---
-        # For example, if using a form or formset:
-        #
-        # form = DriverTripForm(request.POST)
-        # if form.is_valid():
-        #     form.save()
-        #
-        # Alternatively, process a formset.
-        #
-        # (For this example, we assume the data is processed.)
-        
-        # After processing head count details, redirect:
+        # Process and save head count details here.
         return redirect('submit_bus_km')
     
-    # Render the head count page.
-    # (This template is provided below.)
-    context = {
-        # Pass any context variables (e.g., error_message, success_message) if needed.
-    }
-    return render(request, 'duty/enter_head_count.html', context)
+    return render(request, 'duty/enter_head_count.html')
 
+from datetime import date
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+from .forms import BusKmTrackingForm
+from .models import DriverImportLog, BusKmTracking
 
+@login_required
 def submit_bus_km(request):
-    """
-    Step 2: Render and process the Bus & Km details form.
-    After successful submission, show a success message on the same page.
-    """
-    success = False  # Flag to indicate successful save
+    driver = DriverImportLog.objects.get(staff_id=request.user.username)
+    today_date = date.today()
+    
     if request.method == "POST":
         form = BusKmTrackingForm(request.POST)
         if form.is_valid():
-            form.save()
-            success = True
-            # Optionally, reset the form after saving
-            form = BusKmTrackingForm()
+            bus_km_entry = form.save(commit=False)
+            bus_km_entry.driver = driver
+            # Use the user-provided date; if not provided, default to today's date.
+            if not bus_km_entry.submission_date:
+                bus_km_entry.submission_date = today_date
+            bus_km_entry.save()
+            return redirect('home')
     else:
-        form = BusKmTrackingForm()
+        # Prepopulate the form with today's date as the default.
+        form = BusKmTrackingForm(initial={'submission_date': today_date})
     
     context = {
         'form': form,
-        'success': success,
     }
     return render(request, 'duty/submit_bus_km.html', context)

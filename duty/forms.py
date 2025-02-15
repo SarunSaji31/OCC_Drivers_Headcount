@@ -177,30 +177,39 @@ class UploadFileForm(forms.Form):
 
 
 
-# Bus Kilometer Tracking Form using the BusDetails model
 from django import forms
-from .models import BusKmTracking  # Now this model exists
+from .models import BusKmTracking
 
 class BusKmTrackingForm(forms.ModelForm):
     class Meta:
         model = BusKmTracking
         fields = [
+            'submission_date',   # Submission Date (editable)
+            'duty_card_no',      # Duty Card No (read-only)
             'bus_no',
             'start_km',
             'end_km',
-            'bus_change',       # This field name matches the model
+            'bus_change',
+            'bus_start_time',
+            'bus_end_time',
             'start_time',
             'end_time',
             'start_km_change',
             'end_km_change',
+            'changed_bus_no',    # New field: Changed Bus Number
         ]
         widgets = {
+            'submission_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'duty_card_no': forms.TextInput(attrs={'class': 'form-control', 'readonly': 'readonly'}),
             'bus_no': forms.TextInput(attrs={'class': 'form-control'}),
             'start_km': forms.NumberInput(attrs={'class': 'form-control'}),
             'end_km': forms.NumberInput(attrs={'class': 'form-control'}),
             'bus_change': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'bus_start_time': forms.TimeInput(attrs={'class': 'form-control', 'type': 'time'}),
+            'bus_end_time': forms.TimeInput(attrs={'class': 'form-control', 'type': 'time'}),
             'start_time': forms.TimeInput(attrs={'class': 'form-control', 'type': 'time'}),
             'end_time': forms.TimeInput(attrs={'class': 'form-control', 'type': 'time'}),
             'start_km_change': forms.NumberInput(attrs={'class': 'form-control'}),
             'end_km_change': forms.NumberInput(attrs={'class': 'form-control'}),
+            'changed_bus_no': forms.TextInput(attrs={'class': 'form-control'}),
         }

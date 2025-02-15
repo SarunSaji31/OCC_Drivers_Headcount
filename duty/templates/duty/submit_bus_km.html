@@ -1,54 +1,195 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  {% load static %}
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Submitting Bus & Km</title>
-  <!-- Tailwind CSS CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
+  <title>Submit Bus & Km Details</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <script>
+    // Toggle Bus Change Details section based on the "Bus Changed?" checkbox.
+    function toggleBusChangeSection() {
+      const checkbox = document.getElementById('id_bus_change');
+      const section = document.getElementById('bus-change-section');
+      section.style.display = checkbox.checked ? 'block' : 'none';
+    }
+    document.addEventListener('DOMContentLoaded', function(){
+      toggleBusChangeSection();
+      document.getElementById('id_bus_change').addEventListener('change', toggleBusChangeSection);
+    });
+  </script>
+  <style>
+    body {
+      background-color: #f5f5f5;
+    }
+    .card-header {
+      background-color: #0d6efd;
+    }
+    .card-header h2 {
+      margin: 0;
+    }
+  </style>
 </head>
-<body class="bg-gray-100">
-  <div class="min-h-screen flex items-center justify-center">
-    <div class="w-full max-w-2xl bg-white shadow-lg rounded-lg p-6">
-      <h1 class="text-2xl font-bold text-gray-800 mb-4 text-center">Submitting Bus & Km</h1>
-
-      <!-- Display success message if data is saved -->
-      {% if success %}
-      <div class="mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
-        Data saved successfully!
+<body class="bg-light">
+  <div class="container my-5">
+    <div class="card shadow">
+      <div class="card-header text-center text-white">
+        <h2>Submit Bus & Kilometer Details</h2>
       </div>
-      {% endif %}
-
-      <form method="POST" class="space-y-4">
-        {% csrf_token %}
-        <!-- Loop over each field in the form and render it individually -->
-        {% for field in form %}
-          <div class="mb-4">
-            <label for="{{ field.id_for_label }}" class="block text-gray-700 font-medium mb-1">
-              {{ field.label }}
-            </label>
-            {{ field }}
-            {% if field.help_text %}
-              <small class="text-gray-500">{{ field.help_text }}</small>
-            {% endif %}
-            {% if field.errors %}
-              {% for error in field.errors %}
-                <p class="text-red-500 text-xs italic">{{ error }}</p>
-              {% endfor %}
-            {% endif %}
+      <div class="card-body">
+        {% if success %}
+          <div class="alert alert-success">
+            Data saved successfully!
           </div>
-        {% empty %}
-          <!-- If there are no fields, show a message for debugging -->
-          <p class="text-red-500">No fields to display. Please check your form definition.</p>
-        {% endfor %}
-        <button 
-          type="submit" 
-          id="submit-button" 
-          class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-green-400">
-          Submit
-        </button>
-      </form>
+        {% endif %}
+        <form method="POST">
+          {% csrf_token %}
+          <!-- Submission Information Section -->
+          <div class="mb-4">
+            <h5 class="mb-3">Submission Information</h5>
+            <div class="row mb-3">
+              <label for="{{ form.submission_date.id_for_label }}" class="col-sm-4 col-form-label">Submission Date</label>
+              <div class="col-sm-8">
+                {{ form.submission_date }}
+                {% if form.submission_date.errors %}
+                  <div class="text-danger">{{ form.submission_date.errors }}</div>
+                {% endif %}
+              </div>
+            </div>
+            <div class="row mb-3">
+              <label for="{{ form.duty_card_no.id_for_label }}" class="col-sm-4 col-form-label">Duty Card No</label>
+              <div class="col-sm-8">
+                <!-- Render the duty_card_no field as an editable text input -->
+                <input
+                  type="text"
+                  name="{{ form.duty_card_no.html_name }}"
+                  class="form-control"
+                  maxlength="100"
+                  id="{{ form.duty_card_no.id_for_label }}"
+                  value="{{ form.duty_card_no.value|default_if_none:'' }}"
+                />
+                {% if form.duty_card_no.errors %}
+                  <div class="text-danger">{{ form.duty_card_no.errors }}</div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          <hr>
+          <!-- Basic Bus Information Section -->
+          <div class="mb-4">
+            <h5 class="mb-3">Basic Bus Information</h5>
+            <div class="row mb-3">
+              <label for="{{ form.bus_no.id_for_label }}" class="col-sm-4 col-form-label">Bus Number</label>
+              <div class="col-sm-8">
+                {{ form.bus_no }}
+                {% if form.bus_no.errors %}
+                  <div class="text-danger">{{ form.bus_no.errors }}</div>
+                {% endif %}
+              </div>
+            </div>
+            <div class="row mb-3">
+              <label for="{{ form.start_km.id_for_label }}" class="col-sm-4 col-form-label">Start Kilometer</label>
+              <div class="col-sm-4">
+                {{ form.start_km }}
+                {% if form.start_km.errors %}
+                  <div class="text-danger">{{ form.start_km.errors }}</div>
+                {% endif %}
+              </div>
+              <label for="{{ form.end_km.id_for_label }}" class="col-sm-4 col-form-label">End Kilometer</label>
+              <div class="col-sm-4">
+                {{ form.end_km }}
+                {% if form.end_km.errors %}
+                  <div class="text-danger">{{ form.end_km.errors }}</div>
+                {% endif %}
+              </div>
+            </div>
+            <div class="row mb-3">
+              <label for="{{ form.bus_start_time.id_for_label }}" class="col-sm-4 col-form-label">Bus Start Time</label>
+              <div class="col-sm-8">
+                {{ form.bus_start_time }}
+                {% if form.bus_start_time.errors %}
+                  <div class="text-danger">{{ form.bus_start_time.errors }}</div>
+                {% endif %}
+              </div>
+            </div>
+            <div class="row mb-3">
+              <label for="{{ form.bus_end_time.id_for_label }}" class="col-sm-4 col-form-label">Bus End Time</label>
+              <div class="col-sm-8">
+                {{ form.bus_end_time }}
+                {% if form.bus_end_time.errors %}
+                  <div class="text-danger">{{ form.bus_end_time.errors }}</div>
+                {% endif %}
+              </div>
+            </div>
+            <div class="form-check mb-3">
+              {{ form.bus_change }}
+              <label class="form-check-label" for="{{ form.bus_change.id_for_label }}">Bus Changed?</label>
+              {% if form.bus_change.errors %}
+                <div class="text-danger">{{ form.bus_change.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+          <!-- Bus Change Details Section (toggleable) -->
+          <div id="bus-change-section" class="mb-4" style="display: none;">
+            <h5 class="mb-3">Bus Change Details</h5>
+            
+            <div class="row mb-3">
+              <label for="{{ form.changed_bus_no.id_for_label }}" class="col-sm-4 col-form-label">Changed Bus No</label>
+              <div class="col-sm-8">
+                {{ form.changed_bus_no }}
+                {% if form.changed_bus_no.errors %}
+                  <div class="text-danger">{{ form.changed_bus_no.errors }}</div>
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="row mb-3">
+              <label for="{{ form.start_time.id_for_label }}" class="col-sm-4 col-form-label">Start Time Change</label>
+              <div class="col-sm-8">
+                {{ form.start_time }}
+                {% if form.start_time.errors %}
+                  <div class="text-danger">{{ form.start_time.errors }}</div>
+                {% endif %}
+              </div>
+            </div>
+            <div class="row mb-3">
+              <label for="{{ form.end_time.id_for_label }}" class="col-sm-4 col-form-label">End Time Change</label>
+              <div class="col-sm-8">
+                {{ form.end_time }}
+                {% if form.end_time.errors %}
+                  <div class="text-danger">{{ form.end_time.errors }}</div>
+                {% endif %}
+              </div>
+            </div>
+            <div class="row mb-3">
+              <label for="{{ form.start_km_change.id_for_label }}" class="col-sm-4 col-form-label">Start KM Change</label>
+              <div class="col-sm-8">
+                {{ form.start_km_change }}
+                {% if form.start_km_change.errors %}
+                  <div class="text-danger">{{ form.start_km_change.errors }}</div>
+                {% endif %}
+              </div>
+            </div>
+            <div class="row mb-3">
+              <label for="{{ form.end_km_change.id_for_label }}" class="col-sm-4 col-form-label">End KM Change</label>
+              <div class="col-sm-8">
+                {{ form.end_km_change }}
+                {% if form.end_km_change.errors %}
+                  <div class="text-danger">{{ form.end_km_change.errors }}</div>
+                {% endif %}
+              </div>
+            </div>            
+          </div>
+          <!-- Hidden fields for duty_card and driver -->
+          {{ form.duty_card }}
+          {{ form.driver }}
+          <div class="d-grid">
+            <button type="submit" class="btn btn-success">Submit</button>
+          </div>
+        </form>
+      </div>
     </div>
   </div>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

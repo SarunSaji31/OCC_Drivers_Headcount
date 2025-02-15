@@ -137,19 +137,66 @@ class StmShiftTime(models.Model):
         ordering = ['stop_order', 'time']
 
 
-# Bus and Kilometer Model
 from django.db import models
 
+# Ensure related models are imported if defined elsewhere:
+# from .models import DutyCardTrip, DriverImportLog
+
 class BusKmTracking(models.Model):
+    duty_card = models.ForeignKey(
+        DutyCardTrip, 
+        on_delete=models.CASCADE, 
+        related_name='bus_km_tracking',
+        verbose_name="Duty Card",
+        null=True,
+        blank=True
+    )
+    # This field stores the actual duty card number for easier lookup.
+    duty_card_no = models.CharField(
+        max_length=100,
+        verbose_name="Duty Card No",
+        blank=True,
+        editable=True  # Makes this field editable
+    )
+    driver = models.ForeignKey(
+        DriverImportLog, 
+        on_delete=models.CASCADE, 
+        related_name='bus_km_tracking',
+        verbose_name="Driver",
+        null=True,
+        blank=True
+    )
+    # New field: Submission Date – auto-populated but editable.
+    submission_date = models.DateField(null=True, blank=True, verbose_name="Submission Date")
     bus_no = models.CharField(max_length=20, verbose_name="Bus Number")
     start_km = models.PositiveIntegerField(verbose_name="Start Kilometer")
     end_km = models.PositiveIntegerField(verbose_name="End Kilometer")
     bus_change = models.BooleanField(default=False, verbose_name="Bus Changed (Optional)")
-    start_time = models.TimeField(null=True, blank=True, verbose_name="Start Time (Optional)")
-    end_time = models.TimeField(null=True, blank=True, verbose_name="End Time (Optional)")
-    start_km_change = models.PositiveIntegerField(null=True, blank=True, verbose_name="Start Kilometer (Optional)")
-    end_km_change = models.PositiveIntegerField(null=True, blank=True, verbose_name="End Kilometer (Optional)")
+    
+    # New fields for basic bus times
+    bus_start_time = models.TimeField(null=True, blank=True, verbose_name="Bus Start Time")
+    bus_end_time = models.TimeField(null=True, blank=True, verbose_name="Bus End Time")
+    
+    # Fields for bus change details (store the changed times)
+    start_time = models.TimeField(null=True, blank=True, verbose_name="Start Time Change (Optional)")
+    end_time = models.TimeField(null=True, blank=True, verbose_name="End Time Change (Optional)")
+    
+    start_km_change = models.PositiveIntegerField(null=True, blank=True, verbose_name="Start Kilometer Change (Optional)")
+    end_km_change = models.PositiveIntegerField(null=True, blank=True, verbose_name="End Kilometer Change (Optional)")
+    
+    # New field: Changed Bus Number (if bus_change is True)
+    changed_bus_no = models.CharField(
+        max_length=20,
+        verbose_name="Changed Bus Number",
+        blank=True,
+        null=True
+    )
+
+    def save(self, *args, **kwargs):
+        # Auto-populate duty_card_no from the related DutyCardTrip if available.
+        if self.duty_card and not self.duty_card_no:
+            self.duty_card_no = self.duty_card.duty_card_no
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"Bus {self.bus_no} - Start: {self.start_km}, End: {self.end_km}"
-

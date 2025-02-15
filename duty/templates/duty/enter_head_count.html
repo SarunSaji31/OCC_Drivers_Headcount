@@ -5,28 +5,23 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Enter Head Count - OCC-EKG Project</title>
-
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-
     <!-- Font Awesome 5.15.3 -->
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"
     />
-
     <!-- jQuery UI CSS -->
     <link
       rel="stylesheet"
       href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css"
     />
-
     <style>
       /* Custom styles that are not Tailwind-based */
       body {
         font-family: "Arial", sans-serif;
-        background: url("{% static 'occ_background_img.png' %}") no-repeat
-          center center fixed;
+        background: url("{% static 'occ_background_img.png' %}") no-repeat center center fixed;
         background-size: cover;
         color: #333;
       }
@@ -49,21 +44,10 @@
         <!-- Mobile nav toggle button -->
         <div class="md:hidden">
           <button id="nav-toggle" class="block md:hidden focus:outline-none">
-            <svg
-              class="h-8 w-8 text-black" 
-              fill="none" 
-              stroke="currentColor" 
-              viewBox="0 0 24 24" 
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M4 6h16M4 12h16M4 18h16"
-              ></path>
+            <svg class="h-8 w-8 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
             </svg>
-          </button>          
+          </button>
         </div>
       </div>
       <!-- Mobile Menu -->
@@ -93,67 +77,70 @@
     </div>
 
     <!-- Form Container -->
-    <div
-      class="container mx-auto max-w-3xl bg-white bg-opacity-90 p-10 rounded-lg shadow-md border border-gray-300"
-    >
+    <div class="container mx-auto max-w-3xl bg-white bg-opacity-90 p-10 rounded-lg shadow-md border border-gray-300">
       {% if error_message %}
       <div class="mb-4 p-4 bg-red-100 text-red-700 rounded">
         <strong>Error:</strong> {{ error_message }}
       </div>
       {% endif %}
 
+      {# Since a successful submission now redirects, you can remove or comment out this block #}
       {% if success_message %}
       <div class="mb-4 p-4 bg-green-100 text-green-700 rounded">
         <strong>Success:</strong> {{ success_message }}
       </div>
       {% endif %}
 
-      <!-- The form will be processed by the submit_driver_trip view -->
+      <!-- This form will be processed by the view that now redirects to the Bus/Km page -->
       <form id="driver-trip-form" method="post">
         {% csrf_token %}
-        <!-- Hidden inputs for staff info -->
-        <input type="hidden" id="id_staff_id" name="staff_id" value="{{ user.username }}" />
-        <input type="hidden" id="id_driver_name" name="driver_name" value="{{ staff_name }}" />
-
-        <!-- Example: A field for Duty Card No -->
-        <div class="mb-4">
-          <label for="id_duty_card_no" class="block text-gray-700 font-medium mb-2">
-            Duty Card No
-          </label>
+        <div class="mb-6">
           <input
-            type="text"
-            id="id_duty_card_no"
-            name="duty_card_no"
-            class="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-blue-500"
-            placeholder="e.g., A012"
-            required
+            type="hidden"
+            id="id_staff_id"
+            name="staff_id"
+            value="{{ user.username }}"
           />
+          <input
+            type="hidden"
+            id="id_driver_name"
+            name="driver_name"
+            value="{{ staff_name }}"
+          />
+          <div class="mb-4">
+            <label for="id_duty_card_no" class="block text-gray-700 font-medium mb-2">
+              Duty Card No
+            </label>
+            <input
+              type="text"
+              id="id_duty_card_no"
+              name="duty_card_no"
+              class="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-blue-500"
+              placeholder="e.g., A012"
+              required
+            />
+          </div>
         </div>
 
-        <!-- Trip Entries Container -->
         <div id="trip-entries" class="space-y-6">
-          <!-- Trip form entries will be dynamically added here via JavaScript -->
+          <!-- Trip form entries will be dynamically added here -->
         </div>
 
-        <!-- Management fields for formset (if applicable) -->
-        <input
-          type="hidden"
-          name="drivertrip_set-TOTAL_FORMS"
-          id="id_drivertrip_set-TOTAL_FORMS"
-          value="0"
-        />
+        <!-- Django formset management fields -->
+        <input type="hidden" name="drivertrip_set-TOTAL_FORMS" id="id_drivertrip_set-TOTAL_FORMS" value="0" />
         <input type="hidden" name="drivertrip_set-INITIAL_FORMS" value="0" />
         <input type="hidden" name="drivertrip_set-MIN_NUM_FORMS" value="0" />
         <input type="hidden" name="drivertrip_set-MAX_NUM_FORMS" value="1000" />
 
         <div id="button-container" class="mt-6 flex items-center space-x-4 justify-center">
           <div id="add-row" class="cursor-pointer text-green-600 text-2xl font-bold">+</div>
+          <!-- The submit button now clearly indicates that after submission the user will continue to the Bus/Km page -->
           <button
             type="submit"
             class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded"
             id="submit-button"
           >
-            Submit
+            Submit Head Count &amp; Continue
           </button>
         </div>
       </form>
@@ -185,12 +172,24 @@
                     <label class="block text-gray-700 font-medium mb-1">Route Name</label>
                     ${
                       tripData.route_name
-                        ? `<div class="flex items-center">
-                             <a href="/route-details/?route=${encodeURIComponent(tripData.route_name)}&shift_time=${encodeURIComponent(tripData.shift_time || "")}&type=${encodeURIComponent(tripData.trip_type || "")}" 
-                                class="underline text-blue-600" target="_blank">Routes</a>
-                             <input type="text" name="drivertrip_set-${index}-route_name" class="ml-4 w-full border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-blue-500" value="${tripData.route_name}" required />
-                           </div>`
-                        : `<input type="text" name="drivertrip_set-${index}-route_name" class="w-full border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-blue-500" placeholder="Enter Route Name" required>`
+                        ? `
+                      <div class="flex items-center">
+                        <a href="/route-details/?route=${encodeURIComponent(tripData.route_name)}&shift_time=${encodeURIComponent(tripData.shift_time || "")}&type=${encodeURIComponent(tripData.trip_type || "")}" 
+                           class="underline text-blue-600" target="_blank">
+                          Routes
+                        </a>
+                        <input 
+                          type="text" 
+                          name="drivertrip_set-${index}-route_name" 
+                          class="ml-4 w-full border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-blue-500" 
+                          value="${tripData.route_name}" 
+                          required
+                        />
+                      </div>
+                    `
+                        : `
+                      <input type="text" name="drivertrip_set-${index}-route_name" class="w-full border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-blue-500" placeholder="Enter Route Name" required>
+                    `
                     }
                   </div>
                   <div>
@@ -230,7 +229,6 @@
                 </div>
               </div>
           `;
-
           $("#trip-entries").append(newRow);
           tripCount++;
           updateFormIndices();
@@ -272,7 +270,7 @@
               data: { term: request.term },
               success: function (data) {
                 response($.map(data, function (item) {
-                  return { label: item, value: item };
+                    return { label: item, value: item };
                 }));
               },
               error: function (xhr, status, error) {
