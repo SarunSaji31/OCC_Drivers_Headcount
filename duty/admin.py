@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import (
     DriverImportLog, DriverTrip, DutyCardTrip, DelayData, BreakdownReport, 
-    StmRoute, StmPickupPoint, StmShiftTime
+    StmRoute, StmPickupPoint, StmShiftTime, BusKmTracking, BusMasterList
 )
 
 # Register DriverImportLog model
@@ -43,7 +43,7 @@ class DutyCardTripAdmin(admin.ModelAdmin):
 @admin.register(DriverTrip)
 class DriverTripAdmin(admin.ModelAdmin):
     list_display = ('route_name', 'shift_time', 'trip_type', 'duty_card', 'date', 'head_count')
-    search_fields = ('route_name', 'trip_type', 'duty_card__duty_card_no')  # Ensure correct related field lookup
+    search_fields = ('route_name', 'trip_type', 'duty_card__duty_card_no')
     list_filter = ('duty_card', 'shift_time', 'trip_type', 'date')
     list_per_page = 200
     ordering = ('-date', 'route_name')
@@ -80,6 +80,30 @@ class BreakdownReportAdmin(admin.ModelAdmin):
     search_fields = ('route_number', 'driver_name', 'vehicle_make_plate', 'reported_to_person')
     list_filter = ('breakdown_datetime', 'route_number')
     ordering = ('-breakdown_datetime',)
+
+
+# Register BusKmTracking model
+@admin.register(BusKmTracking)
+class BusKmTrackingAdmin(admin.ModelAdmin):
+    list_display = ('duty_card_no', 'bus_no', 'driver', 'submission_date', 'start_km', 'end_km', 'bus_change')
+    search_fields = ('duty_card_no', 'bus_no', 'driver__driver_name')
+    list_filter = ('submission_date', 'bus_change')
+    list_per_page = 50
+    ordering = ('-submission_date',)
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('duty_card', 'duty_card_no', 'driver', 'submission_date', 'bus_no'),
+        }),
+        ('Kilometer Details', {
+            'fields': ('start_km', 'end_km', 'bus_change', 'changed_bus_no'),
+        }),
+        ('Time Details', {
+            'fields': ('bus_start_time', 'bus_end_time', 'start_time', 'end_time'),
+        }),
+        ('Additional', {
+            'fields': ('start_km_change', 'end_km_change'),
+        }),
+    )
 
 
 # Inline Pickup Points for StmRoute
