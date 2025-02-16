@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     'duty',  # Your application
     'crispy_forms',
     'crispy_bootstrap5',
+    'widget_tweaks',
 ]
 
 # Crispy Forms settings

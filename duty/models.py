@@ -200,3 +200,23 @@ class BusKmTracking(models.Model):
 
     def __str__(self):
         return f"Bus {self.bus_no} - Start: {self.start_km}, End: {self.end_km}"
+
+from django.db import models
+
+class BusMasterList(models.Model):
+    bus_no = models.CharField(
+        max_length=20, 
+        unique=True, 
+        verbose_name="Bus Number"
+    )
+    capacity = models.IntegerField(
+        verbose_name="Capacity"
+    )
+
+    def __str__(self):
+        return self.bus_no
+
+    class Meta:
+        db_table = 'bus_master_list'
+        verbose_name = "Bus Master Entry"
+        verbose_name_plural = "Bus Master List"

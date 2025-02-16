@@ -72,6 +72,7 @@ def home(request):
     }
     return render(request, 'duty/home.html', context)
 
+from datetime import date
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from .models import BusKmTracking, DriverImportLog, DriverTrip
@@ -86,25 +87,37 @@ def submission_history(request):
             'error_message': "No submission history found for this user."
         })
 
-    # Group DriverTrip submissions by (formatted_date, duty_card_no) if needed.
-    driver_trips = DriverTrip.objects.filter(driver=driver).order_by('-date')
-    submission_summary = {}
-    for trip in driver_trips:
-        formatted_date = trip.date.strftime("%Y-%m-%d")
-        duty_no = trip.duty_card.duty_card_no if trip.duty_card else "N/A"
-        key = (formatted_date, duty_no)
-        if key not in submission_summary:
-            submission_summary[key] = []
-        submission_summary[key].append(trip)
-    
-    # Retrieve BusKmTracking entries for this driver.
-    # We'll use the submission_date from BusKmTracking directly.
-    bus_km_entries = BusKmTracking.objects.filter(driver=driver).order_by('-id')
-    
+    today = date.today()
+    # Get filter parameters from GET; default to the current month/year.
+    try:
+        year = int(request.GET.get('year', today.year))
+        month = int(request.GET.get('month', today.month))
+    except ValueError:
+        year, month = today.year, today.month
+
+    # Filter head count submissions (DriverTrip objects) by the given month/year.
+    head_count_entries = DriverTrip.objects.filter(
+        driver=driver, 
+        date__year=year, 
+        date__month=month
+    ).order_by('-date')
+
+    # Filter Bus & KM submissions by the given month/year.
+    bus_km_entries = BusKmTracking.objects.filter(
+        driver=driver, 
+        submission_date__year=year, 
+        submission_date__month=month
+    ).order_by('-submission_date')
+
     context = {
         'staff_name': driver.driver_name,
-        'submission_summary': submission_summary,
+        'head_count_entries': head_count_entries,
         'bus_km_entries': bus_km_entries,
+        'filter_year': year,
+        'filter_month': month,
+        # For the filter form, a list of months (1-12) and years (e.g., 2020-current)
+        'months': range(1, 13),
+        'years': range(2020, today.year + 1),
     }
     return render(request, 'duty/user_submission_history.html', context)
 
@@ -1509,7 +1522,7 @@ def generate_chart_data(daily_delays, daily_breakdowns, monthly_delays, monthly_
         ]
     }
 
-# View function that skips authentication:
+# View function that skips stm dashboard authentication:
 from django.shortcuts import render
 from .models import DelayData, BreakdownReport
 from django.db.models import Count, ExpressionWrapper, DurationField, F
@@ -1542,11 +1555,14 @@ def public_stm_dashboard(request):
     return render(request, 'duty/STM_dashboard.html', {'delayed_trips': delayed_trips})
 
 
+# duty/views.py
+
 from datetime import date
+from django.http import JsonResponse
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
+from .models import DriverImportLog, DutyCardTrip, BusKmTracking, DriverTrip, BusMasterList
 from .forms import BusKmTrackingForm
-from .models import DriverImportLog, DutyCardTrip, BusKmTracking, DriverTrip
 
 @login_required
 def submit_driver_trip(request):
@@ -1557,14 +1573,7 @@ def submit_driver_trip(request):
     if request.method == "POST":
         # Process and save head count details here.
         return redirect('submit_bus_km')
-    
     return render(request, 'duty/enter_head_count.html')
-
-from datetime import date
-from django.shortcuts import render, redirect
-from django.contrib.auth.decorators import login_required
-from .forms import BusKmTrackingForm
-from .models import DriverImportLog, BusKmTracking
 
 @login_required
 def submit_bus_km(request):
@@ -1589,3 +1598,32 @@ def submit_bus_km(request):
         'form': form,
     }
     return render(request, 'duty/submit_bus_km.html', context)
+
+from django.http import JsonResponse
+from .models import DutyCardTrip, BusMasterList
+
+def duty_card_suggestions(request):
+    """
+    Return a list of duty card numbers from the DutyCardTrip table
+    that contain the search term.
+    """
+    term = request.GET.get('term', '')
+    suggestions = list(
+        DutyCardTrip.objects.filter(duty_card_no__icontains=term)
+        .values_list('duty_card_no', flat=True)
+        .distinct()
+    )
+    return JsonResponse(suggestions, safe=False)
+
+def bus_no_suggestions(request):
+    """
+    Return a list of bus numbers from the BusMasterList table
+    that contain the search term.
+    """
+    term = request.GET.get('term', '')
+    suggestions = list(
+        BusMasterList.objects.filter(bus_no__icontains=term)
+        .values_list('bus_no', flat=True)
+        .distinct()
+    )
+    return JsonResponse(suggestions, safe=False)

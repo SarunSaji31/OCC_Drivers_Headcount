@@ -1,3 +1,5 @@
+# duty/urls.py
+
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
@@ -9,7 +11,6 @@ from .views import (
     fleet_counts_api,
     download_fleet_report,
     get_most_delayed_trips_api,
-    
 )
 
 urlpatterns = [
@@ -83,14 +84,16 @@ urlpatterns = [
     # Most Delayed Trips API
     path('get-most-delayed-trips-api/', get_most_delayed_trips_api, name='get_most_delayed_trips_api'),
     # submission history
-    path('submission-history/', views.submission_history, name='submission_history'),   
-    path('user_submission_history/', views.submission_history, name='user_submission_history'),  
-    path('filter-dashboard/', views.filter_dashboard, name='filter_dashboard'), 
+    path('submission-history/', views.submission_history, name='submission_history'),
+    path('user_submission_history/', views.submission_history, name='user_submission_history'),
+    path('filter-dashboard/', views.filter_dashboard, name='filter_dashboard'),
     path('public-stm-dashboard/', views.public_stm_dashboard, name='public_stm_dashboard'),
     path('get-otp-chart-data/', views.get_otp_chart_data, name='get_otp_chart_data'),
 
     # URL for Bus and Kilometer Submission
     path('submit-bus-km/', views.submit_bus_km, name='submit_bus_km'),
+    path('ajax/duty_card_suggestions/', views.duty_card_suggestions, name='duty_card_suggestions'),
+    path('ajax/bus_no_suggestions/', views.bus_no_suggestions, name='bus_no_suggestions'),
 ]
 
 # Serve static and media files during development
