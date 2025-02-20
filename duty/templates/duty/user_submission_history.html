@@ -4,252 +4,229 @@
   {% load static %}
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Submission History</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css">
+  <title>Submission History - {{ staff_name }}</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
+    /* Mobile-First Base Styles */
     body {
-      background-color: #f5f5f5;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      color: #333;
+      background: #f4f7fa;
+      font-family: 'Roboto', sans-serif;
+      color: #2d3748;
+      margin: 0;
+      padding: 0;
+      font-size: 14px;
     }
-    .container {
-      background-color: #ffffff;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      padding: 20px;
-      margin-top: 40px;
-    }
-    h1, h2 {
-      text-align: center;
-      margin-bottom: 30px;
+    .container-mobile {
+      padding: 15px;
+      margin: 10px auto;
+      max-width: 100%;
     }
     h1 {
-      font-size: 2rem;
-      color: #b83232;
+      font-size: 1.5rem;
+      color: #c53030;
+      font-weight: 600;
+      text-align: center;
+      margin: 0 0 15px;
     }
-    .table th {
-      background-color: #b83232;
-      color: #ffffff;
+    h2 {
+      font-size: 1.2rem;
+      color: #4a5568;
+      font-weight: 500;
+      margin: 20px 0 10px;
+    }
+    .filter-form {
+      background: #fff;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      margin-bottom: 20px;
+    }
+    .filter-form select, .filter-form button {
+      width: 100%;
+      margin-bottom: 10px;
+      font-size: 0.9rem;
+      border-radius: 5px;
+    }
+    .filter-form button {
+      background: #c53030;
+      border: none;
+      padding: 10px;
+      color: #fff;
+      font-weight: 500;
+    }
+    .card {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      margin-bottom: 15px;
+      overflow: hidden;
+    }
+    .card-header {
+      background: #c53030;
+      color: #fff;
+      padding: 10px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .card-body {
+      padding: 10px;
+      font-size: 0.85rem;
+    }
+    .list-group-item {
+      padding: 8px;
+      border: none;
+      border-bottom: 1px solid #edf2f7;
+      word-wrap: break-word;
+    }
+    .no-data {
+      text-align: center;
+      color: #dd6b20;
+      font-size: 0.9rem;
+      padding: 15px;
+      background: #fefcbf;
+      border-radius: 8px;
+      margin-bottom: 15px;
     }
     .btn-home {
       display: block;
-      margin: 20px auto;
-      background-color: #b83232;
+      width: 100%;
+      background: #c53030;
       color: #fff;
+      padding: 12px;
       border: none;
-      padding: 10px 20px;
       border-radius: 5px;
-      font-size: 1rem;
       text-align: center;
+      font-size: 0.9rem;
       text-decoration: none;
+      margin-top: 20px;
+      transition: background 0.3s ease;
     }
     .btn-home:hover {
-      background-color: #9a2828;
+      background: #9c2c2c;
+      color: #fff;
     }
-    @media (max-width: 768px) {
-      h1, h2 {
-        font-size: 1.5rem;
+
+    /* Tablet and Desktop Adjustments */
+    @media (min-width: 768px) {
+      .container-mobile {
+        padding: 20px;
+        max-width: 720px;
       }
-      .btn-home {
-        width: 100%;
-        padding: 12px;
+      h1 { font-size: 2rem; }
+      h2 { font-size: 1.5rem; }
+      .filter-form {
+        padding: 20px;
+        display: flex;
+        gap: 15px;
+        align-items: flex-end;
       }
+      .filter-form select, .filter-form button {
+        width: auto;
+        margin-bottom: 0;
+      }
+      .card-header { font-size: 1rem; padding: 12px; }
+      .card-body { font-size: 0.9rem; padding: 15px; }
+      .list-group-item { padding: 10px; }
+      .btn-home { width: 200px; margin: 20px auto; }
+    }
+    @media (min-width: 992px) {
+      .container-mobile { max-width: 960px; }
     }
   </style>
-  <script>
-    // Toggle extra rows for a given group (using a custom group identifier)
-    function toggleExtraRows(group) {
-      const rows = document.querySelectorAll('.extra-rows-' + group);
-      rows.forEach(function(row) {
-        row.classList.toggle('d-none');
-      });
-    }
-  </script>
 </head>
 <body>
-  <div class="container">
-    <h1>Submission History for {{ staff_name }}</h1>
-    
-    <!-- Filter Form: Select Month and Year -->
-    <form method="get" class="mb-4">
-      <div class="row g-3 align-items-end justify-content-center">
-        <div class="col-auto">
-          <label for="month" class="form-label">Month</label>
-          <select name="month" id="month" class="form-select">
-            <option value="1" {% if filter_month == 1 %}selected{% endif %}>January</option>
-            <option value="2" {% if filter_month == 2 %}selected{% endif %}>February</option>
-            <option value="3" {% if filter_month == 3 %}selected{% endif %}>March</option>
-            <option value="4" {% if filter_month == 4 %}selected{% endif %}>April</option>
-            <option value="5" {% if filter_month == 5 %}selected{% endif %}>May</option>
-            <option value="6" {% if filter_month == 6 %}selected{% endif %}>June</option>
-            <option value="7" {% if filter_month == 7 %}selected{% endif %}>July</option>
-            <option value="8" {% if filter_month == 8 %}selected{% endif %}>August</option>
-            <option value="9" {% if filter_month == 9 %}selected{% endif %}>September</option>
-            <option value="10" {% if filter_month == 10 %}selected{% endif %}>October</option>
-            <option value="11" {% if filter_month == 11 %}selected{% endif %}>November</option>
-            <option value="12" {% if filter_month == 12 %}selected{% endif %}>December</option>
-          </select>
-        </div>
-        <div class="col-auto">
-          <label for="year" class="form-label">Year</label>
-          <select name="year" id="year" class="form-select">
-            {% for y in years %}
-              <option value="{{ y }}" {% if y == filter_year %}selected{% endif %}>{{ y }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div class="col-auto">
-          <button type="submit" class="btn btn-primary">Filter</button>
-        </div>
-      </div>
-    </form>
-    
-    {% if not head_count_entries and not bus_km_entries %}
-      <p class="text-warning text-center">No submissions found for the selected month.</p>
-    {% endif %}
-    
-    <!-- Head Count Submissions Grouped by Day -->
-    <h2>Head Count Submissions</h2>
+  <div class="container-mobile">
+    <!-- Header -->
+    <h1><i class="fas fa-history me-2"></i> {{ staff_name }}'s History</h1>
+
+    <!-- Filter Form -->
+    <div class="filter-form">
+      <form method="get">
+        <select name="month" id="month" class="form-select">
+          {% for m in months %}
+            <option value="{{ m }}" {% if m == filter_month %}selected{% endif %}>
+              {{ m|date:"F" }}
+            </option>
+          {% endfor %}
+        </select>
+        <select name="year" id="year" class="form-select">
+          {% for y in years %}
+            <option value="{{ y }}" {% if y == filter_year %}selected{% endif %}>{{ y }}</option>
+          {% endfor %}
+        </select>
+        <button type="submit" class="btn">Filter <i class="fas fa-filter ms-1"></i></button>
+      </form>
+    </div>
+
+    <!-- Head Count Submissions -->
+    <h2><i class="fas fa-users me-2"></i> Head Count</h2>
     {% if head_count_entries %}
       {% regroup head_count_entries by date|date:"F j, Y" as head_count_by_day %}
       {% for group in head_count_by_day %}
-        <div class="mb-4">
-          <h3 class="text-center">Date: {{ group.grouper }}</h3>
-          <table class="table table-striped table-hover">
-            <thead class="table-dark">
-              <tr>
-                <th>Serial No</th>
-                <th>Duty Card No</th>
-                <th>Route Name</th>
-                <th>Pick Up Time</th>
-                <th>Drop Off Time</th>
-                <th>Shift Time</th>
-                <th>Head Count</th>
-                <th>Trip Type</th>
-              </tr>
-            </thead>
-            <tbody>
+        <div class="card">
+          <div class="card-header" data-bs-toggle="collapse" data-bs-target="#head-{{ forloop.counter }}">
+            {{ group.grouper }} ({{ group.list|length }})
+            <i class="fas fa-chevron-down"></i>
+          </div>
+          <div id="head-{{ forloop.counter }}" class="collapse card-body">
+            <ul class="list-group list-group-flush">
               {% for trip in group.list %}
-                <tr class="{% if forloop.counter > 2 %}extra-rows-head-{{ group.grouper|slugify }} d-none{% endif %}">
-                  <td>{{ forloop.counter }}</td>
-                  <td>{% if trip.duty_card %}{{ trip.duty_card.duty_card_no }}{% else %}N/A{% endif %}</td>
-                  <td>{{ trip.route_name }}</td>
-                  <td>{{ trip.pick_up_time|time:"H:i" }}</td>
-                  <td>{{ trip.drop_off_time|time:"H:i" }}</td>
-                  <td>{{ trip.shift_time|time:"H:i" }}</td>
-                  <td>{{ trip.head_count }}</td>
-                  <td>{{ trip.trip_type }}</td>
-                </tr>
+                <li class="list-group-item">
+                  <strong>#{{ forloop.counter }}</strong> | 
+                  Duty: {% if trip.duty_card %}{{ trip.duty_card.duty_card_no }}{% else %}N/A{% endif %}<br>
+                  Route: {{ trip.route_name }} | 
+                  Pickup: {{ trip.pick_up_time|time:"H:i" }} | 
+                  Drop: {{ trip.drop_off_time|time:"H:i" }}<br>
+                  Shift: {{ trip.shift_time|time:"H:i" }} | 
+                  Count: {{ trip.head_count }} | 
+                  Type: {{ trip.trip_type }}
+                </li>
               {% endfor %}
-            </tbody>
-          </table>
-          {% if group.list|length > 2 %}
-            <div class="text-center">
-              <button class="btn btn-primary" onclick="toggleExtraRows('head-{{ group.grouper|slugify }}')">Show More</button>
-            </div>
-          {% endif %}
+            </ul>
+          </div>
         </div>
       {% endfor %}
     {% else %}
-      <p class="text-warning text-center">No head count submissions found.</p>
+      <p class="no-data"><i class="fas fa-exclamation-triangle me-2"></i> No head count submissions found.</p>
     {% endif %}
-    
-    <!-- Bus & KM Submissions (All Together) -->
-    <h2 class="mt-5">Bus & Kilometer Submissions</h2>
+
+    <!-- Bus & KM Submissions -->
+    <h2><i class="fas fa-bus me-2"></i> Bus & KM</h2>
     {% if bus_km_entries %}
-      <table class="table table-striped table-hover">
-        <thead class="table-dark">
-          <tr>
-            <th>Serial No</th>
-            <th>Submission Date</th>
-            <th>Duty Card No</th>
-            <th>Bus Number</th>
-            <th>Start KM</th>
-            <th>End KM</th>
-            <th>Bus Changed</th>
-            <th>Changed Bus No</th>
-            <th>Bus Start Time</th>
-            <th>Bus End Time</th>
-            <th>Start Time Change</th>
-            <th>End Time Change</th>
-            <th>Start KM Change</th>
-            <th>End KM Change</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for entry in bus_km_entries %}
-            <tr>
-              <td>{{ forloop.counter }}</td>
-              <td>
-                {% if entry.submission_date %}
-                  {{ entry.submission_date|date:"Y-m-d" }}
-                {% elif entry.duty_card and entry.duty_card.submission_date %}
-                  {{ entry.duty_card.submission_date|date:"Y-m-d" }}
-                {% else %}
-                  N/A
-                {% endif %}
-              </td>
-              <td>
-                {% if entry.duty_card_no %}
-                  {{ entry.duty_card_no }}
-                {% else %}
-                  N/A
-                {% endif %}
-              </td>
-              <td>{{ entry.bus_no }}</td>
-              <td>{{ entry.start_km }}</td>
-              <td>{{ entry.end_km }}</td>
-              <td>{{ entry.bus_change|yesno:"Yes,No" }}</td>
-              <td>
-                {% if entry.changed_bus_no %}
-                  {{ entry.changed_bus_no }}
-                {% else %}
-                  N/A
-                {% endif %}
-              </td>
-              <td>
-                {% if entry.bus_start_time %}
-                  {{ entry.bus_start_time|time:"H:i" }}
-                {% else %}
-                  N/A
-                {% endif %}
-              </td>
-              <td>
-                {% if entry.bus_end_time %}
-                  {{ entry.bus_end_time|time:"H:i" }}
-                {% else %}
-                  N/A
-                {% endif %}
-              </td>
-              <td>
-                {% if entry.start_time %}
-                  {{ entry.start_time|time:"H:i" }}
-                {% else %}
-                  N/A
-                {% endif %}
-              </td>
-              <td>
-                {% if entry.end_time %}
-                  {{ entry.end_time|time:"H:i" }}
-                {% else %}
-                  N/A
-                {% endif %}
-              </td>
-              <td>{{ entry.start_km_change }}</td>
-              <td>{{ entry.end_km_change }}</td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+      <div class="card">
+        <div class="card-header" data-bs-toggle="collapse" data-bs-target="#bus-km">
+          All Entries ({{ bus_km_entries|length }})
+          <i class="fas fa-chevron-down"></i>
+        </div>
+        <div id="bus-km" class="collapse card-body">
+          <ul class="list-group list-group-flush">
+            {% for entry in bus_km_entries %}
+              <li class="list-group-item">
+                <strong>#{{ forloop.counter }}</strong> | 
+                Date: {{ entry.submission_date|date:"Y-m-d"|default:"N/A" }}<br>
+                Duty: {{ entry.duty_card_no|default:"N/A" }} | 
+                Bus: {{ entry.bus_no }} | 
+                KM: {{ entry.start_km }} - {{ entry.end_km }}<br>
+                Changed: {{ entry.bus_change|yesno:"Yes,No" }} | 
+                New Bus: {{ entry.changed_bus_no|default:"N/A" }}
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
     {% else %}
-      <p class="text-warning text-center">No Bus & Kilometer submissions found.</p>
+      <p class="no-data"><i class="fas fa-exclamation-triangle me-2"></i> No bus & KM submissions found.</p>
     {% endif %}
-    
-    <div class="text-center mt-4">
-      <a href="{% url 'home' %}" class="btn btn-danger btn-home">Go Back to Home</a>
-    </div>
+
+    <!-- Back to Home -->
+    <a href="{% url 'home' %}" class="btn-home"><i class="fas fa-home me-2"></i> Back to Home</a>
   </div>
-  
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
