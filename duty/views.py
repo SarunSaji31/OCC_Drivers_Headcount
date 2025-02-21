@@ -1692,3 +1692,121 @@ def get_daily_delay_details(request):
         for delay in delays
     ]
     return JsonResponse(delay_details, safe=False)
+
+from django.http import JsonResponse
+from django.db.models import ExpressionWrapper, F, DurationField
+from django.utils.timezone import now
+from datetime import datetime, date, timedelta
+import calendar
+import logging
+from duty.models import DelayData
+
+logger = logging.getLogger(__name__)
+
+def get_otp_details(request):
+    """
+    Returns detailed delay data for OT or NST based on period, aligned with OTP chart logic.
+    Parameters:
+      - period: "daily", "monthly", "yearly"
+      - status: "OT" (On Time) or "NST" (Not Started on Time)
+      - selected_date: YYYY-MM-DD (for daily/yearly)
+      - selected_month: YYYY-MM (for monthly)
+      - exclude_early: "true" to exclude early departures (optional)
+    """
+    period = request.GET.get("period", "daily").lower()
+    status = request.GET.get("status", "").upper()  # "OT" or "NST"
+    selected_month_str = request.GET.get("selected_month")
+    exclude_early = request.GET.get("exclude_early", "false").lower() == "true"
+
+    logger.debug(f"Request params: period={period}, status={status}, selected_month={selected_month_str}, selected_date={request.GET.get('selected_date')}, exclude_early={exclude_early}")
+
+    # Determine the selected date
+    if selected_month_str:
+        try:
+            year, month = selected_month_str.split('-')
+            selected_date = date(int(year), int(month), 1)
+        except Exception as e:
+            logger.error(f"Error parsing selected_month: {e}")
+            selected_date = now().date().replace(day=1)
+    else:
+        selected_date_str = request.GET.get("selected_date")
+        if selected_date_str:
+            try:
+                selected_date = datetime.strptime(selected_date_str, "%Y-%m-%d").date()
+            except ValueError as e:
+                logger.error(f"Error parsing selected_date: {e}")
+                selected_date = now().date()
+        else:
+            selected_date = now().date().replace(day=1) if period == "monthly" else now().date()
+
+    logger.debug(f"Selected date: {selected_date}")
+
+    # Base queryset
+    qs = DelayData.objects.all()
+
+    # Apply period filter
+    if period == "daily":
+        qs = qs.filter(date=selected_date)
+        period_label = "daily"
+    elif period == "monthly":
+        selected_date = selected_date.replace(day=1)
+        last_day = calendar.monthrange(selected_date.year, selected_date.month)[1]
+        month_end = selected_date.replace(day=last_day)
+        qs = qs.filter(date__gte=selected_date, date__lte=month_end)
+        period_label = "monthly"
+    elif period == "yearly":
+        year_start = selected_date.replace(month=1, day=1)
+        qs = qs.filter(date__gte=year_start, date__lte=selected_date)
+        period_label = "yearly"
+    else:
+        logger.error(f"Invalid period: {period}")
+        return JsonResponse({'error': 'Invalid period. Use "daily", "monthly", or "yearly".'}, status=400)
+
+    logger.debug(f"Queryset after period filter ({period}): {qs.count()} records")
+
+    # Calculate delay duration using departure times (atd - std) to match chart
+    qs = qs.filter(std__isnull=False, atd__isnull=False).annotate(
+        delay_duration=ExpressionWrapper(F("atd") - F("std"), output_field=DurationField())
+    )
+
+    logger.debug(f"Queryset after annotation: {qs.count()} records")
+
+    # Filter based on OT/NST status, matching get_otp_chart_data logic
+    if status == "OT":
+        if exclude_early:
+            qs = qs.filter(delay_duration__gte=timedelta(minutes=0), delay_duration__lte=timedelta(minutes=10))
+        else:
+            qs = qs.filter(delay_duration__lte=timedelta(minutes=10))
+    elif status == "NST":
+        qs = qs.filter(delay_duration__gt=timedelta(minutes=10))
+    else:
+        logger.error(f"Invalid status: {status}")
+        return JsonResponse({'error': 'Invalid status. Use "OT" or "NST".'}, status=400)
+
+    logger.debug(f"Queryset after {status} filter: {qs.count()} records")
+
+    # Prepare response data
+    delay_details = [
+        {
+            'date': delay.date.strftime('%Y-%m-%d'),
+            'route': delay.route,
+            'in_out': delay.in_out,
+            'std': str(delay.std),  # Use departure times in response
+            'atd': str(delay.atd),
+            'sta': str(delay.sta),  # Include arrival times for completeness
+            'ata': str(delay.ata),
+            'delay': str(delay.delay) if delay.delay else None,
+            'staff_count': delay.staff_count,
+            'remarks': delay.remarks,
+            'delay_duration': str(delay.delay_duration)  # For debugging
+        }
+        for delay in qs
+    ]
+
+    logger.debug(f"Returning {len(delay_details)} delay details for {status} in {period}")
+
+    if not delay_details:
+        logger.warning(f"No data found for {status} in period {period_label} with selected date {selected_date}")
+        return JsonResponse({'message': f'No {status} details available for the selected {period_label} period.'}, safe=False)
+
+    return JsonResponse(delay_details, safe=False)

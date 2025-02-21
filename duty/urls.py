@@ -97,6 +97,7 @@ urlpatterns = [
 
     path('get-top-delayed-load-trips-api/', views.get_top_delayed_load_trips_api, name='get_top_delayed_load_trips_api'),
     path('get-daily-delay-details/', views.get_daily_delay_details, name='get_daily_delay_details'),
+    path('get-otp-details/', views.get_otp_details, name='get_otp_details'),
 ]
 
 # Serve static and media files during development
