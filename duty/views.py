@@ -1628,50 +1628,30 @@ def bus_no_suggestions(request):
     )
     return JsonResponse(suggestions, safe=False)    
 
-from datetime import datetime, date
 from django.http import JsonResponse
-from django.db.models import Sum, Count, ExpressionWrapper, F, DurationField
-from django.utils.timezone import now
+from django.db.models import Sum, Count
 from .models import DelayData
-import calendar
+from datetime import datetime, timedelta
 
 def get_top_delayed_load_trips_api(request):
-    """
-    Returns the top 5 delayed trips with the highest staff count for the full month.
-    Accepts either:
-      - "selected_month" in "YYYY-MM" format for full-month data, or
-      - "selected_date" in "YYYY-MM-DD" format to use the full month containing that date.
-    """
+    selected_date_str = request.GET.get('selected_date')
     selected_month_str = request.GET.get('selected_month')
-    if selected_month_str:
-        try:
-            year, month = selected_month_str.split('-')
-            selected_year = int(year)
-            selected_month = int(month)
-            month_start = date(selected_year, selected_month, 1)
-            last_day = calendar.monthrange(selected_year, selected_month)[1]
-            month_end = date(selected_year, selected_month, last_day)
-        except Exception:
-            month_start = now().date().replace(day=1)
-            month_end = now().date()
-    else:
-        selected_date_str = request.GET.get('selected_date')
-        if selected_date_str:
-            try:
-                selected_date = datetime.strptime(selected_date_str, '%Y-%m-%d').date()
-            except ValueError:
-                selected_date = now().date()
-        else:
-            selected_date = now().date()
+
+    if selected_date_str:
+        selected_date = datetime.strptime(selected_date_str, '%Y-%m-%d').date()
         month_start = selected_date.replace(day=1)
-        last_day = calendar.monthrange(selected_date.year, selected_date.month)[1]
-        month_end = date(selected_date.year, selected_date.month, last_day)
+        month_end = selected_date
+    elif selected_month_str:
+        year, month = map(int, selected_month_str.split('-'))
+        month_start = date(year, month, 1)
+        month_end = date(year, month, calendar.monthrange(year, month)[1])
+    else:
+        month_start = datetime.now().date().replace(day=1)
+        month_end = datetime.now().date()
 
     delayed_trips = (
         DelayData.objects.filter(date__gte=month_start, date__lte=month_end)
-        .annotate(
-            delay_duration=ExpressionWrapper(F('ata') - F('sta'), output_field=DurationField())
-        )
+        .annotate(delay_duration=F('ata') - F('sta'))
         .filter(delay_duration__gt=timedelta(minutes=0))
         .values('route', 'sta')
         .annotate(staff_count=Sum('staff_count'), delay_count=Count('id'))
@@ -1689,3 +1669,26 @@ def get_top_delayed_load_trips_api(request):
     ]
 
     return JsonResponse(result, safe=False)
+
+# views.py
+from django.http import JsonResponse
+from .models import DelayData
+from django.utils.timezone import now
+
+def get_daily_delay_details(request):
+    date = request.GET.get('date', now().date().isoformat())
+    delays = DelayData.objects.filter(date=date)
+    delay_details = [
+        {
+            'date': delay.date.strftime('%Y-%m-%d'),
+            'route': delay.route,
+            'in_out': delay.in_out,
+            'sta': str(delay.sta),
+            'ata': str(delay.ata),
+            'delay': str(delay.delay) if delay.delay else None,
+            'staff_count': delay.staff_count,
+            'remarks': delay.remarks,
+        }
+        for delay in delays
+    ]
+    return JsonResponse(delay_details, safe=False)
