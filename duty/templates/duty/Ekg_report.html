@@ -1,387 +1,373 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Submit Delay Report</title>
 
-    <!-- jQuery first, then Bootstrap JS -->
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    
+    <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
-    <!-- Bootstrap 4 CSS -->
-    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
-
+    <!-- Custom Styles -->
     <style>
         body {
-            background-color: #f5f7fa;
-            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
         }
-
         .container {
-            max-width: 1200px;
-            margin-top: 50px;
-            margin-bottom: 50px;
-            background-color: #ffffff;
+            max-width: 1300px;
+            margin: 50px auto;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
             padding: 40px;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
-
         h1 {
-            color: #333;
+            color: #1e3a8a;
             font-weight: 700;
-            margin-bottom: 20px;
+            text-align: center;
+            margin-bottom: 10px;
         }
-
-        .form-container {
-            padding: 20px;
-            background-color: #f8f9fa;
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
+        .lead {
+            text-align: center;
+            color: #555;
             margin-bottom: 30px;
         }
-
-        .form-container label {
+        .form-container {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border:fuchsia;
+            transition: all 0.3s ease;
+        }
+        .form-container:hover {
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        }
+        .form-label {
             font-weight: 600;
             color: #333;
+            margin-bottom: 5px;
         }
-
-        .form-container .form-control {
-            font-size: 15px;
+        .form-control, .form-select {
+            border-radius: 8px;
+            font-size: 0.95rem;
+            padding: 8px 12px;
         }
-
-        .remarks-column textarea {
-            resize: none;
-            font-size: 15px;
-            height: 100px;
+        .form-control[readonly] {
+            background-color: #e9ecef;
         }
-
         .action-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-top: 10px;
+            margin-top: 15px;
         }
-
-        .remove-button,
-        .clear-button {
-            cursor: pointer;
-            font-weight: bold;
+        .remove-btn, .clear-btn {
+            font-weight: 600;
             padding: 5px 15px;
-            border: none;
-            background-color: transparent;
+            cursor: pointer;
+            transition: color 0.2s ease;
+        }
+        .remove-btn {
             color: #dc3545;
-            text-align: center;
         }
-
-        .clear-button {
-            color: #007bff;
-            text-align: right;
+        .remove-btn:hover {
+            color: #b02a37;
         }
-
-        .btn-warning {
-            background-color: #ffcc00;
-            border-color: #ffcc00;
-            color: #fff;
+        .clear-btn {
+            color: #0d6efd;
         }
-
-        .btn-warning:hover {
-            background-color: #e6b800;
-            border-color: #e6b800;
+        .clear-btn:hover {
+            color: #0a58ca;
         }
-
-        .button-container {
-            display: flex;
-            justify-content: flex-end;
-            margin-top: 20px;
+        .btn-primary {
+            background-color: #1e3a8a;
+            border-color: #1e3a8a;
+            padding: 10px 20px;
+            font-weight: 600;
         }
-
+        .btn-primary:hover {
+            background-color: #172e66;
+            border-color: #172e66;
+        }
+        .btn-secondary {
+            padding: 10px 20px;
+            font-weight: 600;
+        }
         .error-message {
-            color: red;
-            font-size: 13px;
+            color: #dc3545;
+            font-size: 0.85rem;
+            margin-top: 5px;
             display: none;
         }
-
-        /* Responsive styles */
+        .alert {
+            margin-top: 20px;
+            border-radius: 8px;
+        }
         @media (max-width: 768px) {
             .container {
                 padding: 20px;
+                margin: 20px;
             }
-
-            .button-container {
-                justify-content: center;
-                flex-direction: column;
-                text-align: center;
+            .form-container {
+                padding: 15px;
             }
-
-            .button-container .btn {
-                margin-bottom: 10px;
-            }
-
-            .remove-button,
-            .clear-button {
-                font-size: 14px;
-            }
-
             .action-row {
                 flex-direction: column;
-                text-align: center;
+                gap: 10px;
             }
-
-            .action-row .remove-button,
-            .action-row .clear-button {
-                width: 100%;
-                margin-bottom: 10px;
-            }
-
-            .row {
-                margin-bottom: 10px;
-            }
-
-            .form-container {
-                padding: 10px;
+            .row > div {
+                margin-bottom: 15px;
             }
         }
-
         @media (max-width: 576px) {
-            .row .col-md-3,
-            .row .col-md-2 {
+            .row > div {
                 flex: 0 0 100%;
                 max-width: 100%;
             }
-
-            .remarks-column textarea {
+            textarea.form-control {
                 height: 80px;
             }
         }
     </style>
 </head>
-
 <body>
-
     <div class="container">
-        <div class="text-center">
-            <h1>Submit Delay Report</h1>
-            <p class="lead">Complete the form below to submit multiple delay reports.</p>
-        </div>
+        <h1>Submit Delay Report</h1>
+        <p class="lead">Add and submit multiple delay reports efficiently.</p>
 
-        <!-- Form container for DelayDataForm -->
         <form id="DelayDataFormSet" method="POST" class="form-container">
             {% csrf_token %}
             <input type="hidden" name="form-TOTAL_FORMS" id="id_form-TOTAL_FORMS" value="1">
             <input type="hidden" name="form-INITIAL_FORMS" id="id_form-INITIAL_FORMS" value="0">
             <input type="hidden" name="form-MIN_NUM_FORMS" id="id_form-MIN_NUM_FORMS" value="0">
             <input type="hidden" name="form-MAX_NUM_FORMS" id="id_form-MAX_NUM_FORMS" value="1000">
+
             <div id="formset-container">
-                <!-- First delay report form -->
-                <div class="delay-form">
-                    <div class="row">
+                <!-- Initial Form -->
+                <div class="delay-form mb-4">
+                    <div class="row g-3">
                         <div class="col-md-3">
-                            <label for="reportDate">DATE</label>
-                            <input type="date" class="form-control form-control-sm" name="form-0-date" required>
+                            <label class="form-label">Date</label>
+                            <input type="date" class="form-control" name="form-0-date" required>
+                            <div class="error-message">Date is required</div>
                         </div>
                         <div class="col-md-3">
-                            <label for="route">ROUTE</label>
-                            <input type="text" class="form-control form-control-sm" name="form-0-route" required>
-                            <div class="error-message" id="routeError">Route is required</div>
+                            <label class="form-label">Route</label>
+                            <input type="text" class="form-control" name="form-0-route" required>
+                            <div class="error-message">Route is required</div>
                         </div>
                         <div class="col-md-3">
-                            <label for="in_out">IN/OUT</label>
-                            <select class="form-control form-control-sm" name="form-0-in_out" required>
+                            <label class="form-label">In/Out</label>
+                            <select class="form-select" name="form-0-in_out" required>
                                 <option value="">Select</option>
                                 <option value="IN">IN</option>
                                 <option value="OUT">OUT</option>
                             </select>
-                            <div class="error-message" id="inOutError">In/Out is required</div>
+                            <div class="error-message">In/Out is required</div>
                         </div>
                         <div class="col-md-3">
-                            <label for="staff_count">STAFF COUNT</label>
-                            <input type="number" class="form-control form-control-sm" name="form-0-staff_count" required>
-                            <div class="error-message" id="staffCountError">Staff count is required</div>
+                            <label class="form-label">Staff Count</label>
+                            <input type="number" class="form-control" name="form-0-staff_count" min="0" required>
+                            <div class="error-message">Staff count is required</div>
                         </div>
                     </div>
-
-                    <div class="row">
+                    <div class="row g-3 mt-2">
                         <div class="col-md-2">
-                            <label for="std">STD</label>
-                            <input type="time" class="form-control form-control-sm" name="form-0-std" required>
-                            <div class="error-message" id="stdError">STD is required</div>
+                            <label class="form-label">STD</label>
+                            <input type="time" class="form-control" name="form-0-std" required>
+                            <div class="error-message">STD is required</div>
                         </div>
                         <div class="col-md-2">
-                            <label for="atd">ATD</label>
-                            <input type="time" class="form-control form-control-sm" name="form-0-atd" required>
-                            <div class="error-message" id="atdError">ATD is required</div>
+                            <label class="form-label">ATD</label>
+                            <input type="time" class="form-control" name="form-0-atd" required>
+                            <div class="error-message">ATD is required</div>
                         </div>
                         <div class="col-md-2">
-                            <label for="sta">STA</label>
-                            <input type="time" class="form-control form-control-sm" name="form-0-sta" required>
-                            <div class="error-message" id="staError">STA is required</div>
+                            <label class="form-label">STA</label>
+                            <input type="time" class="form-control" name="form-0-sta" required>
+                            <div class="error-message">STA is required</div>
                         </div>
                         <div class="col-md-2">
-                            <label for="ata">ATA</label>
-                            <input type="time" class="form-control form-control-sm" name="form-0-ata" required>
-                            <div class="error-message" id="ataError">ATA is required</div>
+                            <label class="form-label">ATA</label>
+                            <input type="time" class="form-control" name="form-0-ata" required>
+                            <div class="error-message">ATA is required</div>
                         </div>
-                        
                         <div class="col-md-3">
-                            <label for="delay">DELAY (HH:MM)</label>
-                            <input type="time" class="form-control form-control-sm" name="form-0-delay" readonly>
+                            <label class="form-label">Delay (HH:MM)</label>
+                            <input type="text" class="form-control" name="form-0-delay" readonly>
                         </div>
-                        
-                        
                     </div>
-
-                    <div class="remarks-column">
-                        <label for="remarks">REMARKS</label>
+                    <div class="mt-3">
+                        <label class="form-label">Remarks</label>
                         <textarea class="form-control" name="form-0-remarks" rows="3" placeholder="Provide detailed description..."></textarea>
                     </div>
-
                     <div class="action-row">
-                        <span class="remove-button">Remove</span>
-                        <span class="clear-button">Clear</span>
+                        <span class="remove-btn">Remove</span>
+                        <span class="clear-btn">Clear</span>
                     </div>
-                    <hr>
+                    <hr class="mt-3">
                 </div>
             </div>
 
-            <!-- Button to add a new form -->
-            <div class="text-right">    
-                <button type="button" class="btn btn-secondary mb-3" id="addFormButton">Add New Delay Report</button>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <button type="button" class="btn btn-outline-primary" id="addFormButton">Add New Report</button>
+                <button type="submit" class="btn btn-primary" id="saveButton">Save All</button>
             </div>
 
-            <div class="button-container">
-                <button type="submit" class="btn btn-warning" id="saveButton">Save</button>
-            </div>
-
-            <!-- Back Button -->
-            <div class="text-left mt-3">
+            <div class="mt-3">
                 <a href="{% url 'subcategory_selection' %}" class="btn btn-secondary">Back to Subcategory</a>
             </div>
-
         </form>
+
+        <div id="message-container" class="mt-3"></div>
     </div>
 
-    <!-- Bootstrap 4 JS -->
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const formsetContainer = document.getElementById('formset-container');
-            const saveButton = document.getElementById('saveButton');
-            const messageContainer = document.createElement('div');
-            const initialForm = formsetContainer.firstElementChild.cloneNode(true);
-    
-            messageContainer.id = 'message-container';
-            messageContainer.style.marginTop = '20px';
-            formsetContainer.parentElement.insertBefore(messageContainer, formsetContainer);
-    
-            let formCount = parseInt(document.getElementById('id_form-TOTAL_FORMS').value);
-    
-            // Attach delay calculation logic to a form
-            function attachDelayCalculation(form) {
-                const staInput = form.querySelector('input[name$="sta"]');
-                const ataInput = form.querySelector('input[name$="ata"]');
-                const delayInput = form.querySelector('input[name$="delay"]');
-    
+        $(document).ready(function () {
+            const formsetContainer = $('#formset-container');
+            const saveButton = $('#saveButton');
+            const messageContainer = $('#message-container');
+            const initialForm = formsetContainer.children('.delay-form').first().clone(true, true);
+
+            let formCount = parseInt($('#id_form-TOTAL_FORMS').val());
+
+            // Attach delay calculation and event handlers to a form
+            function attachFormHandlers(form) {
+                const staInput = form.find('input[name$="sta"]');
+                const ataInput = form.find('input[name$="ata"]');
+                const delayInput = form.find('input[name$="delay"]');
+
                 function calculateDelay() {
-                    const staTime = staInput.value ? new Date(`1970-01-01T${staInput.value}:00`) : null;
-                    const ataTime = ataInput.value ? new Date(`1970-01-01T${ataInput.value}:00`) : null;
-    
-                    if (staTime && ataTime && ataTime >= staTime) {
-                        // Calculate delay in minutes
-                        const delayMinutes = Math.floor((ataTime - staTime) / 60000);
-    
-                        // Format delay as HH:MM
-                        const hours = Math.floor(delayMinutes / 60).toString().padStart(2, '0');
-                        const minutes = (delayMinutes % 60).toString().padStart(2, '0');
-                        delayInput.value = `${hours}:${minutes}`;
-                    } else {
-                        delayInput.value = '00:00'; // Reset delay if invalid
-                    }
-                }
-    
-                // Normalize time input to 24-hour format across all browsers
-                function enforce24HourFormat(input) {
-                    input.addEventListener('change', function () {
-                        const time = input.value;
-                        if (time.includes(':')) {
-                            const [hours, minutes] = time.split(':');
-                            input.value = `${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}`;
-                        }
-                    });
-                }
-    
-                enforce24HourFormat(staInput);
-                enforce24HourFormat(ataInput);
-    
-                staInput.addEventListener('change', calculateDelay);
-                ataInput.addEventListener('change', calculateDelay);
-            }
-    
-            // Attach delay calculation to the initial form
-            attachDelayCalculation(formsetContainer.firstElementChild);
-    
-            // Handle adding new forms
-            document.getElementById('addFormButton').addEventListener('click', function () {
-                const newForm = initialForm.cloneNode(true);
-    
-                newForm.querySelectorAll('input, select, textarea').forEach((input) => {
-                    const oldName = input.name;
-                    if (oldName) {
-                        input.name = oldName.replace(/form-\d+-/, `form-${formCount}-`);
-                        input.id = input.id.replace(/form-\d+-/, `form-${formCount}-`);
-                    }
-                    input.value = '';
-                });
-    
-                formCount++;
-                document.getElementById('id_form-TOTAL_FORMS').value = formCount;
-    
-                attachDelayCalculation(newForm);
-                formsetContainer.appendChild(newForm);
-            });
-    
-            // Handle form submission
-            saveButton.addEventListener('click', function (e) {
-                e.preventDefault();
-    
-                const formData = new FormData(document.getElementById('DelayDataFormSet'));
-                fetch(document.getElementById('DelayDataFormSet').action, {
-                    method: 'POST',
-                    headers: { 'X-CSRFToken': formData.get('csrfmiddlewaretoken') },
-                    body: new URLSearchParams(formData),
-                })
-                    .then((response) => response.json())
-                    .then((data) => {
-                        messageContainer.innerHTML = '';
-                        if (data.status === 'success') {
-                            messageContainer.className = 'alert alert-success';
-                            messageContainer.innerText = data.message;
-    
-                            // Reset form
-                            formsetContainer.innerHTML = '';
-                            document.getElementById('id_form-TOTAL_FORMS').value = 1;
-    
-                            // Add a new blank form
-                            const newForm = initialForm.cloneNode(true);
-                            attachDelayCalculation(newForm);
-                            formsetContainer.appendChild(newForm);
+                    const sta = staInput.val();
+                    const ata = ataInput.val();
+                    if (sta && ata) {
+                        const staTime = new Date(`1970-01-01T${sta}:00`);
+                        const ataTime = new Date(`1970-01-01T${ata}:00`);
+                        if (ataTime >= staTime) {
+                            const diffMs = ataTime - staTime;
+                            const hours = Math.floor(diffMs / 3600000).toString().padStart(2, '0');
+                            const minutes = Math.floor((diffMs % 3600000) / 60000).toString().padStart(2, '0');
+                            delayInput.val(`${hours}:${minutes}`);
                         } else {
-                            messageContainer.className = 'alert alert-danger';
-                            messageContainer.innerText = data.message;
+                            delayInput.val('00:00');
                         }
-                    })
-                    .catch((error) => {
-                        messageContainer.className = 'alert alert-danger';
-                        messageContainer.innerText = 'An unexpected error occurred.';
-                        console.error(error);
+                    }
+                }
+
+                staInput.on('change', calculateDelay);
+                ataInput.on('change', calculateDelay);
+
+                form.find('.remove-btn').on('click', function () {
+                    if (formsetContainer.children('.delay-form').length > 1) {
+                        if (confirm('Are you sure you want to remove this form?')) {
+                            form.remove();
+                            updateFormIndices();
+                        }
+                    } else {
+                        alert('At least one form must remain.');
+                    }
+                });
+
+                form.find('.clear-btn').on('click', function () {
+                    if (confirm('Clear all fields in this form?')) {
+                        form.find('input:not([type="hidden"]), select, textarea').val('');
+                        delayInput.val('');
+                    }
+                });
+            }
+
+            // Update form indices after adding/removing forms
+            function updateFormIndices() {
+                formCount = 0;
+                formsetContainer.children('.delay-form').each(function (index) {
+                    $(this).find('input, select, textarea').each(function () {
+                        const oldName = $(this).attr('name');
+                        if (oldName) {
+                            $(this).attr('name', oldName.replace(/form-\d+-/, `form-${index}-`));
+                            const oldId = $(this).attr('id');
+                            if (oldId) $(this).attr('id', oldId.replace(/form-\d+-/, `form-${index}-`));
+                        }
                     });
+                    formCount = index + 1;
+                });
+                $('#id_form-TOTAL_FORMS').val(formCount);
+            }
+
+            // Attach handlers to the initial form
+            attachFormHandlers(formsetContainer.children('.delay-form').first());
+
+            // Add new form
+            $('#addFormButton').on('click', function () {
+                const newForm = initialForm.clone(true, true);
+                newForm.find('input:not([type="hidden"]), select, textarea').val('');
+                newForm.find('input[name$="delay"]').val('');
+                formsetContainer.append(newForm);
+                updateFormIndices();
+                attachFormHandlers(newForm);
+            });
+
+            // Form submission
+            saveButton.on('click', function (e) {
+                e.preventDefault();
+
+                // Basic client-side validation
+                let isValid = true;
+                formsetContainer.find('.delay-form').each(function () {
+                    const requiredInputs = $(this).find('input[required], select[required]');
+                    requiredInputs.each(function () {
+                        if (!$(this).val()) {
+                            $(this).next('.error-message').show();
+                            isValid = false;
+                        } else {
+                            $(this).next('.error-message').hide();
+                        }
+                    });
+                });
+
+                if (!isValid) {
+                    messageContainer.html('<div class="alert alert-warning">Please fill all required fields.</div>');
+                    return;
+                }
+
+                const formData = new FormData($('#DelayDataFormSet')[0]);
+                $.ajax({
+                    url: $('#DelayDataFormSet').attr('action'),
+                    method: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    headers: { 'X-CSRFToken': formData.get('csrfmiddlewaretoken') },
+                    success: function (data) {
+                        if (data.status === 'success') {
+                            messageContainer.html(`<div class="alert alert-success">${data.message}</div>`);
+                            formsetContainer.empty();
+                            const newForm = initialForm.clone(true, true);
+                            attachFormHandlers(newForm);
+                            formsetContainer.append(newForm);
+                            updateFormIndices();
+                        } else {
+                            messageContainer.html(`<div class="alert alert-danger">${data.message || 'Error saving data.'}</div>`);
+                            if (data.errors) {
+                                console.log('Form errors:', data.errors);
+                            }
+                        }
+                    },
+                    error: function (xhr) {
+                        messageContainer.html('<div class="alert alert-danger">An error occurred while saving. Please try again.</div>');
+                        console.error('AJAX error:', xhr.responseText);
+                    }
+                });
             });
         });
     </script>
-    
-    
- </body>
-
+</body>
 </html>

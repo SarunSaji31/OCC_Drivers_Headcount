@@ -94,6 +94,8 @@ urlpatterns = [
     path('submit-bus-km/', views.submit_bus_km, name='submit_bus_km'),
     path('ajax/duty_card_suggestions/', views.duty_card_suggestions, name='duty_card_suggestions'),
     path('ajax/bus_no_suggestions/', views.bus_no_suggestions, name='bus_no_suggestions'),
+
+    path('get-top-delayed-load-trips-api/', views.get_top_delayed_load_trips_api, name='get_top_delayed_load_trips_api'),
 ]
 
 # Serve static and media files during development

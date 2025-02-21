@@ -1626,4 +1626,66 @@ def bus_no_suggestions(request):
         .values_list('bus_no', flat=True)
         .distinct()
     )
-    return JsonResponse(suggestions, safe=False)
+    return JsonResponse(suggestions, safe=False)    
+
+from datetime import datetime, date
+from django.http import JsonResponse
+from django.db.models import Sum, Count, ExpressionWrapper, F, DurationField
+from django.utils.timezone import now
+from .models import DelayData
+import calendar
+
+def get_top_delayed_load_trips_api(request):
+    """
+    Returns the top 5 delayed trips with the highest staff count for the full month.
+    Accepts either:
+      - "selected_month" in "YYYY-MM" format for full-month data, or
+      - "selected_date" in "YYYY-MM-DD" format to use the full month containing that date.
+    """
+    selected_month_str = request.GET.get('selected_month')
+    if selected_month_str:
+        try:
+            year, month = selected_month_str.split('-')
+            selected_year = int(year)
+            selected_month = int(month)
+            month_start = date(selected_year, selected_month, 1)
+            last_day = calendar.monthrange(selected_year, selected_month)[1]
+            month_end = date(selected_year, selected_month, last_day)
+        except Exception:
+            month_start = now().date().replace(day=1)
+            month_end = now().date()
+    else:
+        selected_date_str = request.GET.get('selected_date')
+        if selected_date_str:
+            try:
+                selected_date = datetime.strptime(selected_date_str, '%Y-%m-%d').date()
+            except ValueError:
+                selected_date = now().date()
+        else:
+            selected_date = now().date()
+        month_start = selected_date.replace(day=1)
+        last_day = calendar.monthrange(selected_date.year, selected_date.month)[1]
+        month_end = date(selected_date.year, selected_date.month, last_day)
+
+    delayed_trips = (
+        DelayData.objects.filter(date__gte=month_start, date__lte=month_end)
+        .annotate(
+            delay_duration=ExpressionWrapper(F('ata') - F('sta'), output_field=DurationField())
+        )
+        .filter(delay_duration__gt=timedelta(minutes=0))
+        .values('route', 'sta')
+        .annotate(staff_count=Sum('staff_count'), delay_count=Count('id'))
+        .order_by('-staff_count')[:5]
+    )
+
+    result = [
+        {
+            'route': trip['route'],
+            'sta': str(trip['sta']),
+            'staff_count': trip['staff_count'],
+            'delay_count': trip['delay_count']
+        }
+        for trip in delayed_trips
+    ]
+
+    return JsonResponse(result, safe=False)

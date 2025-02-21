@@ -4,7 +4,6 @@
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
-
   gtag('config', 'G-50625SGNXQ');
 </script>
 
@@ -103,7 +102,7 @@
     </div>
 
     <!-- Charts Section -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
       <!-- Fleet Delay and Breakdown Chart (Daily Data) -->
       <div class="bg-white rounded-lg shadow-lg p-6">
         <h3 class="text-xl font-bold text-primary text-center mb-4">
@@ -121,6 +120,16 @@
         </h3>
         <div class="relative h-[400px] w-full">
           <canvas id="mostDelayedTripsChart" class="w-full h-full"></canvas>
+        </div>
+      </div>
+
+      <!-- Top 5 Delayed Trips with Highest Load (Monthly) -->
+      <div class="bg-white rounded-lg shadow-lg p-6">
+        <h3 class="text-xl font-bold text-primary text-center mb-4">
+          Top 5 Delayed Trips with Highest Load (Monthly)
+        </h3>
+        <div class="relative h-[400px] w-full">
+          <canvas id="topDelayedLoadChart" class="w-full h-full"></canvas>
         </div>
       </div>
     </div>
@@ -244,7 +253,6 @@
           currentDateElement.text(isToday ? "Today" : formatDate(selectedValue));
           currentMonthElement.text(formatMonth(selectedValue));
         } else if (filterType === "monthly") {
-          // For monthly, display the month (using the first day of that month)
           currentMonthElement.text(formatMonth(selectedValue + '-01'));
         }
       }
@@ -261,36 +269,29 @@
           monthFilter.removeClass("hidden");
           dateFilter.addClass("hidden");
           $("#date-filter-label").text("Select Month:");
-          // Show the prompt so the user can switch to daily if desired
           switchMessage.removeClass("hidden");
         }
       });
 
       // --- Allow user to switch to Daily (for a specific date) when monthly is selected ---
       switchMessage.click(function () {
-        // Get the selected month value (in YYYY-MM format)
         var selectedMonth = monthFilter.val();
         if (!selectedMonth) {
           alert("Please select a valid month first.");
           return;
         }
-        // Pre-populate the daily date input with the first day of the selected month.
         dateFilter.val(selectedMonth + "-01");
-        // Change filter type to daily.
         $("#filter-type").val("daily").trigger("change");
-        // Update the display immediately.
         updateDisplay(dateFilter.val(), "daily");
       });
 
       // --- Global Functions for Updating Dashboard ---
       var fleetChartInstance = null;
       window.updateDashboard = function (filterType, filterValue) {
-        // The server endpoint should check the filter type (e.g., "until_date" vs "month")
         $.ajax({
           url: "/filter-dashboard/",
           data: { filter_type: filterType, filter_value: filterValue },
           success: function (response) {
-            // Update Statistics
             $("#daily-delay-count").text(response.daily_delays || 0);
             $("#daily-breakdown-count").text(response.daily_breakdowns || 0);
             $("#monthly-delay-count").text(response.monthly_delays || 0);
@@ -298,7 +299,6 @@
             $("#total-delay-count").text(response.yearly_delays || 0);
             $("#total-breakdown-count").text(response.yearly_breakdowns || 0);
 
-            // Update Fleet Delay Chart (Daily Data)
             var ctx = document.getElementById("fleet-delay-chart").getContext("2d");
             if (fleetChartInstance) {
               fleetChartInstance.destroy();
@@ -332,7 +332,6 @@
 
       // --- Update Most Delayed Trips Chart ---
       window.fetchMostDelayedTrips = function (filterValue) {
-        // Determine if we’re working with a full month (YYYY-MM) or a full date (YYYY-MM-DD)
         var isMonthly = filterValue && filterValue.length === 7;
         var params = isMonthly ? { selected_month: filterValue } : { selected_date: filterValue };
         $.getJSON("/get-most-delayed-trips-api", params, function (data) {
@@ -401,6 +400,86 @@
         });
       };
 
+      // --- Update Top 5 Delayed Trips with Highest Load Chart (Monthly-wise) ---
+      window.fetchTopDelayedLoadTrips = function (filterValue) {
+        var isMonthly = filterValue && filterValue.length === 7;
+        var params = isMonthly ? { selected_month: filterValue } : { selected_date: filterValue };
+        $.getJSON("/get-top-delayed-load-trips-api", params, function (data) {
+          if (!data || data.length === 0) {
+            $("#topDelayedLoadChart").html("No data available");
+            return;
+          }
+          var ctx = document.getElementById("topDelayedLoadChart").getContext("2d");
+          var labels = data.map(function (item) {
+            return item.route + " (" + item.sta + ")";
+          });
+          var staffCounts = data.map(function (item) {
+            return item.staff_count;
+          });
+          var delayCounts = data.map(function (item) {
+            return item.delay_count;
+          });
+          if (window.topDelayedLoadChart instanceof Chart) {
+            window.topDelayedLoadChart.destroy();
+          }
+          window.topDelayedLoadChart = new Chart(ctx, {
+            type: "bar",
+            data: {
+              labels: labels,
+              datasets: [
+                {
+                  label: "Staff Count",
+                  data: staffCounts,
+                  backgroundColor: "rgba(255, 159, 64, 0.7)", // Orange for staff count
+                  borderColor: "rgba(255, 159, 64, 1)",
+                  borderWidth: 1,
+                },
+                {
+                  label: "Delay Count",
+                  data: delayCounts,
+                  backgroundColor: "rgba(75, 192, 192, 0.7)", // Teal for delay count
+                  borderColor: "rgba(75, 192, 192, 1)",
+                  borderWidth: 1,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { display: true, position: "top" },
+                title: {
+                  display: true,
+                  text: "Top 5 Delayed Trips with Highest Load (Monthly)",
+                  font: { size: 16 },
+                },
+              },
+              scales: {
+                x: {
+                  title: {
+                    display: true,
+                    text: "Routes",
+                    font: { size: 14 },
+                  },
+                  ticks: { autoSkip: false, maxRotation: 45, minRotation: 0 },
+                },
+                y: {
+                  beginAtZero: true,
+                  ticks: { precision: 0, font: { size: 12 } },
+                  title: {
+                    display: true,
+                    text: "Count",
+                    font: { size: 14 },
+                  },
+                },
+              },
+            },
+          });
+        }).fail(function () {
+          $("#topDelayedLoadChart").html("Error loading chart data.");
+        });
+      };
+
       // --- OTP Donut Chart Functions ---
       function fetchOtpChart(period, canvasId) {
         var filterType = $("#filter-type").val();
@@ -465,6 +544,7 @@
       updateDisplay(today, "daily");
       updateDashboard("until_date", today);
       fetchMostDelayedTrips(today);
+      fetchTopDelayedLoadTrips(today);
       fetchOtpChart("daily", "otp-daily-chart");
       fetchOtpChart("monthly", "otp-monthly-chart");
       fetchOtpChart("yearly", "otp-yearly-chart");
@@ -478,6 +558,7 @@
             updateDisplay(selectedDate, "daily");
             updateDashboard("until_date", selectedDate);
             fetchMostDelayedTrips(selectedDate);
+            fetchTopDelayedLoadTrips(selectedDate);
             fetchOtpChart("daily", "otp-daily-chart");
             fetchOtpChart("monthly", "otp-monthly-chart");
             fetchOtpChart("yearly", "otp-yearly-chart");
@@ -490,6 +571,7 @@
             updateDisplay(selectedMonth, "monthly");
             updateDashboard("month", selectedMonth);
             fetchMostDelayedTrips(selectedMonth);
+            fetchTopDelayedLoadTrips(selectedMonth);
             fetchOtpChart("daily", "otp-daily-chart");
             fetchOtpChart("monthly", "otp-monthly-chart");
             fetchOtpChart("yearly", "otp-yearly-chart");
