@@ -211,7 +211,9 @@
                 Date: {{ entry.submission_date|date:"Y-m-d"|default:"N/A" }}<br>
                 Duty: {{ entry.duty_card_no|default:"N/A" }} | 
                 Bus: {{ entry.bus_no }} | 
-                KM: {{ entry.start_km }} - {{ entry.end_km }}<br>
+                Start Time: {{ entry.bus_start_time|time:"H:i"|default:"N/A" }} | 
+                End Time: {{ entry.bus_end_time|time:"H:i"|default:"N/A" }}<br>
+                KM: {{ entry.start_km }} - {{ entry.end_km }} | 
                 Changed: {{ entry.bus_change|yesno:"Yes,No" }} | 
                 New Bus: {{ entry.changed_bus_no|default:"N/A" }}
               </li>
