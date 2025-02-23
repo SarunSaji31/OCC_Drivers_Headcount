@@ -12,45 +12,23 @@
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.1/themes/base/jquery-ui.css" />
   <script src="https://code.jquery.com/ui/1.13.1/jquery-ui.min.js"></script>
-  <script>
-    // Toggle Bus Change Details section based on the "Bus Changed?" checkbox.
-    function toggleBusChangeSection() {
-      const checkbox = document.getElementById('id_bus_change');
-      const section = document.getElementById('bus-change-section');
-      section.style.display = checkbox.checked ? 'block' : 'none';
-    }
-    document.addEventListener('DOMContentLoaded', function(){
-      toggleBusChangeSection();
-      document.getElementById('id_bus_change').addEventListener('change', toggleBusChangeSection);
-      
-      // Attach autocomplete to duty card number field with immediate suggestions.
-      $("#id_duty_card_no").autocomplete({
-          source: "{% url 'duty_card_suggestions' %}",
-          minLength: 0,
-      }).focus(function(){
-          $(this).autocomplete("search", $(this).val());
-      });
-      
-      // Attach autocomplete to bus number fields with immediate suggestions.
-      $("#id_bus_no").autocomplete({
-          source: "{% url 'bus_no_suggestions' %}",
-          minLength: 0,
-      }).focus(function(){
-          $(this).autocomplete("search", $(this).val());
-      });
-      
-      $("#id_changed_bus_no").autocomplete({
-          source: "{% url 'bus_no_suggestions' %}",
-          minLength: 0,
-      }).focus(function(){
-          $(this).autocomplete("search", $(this).val());
-      });
-    });
-  </script>
   <style>
-    /* Additional custom styling (if needed) */
+    /* Additional custom styling */
     body {
       background-color: #f3f4f6; /* Tailwind gray-100 */
+    }
+    .warning-message {
+      display: none;
+      background-color: #fee2e2; /* Tailwind red-100 */
+      color: #b91c1c; /* Tailwind red-700 */
+      padding: 1rem;
+      border-radius: 0.375rem;
+      margin-bottom: 1rem;
+      border: 1px solid #f87171; /* Tailwind red-400 */
+    }
+    .error-field {
+      border-color: #ef4444; /* Tailwind red-500 */
+      box-shadow: 0 0 0 1px #ef4444;
     }
   </style>
 </head>
@@ -66,7 +44,11 @@
             Data saved successfully!
           </div>
         {% endif %}
-        <form method="POST" class="space-y-6">
+        <!-- Warning message container -->
+        <div id="warning-message" class="warning-message">
+          <strong>Warning:</strong> Please select both Duty Card No and Bus Number from the suggestion lists.
+        </div>
+        <form method="POST" class="space-y-6" id="bus-km-form">
           {% csrf_token %}
           <!-- Submission Information Section -->
           <div>
@@ -223,5 +205,126 @@
       </div>
     </div>
   </div>
+
+  <script>
+    // Toggle Bus Change Details section based on the "Bus Changed?" checkbox.
+    function toggleBusChangeSection() {
+      const checkbox = document.getElementById('id_bus_change');
+      const section = document.getElementById('bus-change-section');
+      section.style.display = checkbox.checked ? 'block' : 'none';
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      toggleBusChangeSection();
+      document.getElementById('id_bus_change').addEventListener('change', toggleBusChangeSection);
+
+      // Arrays to store valid suggestions
+      let dutyCardSuggestions = [];
+      let busNoSuggestions = [];
+
+      // Track whether fields are selected from suggestions
+      let isDutyCardSelected = false;
+      let isBusNoSelected = false;
+
+      // Attach autocomplete to duty card number field
+      $("#id_duty_card_no").autocomplete({
+        source: function(request, response) {
+          $.ajax({
+            url: "{% url 'duty_card_suggestions' %}",
+            dataType: "json",
+            data: { term: request.term },
+            success: function(data) {
+              dutyCardSuggestions = data; // Store suggestions
+              response(data);
+            }
+          });
+        },
+        minLength: 0,
+        select: function(event, ui) {
+          isDutyCardSelected = true; // Mark as selected from suggestions
+          $("#id_duty_card_no").removeClass("error-field"); // Remove error highlight on selection
+        },
+        change: function(event, ui) {
+          if (!ui.item) {
+            isDutyCardSelected = false; // Reset if not selected from list
+          }
+        }
+      }).focus(function() {
+        $(this).autocomplete("search", $(this).val());
+      });
+
+      // Attach autocomplete to bus number field
+      $("#id_bus_no").autocomplete({
+        source: function(request, response) {
+          $.ajax({
+            url: "{% url 'bus_no_suggestions' %}",
+            dataType: "json",
+            data: { term: request.term },
+            success: function(data) {
+              busNoSuggestions = data; // Store suggestions
+              response(data);
+            }
+          });
+        },
+        minLength: 0,
+        select: function(event, ui) {
+          isBusNoSelected = true; // Mark as selected from suggestions
+          $("#id_bus_no").removeClass("error-field"); // Remove error highlight on selection
+        },
+        change: function(event, ui) {
+          if (!ui.item) {
+            isBusNoSelected = false; // Reset if not selected from list
+          }
+        }
+      }).focus(function() {
+        $(this).autocomplete("search", $(this).val());
+      });
+
+      // Attach autocomplete to changed bus number field (optional, not required for validation)
+      $("#id_changed_bus_no").autocomplete({
+        source: "{% url 'bus_no_suggestions' %}",
+        minLength: 0,
+      }).focus(function() {
+        $(this).autocomplete("search", $(this).val());
+      });
+
+      // Form submission validation with error highlighting
+      $("#bus-km-form").on("submit", function(event) {
+        const dutyCardNo = $("#id_duty_card_no").val().trim();
+        const busNo = $("#id_bus_no").val().trim();
+        const warningMessage = $("#warning-message");
+
+        // Check if fields are empty or not selected from suggestions
+        const isDutyCardValid = dutyCardNo && isDutyCardSelected && dutyCardSuggestions.includes(dutyCardNo);
+        const isBusNoValid = busNo && isBusNoSelected && busNoSuggestions.includes(busNo);
+
+        if (!isDutyCardValid || !isBusNoValid) {
+          event.preventDefault(); // Prevent form submission
+          warningMessage.css("display", "block"); // Show warning message
+
+          // Highlight invalid fields
+          if (!isDutyCardValid) {
+            $("#id_duty_card_no").addClass("error-field");
+          } else {
+            $("#id_duty_card_no").removeClass("error-field");
+          }
+
+          if (!isBusNoValid) {
+            $("#id_bus_no").addClass("error-field");
+          } else {
+            $("#id_bus_no").removeClass("error-field");
+          }
+
+          setTimeout(() => {
+            warningMessage.css("display", "none"); // Hide warning after 5 seconds
+          }, 5000);
+        } else {
+          warningMessage.css("display", "none"); // Hide warning if valid
+          $("#id_duty_card_no").removeClass("error-field"); // Clear highlights
+          $("#id_bus_no").removeClass("error-field");
+        }
+      });
+    });
+  </script>
 </body>
 </html>

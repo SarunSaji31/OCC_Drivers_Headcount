@@ -140,7 +140,7 @@
             class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded"
             id="submit-button"
           >
-            Submit Head Count &amp; Continue
+            Submit Head Count & Continue
           </button>
         </div>
       </form>
@@ -148,7 +148,7 @@
 
     <!-- Footer -->
     <footer class="bg-gray-200 text-gray-800 text-center py-4 mt-8 border-t border-gray-300">
-      <p>&copy; Emirates Airline Staff Transport Project.</p>
+      <p>© Emirates Airline Staff Transport Project.</p>
     </footer>
 
     <!-- Scripts -->
@@ -201,17 +201,17 @@
                   </div>
                   <div>
                     <label class="block text-gray-700 font-medium mb-1">Pick Up Time</label>
-                    <input type="time" name="drivertrip_set-${index}-pick_up_time" class="w-full border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-blue-500" value="${tripData.pick_up_time || ""}" required>
+                    <input type="time" name="drivertrip_set-${index}-pick_up_time" class="w-full border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-blue-500 time-24hr" value="${tripData.pick_up_time || ""}" required>
                   </div>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                   <div>
                     <label class="block text-gray-700 font-medium mb-1">Drop Off Time</label>
-                    <input type="time" name="drivertrip_set-${index}-drop_off_time" class="w-full border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-blue-500" value="${tripData.drop_off_time || ""}" required>
+                    <input type="time" name="drivertrip_set-${index}-drop_off_time" class="w-full border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-blue-500 time-24hr" value="${tripData.drop_off_time || ""}" required>
                   </div>
                   <div>
                     <label class="block text-gray-700 font-medium mb-1">Shift Time</label>
-                    <input type="time" name="drivertrip_set-${index}-shift_time" class="w-full border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-blue-500" value="${tripData.shift_time || ""}" required>
+                    <input type="time" name="drivertrip_set-${index}-shift_time" class="w-full border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-blue-500 time-24hr" value="${tripData.shift_time || ""}" required>
                   </div>
                   <div>
                     <label class="block text-gray-700 font-medium mb-1">Date</label>
@@ -232,6 +232,7 @@
           $("#trip-entries").append(newRow);
           tripCount++;
           updateFormIndices();
+          enforce24HourFormat(); // Call this after adding a new row
         }
 
         function updateFormIndices() {
@@ -244,6 +245,22 @@
             });
           });
           $("#id_drivertrip_set-TOTAL_FORMS").val(tripCount);
+        }
+
+        // Function to enforce 24-hour format
+        function enforce24HourFormat() {
+          $(".time-24hr").each(function () {
+            $(this).on("change input", function () {
+              let value = $(this).val();
+              if (value) {
+                // Convert to 24-hour format if needed
+                const time = new Date(`1970-01-01T${value}`);
+                const hours = time.getHours().toString().padStart(2, "0");
+                const minutes = time.getMinutes().toString().padStart(2, "0");
+                $(this).val(`${hours}:${minutes}`);
+              }
+            });
+          });
         }
 
         $("#add-row").on("click", function () {
@@ -304,6 +321,9 @@
             $(this).val(ui.item.label);
           },
         });
+
+        // Initial call to enforce 24-hour format on page load
+        enforce24HourFormat();
       });
     </script>
   </body>
