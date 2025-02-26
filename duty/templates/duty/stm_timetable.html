@@ -4,180 +4,138 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Route Details - Emirates Airline</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Tailwind CSS CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <!-- html2pdf.js CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
     <style>
-        /* General Styling */
-        body {
-            background-color: #f5f5f5; /* Subtle grey for better readability */
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            color: #333;
+        /* Custom Emirates Branding */
+        .emirates-red {
+            background-color: #d71920;
         }
-        .container {
-            max-width: 1100px;
-            background-color: #fff;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.15);
-            margin-top: 30px;
-        }
-        .display-6 {
-            color: #d71920; /* Emirates red */
-            font-weight: 700;
-            text-align: center;
-        }
-        .card {
-            border: none;
-            border-radius: 10px;
-            background-color: #f7f7f7; /* Light background for sections */
-        }
-        .card-body {
-            padding: 20px;
-        }
-        .fw-light {
-            color: #6c757d;
-        }
-
-        /* Table Styling */
-        .table {
-            margin-top: 20px;
-            border: 1px solid #dee2e6;
-        }
-        .table thead {
-            background-color: #d71920; /* Emirates red */
-            color: #fff;
-        }
-        .table th, .table td {
-            font-size: 0.9rem;
-            color: #333;
-            padding: 10px;
-            vertical-align: middle;
-        }
-        .table th {
-            text-transform: uppercase;
-            font-weight: 600;
-        }
-
-        /* Button Styling */
-        .btn-download, .btn-home {
-            background-color: #d71920; /* Emirates red */
-            color: #fff;
-            border: none;
-            border-radius: 6px;
-            padding: 10px 25px;
-            font-size: 0.9rem;
-            font-weight: 600;
-            margin-top: 15px;
-            display: block;
-            margin-left: auto;
-            margin-right: auto;
-            transition: background-color 0.3s ease;
-        }
-        .btn-download:hover, .btn-home:hover {
+        .emirates-red-hover:hover {
             background-color: #b5161c;
         }
-
-        /* Responsive Design */
-        @media (max-width: 768px) {
-            .container {
-                padding: 15px;
-            }
-            .display-6 {
-                font-size: 1.5rem;
-            }
-            .btn-download, .btn-home {
-                font-size: 0.85rem;
-            }
-            .table th, .table td {
-                font-size: 0.85rem;
-                padding: 8px;
-            }
+        .shadow-custom {
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        .table-header {
+            background-color: #d71920;
+            color: white;
+        }
+        /* Smooth Transitions */
+        .transition-all {
+            transition: all 0.3s ease-in-out;
         }
     </style>
 </head>
-<body>
+<body class="bg-gray-100 font-sans antialiased">
+    <!-- Header -->
+    <header class="bg-white shadow-custom py-6">
+        <div class="container mx-auto px-4 lg:px-8 text-center">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-800">
+                Emirates Airline
+                <span class="block text-xl md:text-2xl font-medium text-emirates-red mt-2">Route Details</span>
+            </h1>
+        </div>
+    </header>
 
-<div class="container" id="pdf-content">
-    <div class="text-center mb-4">
-        <h1 class="display-6">Emirates Airline - Route Details</h1>
-        <button id="pdf-button" onclick="downloadPDF()" class="btn btn-download">Download as PDF</button>
-        <a href="/" class="btn btn-home mt-2">Back to Home</a>
-    </div>
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 lg:px-8 py-8" id="pdf-content">
+        {% for route_data in route_data_list %}
+        <div class="bg-white rounded-xl shadow-custom mb-6 p-6">
+            <!-- Route Title -->
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">
+                {{ route_data.route_name }} <span class="text-base font-medium text-gray-500">({{ route_data.route_type }})</span>
+            </h2>
+            <hr class="border-gray-200 mb-4">
 
-    {% for route_data in route_data_list %}
-    <div class="card mb-4">
-        <div class="card-body">
-            <h2 class="card-title">{{ route_data.route_name }} <span class="fw-light">({{ route_data.route_type }})</span></h2>
-            <hr>
-            <div class="row mb-3">
-                <div class="col-md-6 col-sm-12 mb-2">
-                    <p class="fw-semibold">Operating Days 1:</p>
-                    <p>{{ route_data.operating_days_1 }}</p>
+            <!-- Route Info -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div>
+                    <p class="text-sm font-medium text-gray-700">Operating Days 1:</p>
+                    <p class="text-gray-600">{{ route_data.operating_days_1 }}</p>
                 </div>
                 {% if route_data.operating_days_2 %}
-                <div class="col-md-6 col-sm-12 mb-2">
-                    <p class="fw-semibold">Operating Days 2:</p>
-                    <p>{{ route_data.operating_days_2 }}</p>
+                <div>
+                    <p class="text-sm font-medium text-gray-700">Operating Days 2:</p>
+                    <p class="text-gray-600">{{ route_data.operating_days_2 }}</p>
                 </div>
                 {% endif %}
-                <div class="col-md-6 col-sm-12 mb-2">
-                    <p class="fw-semibold">Work Hub:</p>
-                    <p>{{ route_data.work_hub }}</p>
+                <div>
+                    <p class="text-sm font-medium text-gray-700">Work Hub:</p>
+                    <p class="text-gray-600">{{ route_data.work_hub }}</p>
                 </div>
-                <div class="col-md-6 col-sm-12 mb-2">
-                    <p class="fw-semibold">Shift Time:</p>
-                    <p>{{ route_data.shift_time }}</p>
+                <div>
+                    <p class="text-sm font-medium text-gray-700">Shift Time:</p>
+                    <p class="text-gray-600">{{ route_data.shift_time }}</p>
                 </div>
             </div>
 
-            <div class="table-responsive">
-                <table class="table table-bordered table-hover">
-                    <thead>
+            <!-- Pickup Points Table -->
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead class="table-header">
                         <tr>
-                            <th>Stop ID</th>
-                            <th>Pick Up Point</th>
-                            <th>Time ({{ route_data.operating_days_1 }})</th>
-                            <th>Special Time ({{ route_data.operating_days_2 }})</th>
+                            <th class="p-3 text-sm font-semibold uppercase">Stop ID</th>
+                            <th class="p-3 text-sm font-semibold uppercase">Pick Up Point</th>
+                            <th class="p-3 text-sm font-semibold uppercase">Time ({{ route_data.operating_days_1 }})</th>
+                            <th class="p-3 text-sm font-semibold uppercase">Special Time ({{ route_data.operating_days_2|default:"-" }})</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for pickup in route_data.pickup_points %}
-                        <tr>
-                            <td>{{ pickup.stop_id }}</td>
-                            <td>{{ pickup.pick_up_point }}</td>
-                            <td>{{ pickup.time|default:"-" }}</td>
-                            <td>{{ pickup.special_time|default:"-" }}</td>
+                        <tr class="border-b hover:bg-gray-50 transition-all">
+                            <td class="p-3 text-sm text-gray-600">{{ pickup.stop_id }}</td>
+                            <td class="p-3 text-sm text-gray-600">{{ pickup.pick_up_point }}</td>
+                            <td class="p-3 text-sm text-gray-600">{{ pickup.time|default:"-" }}</td>
+                            <td class="p-3 text-sm text-gray-600">{{ pickup.special_time|default:"-" }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
         </div>
-    </div>
-    {% endfor %}
-</div>
+        {% endfor %}
 
-<!-- JavaScript for PDF Download -->
-<script>
-    function downloadPDF() {
-        const element = document.getElementById('pdf-content');
-        document.getElementById('pdf-button').style.display = 'none';
+        <!-- Buttons -->
+        <div class="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4 mt-6">
+            <button id="pdf-button" onclick="downloadPDF()" class="px-6 py-3 bg-emirates-red text-white font-semibold rounded-lg emirates-red-hover transition-all">
+                Download as PDF
+            </button>
+            <a href="/" class="px-6 py-3 bg-gray-600 text-white font-semibold rounded-lg hover:bg-gray-700 transition-all">
+                Back to Home
+            </a>
+        </div>
+    </main>
 
-        const routeName = "{{ route_data_list.0.route_name|default:'Route' }}";
-        const shiftTime = "{{ route_data_list.0.shift_time|default:'00:00' }}";
-        const fileName = `${routeName}_${shiftTime}.pdf`;
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-4">
+        <div class="container mx-auto px-4 text-center">
+            <p>© 2025 Emirates Airline Staff Transport. All rights reserved.</p>
+        </div>
+    </footer>
 
-        html2pdf().from(element).set({
-            margin: 1,
-            filename: fileName,
-            html2canvas: { scale: 2 },
-            jsPDF: { orientation: 'portrait' }
-        }).save().finally(() => {
-            document.getElementById('pdf-button').style.display = 'block';
-        });
-    }
-</script>
+    <!-- JavaScript for PDF Download -->
+    <script>
+        function downloadPDF() {
+            const element = document.getElementById('pdf-content');
+            const pdfButton = document.getElementById('pdf-button');
+            pdfButton.style.display = 'none';
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+            const routeName = "{{ route_data_list.0.route_name|default:'Route' }}";
+            const shiftTime = "{{ route_data_list.0.shift_time|default:'00:00' }}";
+            const fileName = `${routeName}_${shiftTime}.pdf`;
+
+            html2pdf().from(element).set({
+                margin: 1,
+                filename: fileName,
+                html2canvas: { scale: 2 },
+                jsPDF: { orientation: 'portrait' }
+            }).save().finally(() => {
+                pdfButton.style.display = 'block';
+            });
+        }
+    </script>
 </body>
 </html>

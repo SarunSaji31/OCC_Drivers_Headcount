@@ -3,215 +3,186 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Emirates Airline Staff Transport - Search Route</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>Emirates Airline Staff Transport - Search Routes</title>
+    <!-- Tailwind CSS CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <style>
-        body {
-            background-color: #f4f0eb; /* Light beige */
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        h1 {
-            font-weight: 700;
-            color: #d71920; /* Emirates red */
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        .card {
-            border: 2px solid #d71920; /* Emirates red */
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.1);
-            background-color: #ffffff;
-        }
-        .form-label {
-            font-weight: 600;
-            color: #333;
-        }
-        .form-control, .form-select {
-            border-radius: 8px;
-            border: 1px solid #d71920;
-        }
-        .form-control:focus, .form-select:focus {
-            box-shadow: 0px 0px 8px rgba(215, 25, 32, 0.4);
-            border-color: #d71920;
-        }
-        .btn-primary {
+        /* Custom styles for Emirates branding */
+        .emirates-red {
             background-color: #d71920;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 8px;
-            font-weight: 600;
-            transition: background-color 0.3s ease;
         }
-        .btn-primary:hover {
+        .emirates-red-hover:hover {
             background-color: #b5161c;
         }
-        .table {
-            margin-top: 20px;
-            background-color: #ffffff;
-            border-radius: 12px;
-            overflow: hidden;
+        .shadow-custom {
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
         }
-        .table th {
+        .table-header {
             background-color: #d71920;
-            color: #ffffff;
-            font-weight: 700;
+            color: white;
         }
-        .table th, .table td {
-            vertical-align: middle;
-            text-align: center;
-        }
-        .text-muted {
-            font-size: 0.9rem;
-            color: #6c757d;
-        }
-        .container {
-            max-width: 1200px;
-            margin-top: 40px;
+        /* Smooth transitions */
+        .transition-all {
+            transition: all 0.3s ease-in-out;
         }
     </style>
 </head>
-<body>
-<div class="container">
-    <h1>Emirates Airline Staff Transport - Search Route</h1>
-    <div class="row">
-        <div class="col-12 mb-3">
-            <a href="/subcategory/" class="btn btn-primary">Back to Subcategory</a>
+<body class="bg-gray-100 font-sans antialiased">
+    <!-- Header -->
+    <header class="bg-white shadow-custom py-6">
+        <div class="container mx-auto px-4 lg:px-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-center text-gray-800">
+                Emirates Airline Staff Transport
+                <span class="block text-lg md:text-xl font-medium text-gray-600 mt-2">Route Search</span>
+            </h1>
         </div>
-        
-        <!-- Search Area -->
-        <div class="col-md-6">
-            <div class="card">
-                <form id="search-form">
-                    <div class="mb-3">
-                        <label for="route_name" class="form-label">Route Name</label>
-                        <input type="text" id="route_name" name="route_name" class="form-control" placeholder="Enter Route Name">
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 lg:px-8 py-8">
+        <div class="flex flex-col lg:flex-row lg:space-x-6">
+            <!-- Search Form -->
+            <div class="w-full lg:w-1/2 mb-6 lg:mb-0">
+                <div class="bg-white rounded-xl shadow-custom p-6">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-4">Search Routes</h2>
+                    <form id="search-form" class="space-y-4">
+                        <div>
+                            <label for="route_name" class="block text-sm font-medium text-gray-700">Route Name</label>
+                            <input type="text" id="route_name" name="route_name" class="mt-1 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all" placeholder="Enter Route Name">
+                        </div>
+                        <div>
+                            <label for="type" class="block text-sm font-medium text-gray-700">Route Type</label>
+                            <select id="type" name="type" class="mt-1 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all">
+                                <option value="">Select Type</option>
+                                <option value="Inbound">Inbound</option>
+                                <option value="Outbound">Outbound</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="work_hub" class="block text-sm font-medium text-gray-700">Work Hub</label>
+                            <input type="text" id="work_hub" name="work_hub" class="mt-1 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all" placeholder="Enter Work Hub">
+                        </div>
+                        <div>
+                            <label for="pick_up_point" class="block text-sm font-medium text-gray-700">Pick Up Point</label>
+                            <input type="text" id="pick_up_point" name="pick_up_point" class="mt-1 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all" placeholder="Enter Pick Up Point">
+                        </div>
+                        <div>
+                            <label for="stop_id" class="block text-sm font-medium text-gray-700">Stop ID</label>
+                            <input type="text" id="stop_id" name="stop_id" class="mt-1 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all" placeholder="Enter Stop ID">
+                        </div>
+                        <div>
+                            <label for="shift_time" class="block text-sm font-medium text-gray-700">Shift Time</label>
+                            <input type="time" id="shift_time" name="shift_time" class="mt-1 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all">
+                        </div>
+                        <div>
+                            <label for="connection_from" class="block text-sm font-medium text-gray-700">Connection From</label>
+                            <input type="text" id="connection_from" name="connection_from" class="mt-1 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all" placeholder="Enter Connection From">
+                        </div>
+                        <div>
+                            <label for="connection_to" class="block text-sm font-medium text-gray-700">Connection To</label>
+                            <input type="text" id="connection_to" name="connection_to" class="mt-1 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all" placeholder="Enter Connection To">
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Search Results -->
+            <div class="w-full lg:w-1/2">
+                <div class="bg-white rounded-xl shadow-custom p-6">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-4">Search Results</h2>
+                    <div id="search-results" class="text-gray-500 italic">
+                        Search results will appear here...
                     </div>
-                    <div class="mb-3">
-                        <label for="type" class="form-label">Route Type</label>
-                        <select id="type" name="type" class="form-select">
-                            <option value="">Select Type</option>
-                            <option value="Inbound">Inbound</option>
-                            <option value="Outbound">Outbound</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="work_hub" class="form-label">Work Hub</label>
-                        <input type="text" id="work_hub" name="work_hub" class="form-control" placeholder="Enter Work Hub">
-                    </div>
-                    <div class="mb-3">
-                        <label for="pick_up_point" class="form-label">Pick Up Point</label>
-                        <input type="text" id="pick_up_point" name="pick_up_point" class="form-control" placeholder="Enter Pick Up Point">
-                    </div>
-                    <div class="mb-3">
-                        <label for="stop_id" class="form-label">Stop ID</label>
-                        <input type="text" id="stop_id" name="stop_id" class="form-control" placeholder="Enter Stop ID">
-                    </div>
-                    <div class="mb-3">
-                        <label for="shift_time" class="form-label">Shift Time</label>
-                        <input type="time" id="shift_time" name="shift_time" class="form-control">
-                    </div>
-                    <div class="mb-3">
-                        <label for="connection_from" class="form-label">Connection From</label>
-                        <input type="text" id="connection_from" name="connection_from" class="form-control" placeholder="Enter Connection From">
-                    </div>
-                    <div class="mb-3">
-                        <label for="connection_to" class="form-label">Connection To</label>
-                        <input type="text" id="connection_to" name="connection_to" class="form-control" placeholder="Enter Connection To">
-                    </div>
-                </form>
+                </div>
             </div>
         </div>
 
-        <!-- Results Area -->
-        <div class="col-md-6">
-            <div class="card" id="search-results">
-                <p class="text-muted">Search results will appear here...</p>
-            </div>
+        <!-- Back Button -->
+        <div class="mt-6">
+            <a href="/subcategory/" class="inline-block px-6 py-3 bg-emirates-red text-white font-semibold rounded-lg emirates-red-hover transition-all">Back to Subcategory</a>
         </div>
-    </div>
-</div>
+    </main>
 
-<!-- JavaScript to handle AJAX search requests and dynamically update results -->
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const routeNameInput = document.getElementById('route_name');
-    const typeInput = document.getElementById('type');
-    const workHubInput = document.getElementById('work_hub');
-    const pickUpPointInput = document.getElementById('pick_up_point');
-    const stopIdInput = document.getElementById('stop_id');
-    const shiftTimeInput = document.getElementById('shift_time');
-    const connectionFromInput = document.getElementById('connection_from');
-    const connectionToInput = document.getElementById('connection_to');
-    const resultContainer = document.getElementById('search-results');
+    <!-- Footer (Optional) -->
+    <footer class="bg-gray-800 text-white py-4 mt-8">
+        <div class="container mx-auto px-4 text-center">
+            <p>&copy; 2025 Emirates Airline Staff Transport. All rights reserved.</p>
+        </div>
+    </footer>
 
-    function updateResults(data) {
-        let html = '<h2 class="mt-4">Search Results</h2>';
-        if (data.routes && data.routes.length > 0) {
-            html += `<table class="table table-striped table-bordered">
-                        <thead>
-                            <tr>
-                                <th>No</th>
-                                <th>Route Name</th>
-                                <th>Route Type</th>
-                                <th>Shift Time</th>
-                                <th>Work Hub</th>
-                            </tr>
-                        </thead>
-                        <tbody>`;
-            data.routes.forEach((route, index) => {
-                html += `<tr>
-                            <td>${index + 1}</td>
-                            <td><a href="/route-details/?route=${route.route_name}&shift_time=${route.shift_time}&type=${route.route_type}" target="_blank">${route.route_name || '-'}</a></td>
-                            <td>${route.route_type || '-'}</td>
-                            <td>${route.shift_time || '-'}</td>
-                            <td>${route.work_hub || '-'}</td>
-                        </tr>`;
-            });
-            html += `</tbody></table>`;
-        } else {
-            html += `<p class="text-danger">No routes found for your search criteria.</p>`;
-        }
-        resultContainer.innerHTML = html;
-    }
+    <!-- JavaScript for AJAX Search -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const inputs = {
+                routeName: document.getElementById('route_name'),
+                type: document.getElementById('type'),
+                workHub: document.getElementById('work_hub'),
+                pickUpPoint: document.getElementById('pick_up_point'),
+                stopId: document.getElementById('stop_id'),
+                shiftTime: document.getElementById('shift_time'),
+                connectionFrom: document.getElementById('connection_from'),
+                connectionTo: document.getElementById('connection_to')
+            };
+            const resultContainer = document.getElementById('search-results');
 
-    function fetchResults() {
-        const params = new URLSearchParams({
-            route_name: routeNameInput.value.trim(),
-            type: typeInput.value.trim(),
-            work_hub: workHubInput.value.trim(),
-            pick_up_point: pickUpPointInput.value.trim(),
-            stop_id: stopIdInput.value.trim(),
-            shift_time: shiftTimeInput.value,
-            connection_from: connectionFromInput.value.trim(),
-            connection_to: connectionToInput.value.trim()
-        });
-
-        fetch(`/search/?${params.toString()}`, {
-            method: 'GET',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
+            function updateResults(data) {
+                let html = '';
+                if (data.routes && data.routes.length > 0) {
+                    html += `<div class="overflow-x-auto"><table class="w-full text-left border-collapse">
+                                <thead class="table-header">
+                                    <tr>
+                                        <th class="p-3 text-sm font-semibold">No</th>
+                                        <th class="p-3 text-sm font-semibold">Route Name</th>
+                                        <th class="p-3 text-sm font-semibold">Route Type</th>
+                                        <th class="p-3 text-sm font-semibold">Shift Time</th>
+                                        <th class="p-3 text-sm font-semibold">Work Hub</th>
+                                    </tr>
+                                </thead>
+                                <tbody>`;
+                    data.routes.forEach((route, index) => {
+                        html += `<tr class="border-b hover:bg-gray-50 transition-all">
+                                    <td class="p-3 text-sm">${index + 1}</td>
+                                    <td class="p-3 text-sm"><a href="/route-details/?route=${route.route_name}&shift_time=${route.shift_time}&type=${route.route_type}" target="_blank" class="text-red-600 hover:underline">${route.route_name || '-'}</a></td>
+                                    <td class="p-3 text-sm">${route.route_type || '-'}</td>
+                                    <td class="p-3 text-sm">${route.shift_time || '-'}</td>
+                                    <td class="p-3 text-sm">${route.work_hub || '-'}</td>
+                                </tr>`;
+                    });
+                    html += `</tbody></table></div>`;
+                } else {
+                    html = `<p class="text-red-600">No routes found for your search criteria.</p>`;
+                }
+                resultContainer.innerHTML = html;
+                resultContainer.classList.remove('italic', 'text-gray-500');
             }
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
+
+            function fetchResults() {
+                const params = new URLSearchParams({
+                    route_name: inputs.routeName.value.trim(),
+                    type: inputs.type.value.trim(),
+                    work_hub: inputs.workHub.value.trim(),
+                    pick_up_point: inputs.pickUpPoint.value.trim(),
+                    stop_id: inputs.stopId.value.trim(),
+                    shift_time: inputs.shiftTime.value,
+                    connection_from: inputs.connectionFrom.value.trim(),
+                    connection_to: inputs.connectionTo.value.trim()
+                });
+
+                fetch(`/search/?${params.toString()}`, {
+                    method: 'GET',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                .then(response => response.ok ? response.json() : Promise.reject('Network error'))
+                .then(data => updateResults(data))
+                .catch(error => {
+                    console.error('Error:', error);
+                    resultContainer.innerHTML = `<p class="text-red-600">An error occurred. Please try again later.</p>`;
+                    resultContainer.classList.remove('italic', 'text-gray-500');
+                });
             }
-            return response.json();
-        })
-        .then(data => updateResults(data))
-        .catch(error => {
-            console.error('Error:', error);
-            resultContainer.innerHTML = `<p class="text-danger">An error occurred while fetching results. Please try again later.</p>`;
+
+            Object.values(inputs).forEach(input => input.addEventListener('input', fetchResults));
         });
-    }
-
-    [routeNameInput, typeInput, workHubInput, pickUpPointInput, stopIdInput, shiftTimeInput, connectionFromInput, connectionToInput].forEach(input => {
-        input.addEventListener('input', fetchResults);
-    });
-});
-</script>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    </script>
 </body>
 </html>

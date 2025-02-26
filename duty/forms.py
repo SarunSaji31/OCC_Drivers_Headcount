@@ -213,3 +213,45 @@ class BusKmTrackingForm(forms.ModelForm):
             'end_km_change': forms.NumberInput(attrs={'class': 'form-control'}),
             'changed_bus_no': forms.TextInput(attrs={'class': 'form-control'}),
         }
+
+
+from django import forms
+from .models import StmRoute, StmPickupPoint, StmShiftTime
+
+class StmRouteForm(forms.ModelForm):
+    class Meta:
+        model = StmRoute
+        fields = '__all__'
+        widgets = {
+            'route_id': forms.TextInput(attrs={'class': 'form-control'}),
+            'route': forms.TextInput(attrs={'class': 'form-control'}),
+            'route_type': forms.TextInput(attrs={'class': 'form-control'}),
+            'operating_days_1': forms.TextInput(attrs={'class': 'form-control'}),
+            'operating_days_2': forms.TextInput(attrs={'class': 'form-control'}),
+            'work_hub': forms.TextInput(attrs={'class': 'form-control'}),
+            'connection_from': forms.TextInput(attrs={'class': 'form-control'}),
+            'connection_to': forms.TextInput(attrs={'class': 'form-control'}),
+        }
+
+class StmPickupPointForm(forms.ModelForm):
+    class Meta:
+        model = StmPickupPoint
+        fields = '__all__'
+        exclude = ['route']  # Exclude the ForeignKey field since it’s set by the formset
+        widgets = {
+            'stop_id': forms.TextInput(attrs={'class': 'form-control'}),
+            'pick_up_point': forms.TextInput(attrs={'class': 'form-control'}),
+            'pick_up_point_order_id': forms.NumberInput(attrs={'class': 'form-control'}),
+        }
+
+class StmShiftTimeForm(forms.ModelForm):
+    class Meta:
+        model = StmShiftTime
+        fields = '__all__'
+        exclude = ['route']  # Exclude the ForeignKey field since it’s set by the formset
+        widgets = {
+            'time': forms.TextInput(attrs={'class': 'form-control'}),
+            'special_time': forms.TimeInput(attrs={'class': 'form-control', 'type': 'time'}),
+            'shift_time': forms.TimeInput(attrs={'class': 'form-control', 'type': 'time'}),
+            'stop_order': forms.NumberInput(attrs={'class': 'form-control'}),
+        }

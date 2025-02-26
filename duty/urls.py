@@ -1,5 +1,4 @@
 # duty/urls.py
-
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
@@ -74,8 +73,8 @@ urlpatterns = [
     # Search and Route Details URLs
     path('search/', views.ajax_search_route, name='search_route'),
     path('ajax/search_route/', views.ajax_search_route, name='ajax_search_route'),
-    path('route-details/', views.route_details, name='route_details'),
-    path('stm_timetables/', views.stm_timetables, name='stm_timetable'),
+    path('route-details/', views.route_details, name='route_details'),  # New route details page
+    path('stm_timetables/', views.stm_timetables, name='stm_timetable'), 
 
     # Upload and download
     path('upload/', views.upload_view, name='upload'),
@@ -83,7 +82,8 @@ urlpatterns = [
 
     # Most Delayed Trips API
     path('get-most-delayed-trips-api/', get_most_delayed_trips_api, name='get_most_delayed_trips_api'),
-    # submission history
+
+    # Submission history
     path('submission-history/', views.submission_history, name='submission_history'),
     path('user_submission_history/', views.submission_history, name='user_submission_history'),
     path('filter-dashboard/', views.filter_dashboard, name='filter_dashboard'),
@@ -98,9 +98,16 @@ urlpatterns = [
     path('get-top-delayed-load-trips-api/', views.get_top_delayed_load_trips_api, name='get_top_delayed_load_trips_api'),
     path('get-daily-delay-details/', views.get_daily_delay_details, name='get_daily_delay_details'),
     path('get-otp-details/', views.get_otp_details, name='get_otp_details'),
+
+    # STM Timetable and Shift Time Management
+    path('stm-timetable/', views.user_interface_stmtimetable, name='user_interface_stmtimetable'),
+    path('manage-routes/', views.manage_routes, name='manage_routes'),  # New management view
+    path('shift-time-details/', views.shift_time_details, name='shift_time_details'),  # Added for modal details
+    path('update-shift-time/', views.update_shift_time, name='update_shift_time'),    # Added for CRUD actions
+    path('update-pickup-point/', views.update_pickup_point, name='update_pickup_point'),
 ]
 
 # Serve static and media files during development
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)    

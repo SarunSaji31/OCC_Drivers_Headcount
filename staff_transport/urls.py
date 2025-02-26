@@ -5,5 +5,5 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include('duty.urls')),  # Replace with your main app's URL routing
+    path('', include('duty.urls')), 
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

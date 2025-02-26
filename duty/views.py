@@ -1307,9 +1307,11 @@ def stm_dashboard(request):
     }
     return render(request, 'duty/STM_dashboard.html', context)
 
-from datetime import datetime
+from datetime import datetime, date
+import calendar
 from django.http import JsonResponse
-from django.db.models import Count
+from django.db.models import Count, ExpressionWrapper, F, DurationField
+from django.utils.timezone import now
 from .models import DelayData
 
 def get_most_delayed_trips_api(request):
@@ -1810,3 +1812,360 @@ def get_otp_details(request):
         return JsonResponse({'message': f'No {status} details available for the selected {period_label} period.'}, safe=False)
 
     return JsonResponse(delay_details, safe=False)
+
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
+from django.forms import inlineformset_factory
+from django.db.models import Q, F
+from .models import StmRoute, StmPickupPoint, StmShiftTime
+from .forms import StmRouteForm, StmPickupPointForm, StmShiftTimeForm
+from django.http import JsonResponse
+import logging
+
+logger = logging.getLogger(__name__)
+
+@login_required
+def user_interface_stmtimetable(request):
+    PickupPointFormSet = inlineformset_factory(StmRoute, StmPickupPoint, form=StmPickupPointForm, extra=1)
+    ShiftTimeFormSet = inlineformset_factory(StmRoute, StmShiftTime, form=StmShiftTimeForm, extra=1)
+
+    routes = StmRoute.objects.prefetch_related('pickup_points', 'shift_times').all()
+
+    search_query = request.GET.get('search', '')
+    route_type_filter = request.GET.get('route_type', '')
+    work_hub_filter = request.GET.get('work_hub', '')
+    shift_time_filter = request.GET.get('shift_time', '')
+    if search_query:
+        routes = routes.filter(Q(route_id__icontains=search_query) | Q(route__icontains=search_query))
+    if route_type_filter:
+        routes = routes.filter(route_type__iexact=route_type_filter)
+    if work_hub_filter:
+        routes = routes.filter(work_hub__iexact=work_hub_filter)
+    if shift_time_filter:
+        routes = routes.filter(shift_times__shift_time__icontains=shift_time_filter)
+
+    add_form = StmRouteForm()
+    add_pickup_formset = PickupPointFormSet()
+    add_shift_formset = ShiftTimeFormSet()
+
+    context = {
+        'routes': routes,
+        'add_form': add_form,
+        'add_pickup_formset': add_pickup_formset,
+        'add_shift_formset': add_shift_formset,
+        'route_types': StmRoute.objects.values_list('route_type', flat=True).distinct(),
+        'work_hubs': StmRoute.objects.values_list('work_hub', flat=True).distinct(),
+        'search_query': search_query,
+        'route_type_filter': route_type_filter,
+        'work_hub_filter': work_hub_filter,
+        'shift_time_filter': shift_time_filter,
+    }
+    return render(request, 'duty/User_Interface_stmtimetable.html', context)
+
+@login_required
+def route_details_json(request):
+    route_id = request.GET.get('route_id')
+    try:
+        route = StmRoute.objects.get(id=route_id)
+    except StmRoute.DoesNotExist:
+        logger.error(f"Route not found: {route_id}")
+        return JsonResponse({'error': 'Route not found'}, status=404)
+
+    data = {
+        'route_id': route.route_id,
+        'route': route.route,
+        'route_type': route.route_type,
+        'operating_days_1': route.operating_days_1,
+        'operating_days_2': route.operating_days_2 or '',
+        'work_hub': route.work_hub,
+        'connection_from': route.connection_from or '',
+        'connection_to': route.connection_to or '',
+        'pickup_points': [
+            {
+                'stop_id': p.stop_id,
+                'pick_up_point': p.pick_up_point,
+                'pick_up_point_order_id': p.pick_up_point_order_id
+            } for p in route.pickup_points.all()
+        ],
+        'shift_times': [
+            {
+                'time': s.time or '',
+                'special_time': s.special_time.strftime('%H:%M') if s.special_time else '',
+                'shift_time': s.shift_time.strftime('%H:%M') if s.shift_time else '',
+                'stop_order': s.stop_order
+            } for s in route.shift_times.all()
+        ]
+    }
+    logger.debug(f"Route details fetched: {route_id}")
+    return JsonResponse(data)
+
+@login_required
+def shift_time_details(request):
+    if request.method == 'GET':
+        route_id = request.GET.get('route_id', '').strip()
+        shift_time = request.GET.get('shift_time', '').strip()
+        route_type = request.GET.get('route_type', '').strip()
+
+        if not route_id or not shift_time:
+            logger.error("Missing route_id or shift_time")
+            return JsonResponse({'error': 'Route ID and shift time are required'}, status=400)
+
+        query = Q(id=route_id)
+        if route_type:
+            query &= Q(route_type__iexact=route_type)
+
+        routes = StmRoute.objects.filter(query).distinct()
+        if not routes.exists():
+            logger.error(f"No matching route found: route_id={route_id}, route_type={route_type}")
+            return JsonResponse({'error': 'No matching route found'}, status=404)
+
+        route_data = []
+        seen_entries = set()
+
+        for route in routes:
+            shift_times = route.shift_times.filter(shift_time__icontains=shift_time)
+            if not shift_times.exists():
+                continue
+
+            pickup_points = route.pickup_points.all().order_by('pick_up_point_order_id')
+            stop_order_to_time = {
+                shift.stop_order: shift.time if isinstance(shift.time, str) else (shift.time.strftime('%H:%M') if shift.time else '-')
+                for shift in shift_times
+            }
+
+            for shift in shift_times:
+                entry_key = (route.route, route.route_type, shift.shift_time, route.work_hub)
+                if entry_key not in seen_entries:
+                    seen_entries.add(entry_key)
+                    route_data.append({
+                        'route_code': route.route,
+                        'route_name': route.route,
+                        'route_type': route.route_type,
+                        'work_hub': route.work_hub,
+                        'connection_from': route.connection_from or '',
+                        'connection_to': route.connection_to or '',
+                        'shift_time': shift.shift_time.strftime('%H:%M') if shift.shift_time else '-',
+                        'pickup_points': [
+                            {
+                                'stop_id': point.stop_id,
+                                'pick_up_point': point.pick_up_point,
+                                'time': stop_order_to_time.get(point.pick_up_point_order_id, '-'),
+                                'order_id': point.pick_up_point_order_id
+                            }
+                            for point in pickup_points
+                        ]
+                    })
+
+        if not route_data:
+            logger.error(f"No matching shift time found: route_id={route_id}, shift_time={shift_time}")
+            return JsonResponse({'error': 'No matching shift time found for this route'}, status=404)
+
+        logger.debug(f"Shift details fetched: route_id={route_id}, shift_time={shift_time}")
+        return JsonResponse({'routes': route_data})
+    logger.error("Invalid request method for shift_time_details")
+    return JsonResponse({'error': 'Invalid request'}, status=400)
+
+@login_required
+def update_pickup_point(request):
+    if request.method == 'POST':
+        route_id = request.POST.get('route_id')
+        action = request.POST.get('action')
+        shift_time = request.POST.get('shift_time')
+
+        logger.debug(f"Received POST request: route_id={route_id}, action={action}, shift_time={shift_time}")
+
+        if not route_id or not shift_time:
+            logger.error("Missing route_id or shift_time")
+            return JsonResponse({'error': 'Route ID and shift time are required'}, status=400)
+
+        try:
+            route = StmRoute.objects.get(id=route_id)
+        except StmRoute.DoesNotExist:
+            logger.error(f"Route not found: {route_id}")
+            return JsonResponse({'error': 'Route not found'}, status=404)
+
+        if action == 'add':
+            order_id = int(request.POST.get('order_id', 0))
+            stop_id = request.POST.get('stop_id')
+            pick_up_point = request.POST.get('pick_up_point')
+            time = request.POST.get('time')
+
+            logger.debug(f"Add action: order_id={order_id}, stop_id={stop_id}, pick_up_point={pick_up_point}, time={time}")
+
+            if not all([stop_id, pick_up_point, time]):
+                logger.error("Missing required fields for add")
+                return JsonResponse({'error': 'All fields (stop_id, pick_up_point, time) are required for add'}, status=400)
+
+            # Shift existing order_ids
+            StmPickupPoint.objects.filter(route=route, pick_up_point_order_id__gte=order_id).update(
+                pick_up_point_order_id=F('pick_up_point_order_id') + 1
+            )
+            StmShiftTime.objects.filter(route=route, stop_order__gte=order_id).update(
+                stop_order=F('stop_order') + 1
+            )
+
+            # Create new records
+            pickup = StmPickupPoint.objects.create(
+                route=route,
+                stop_id=stop_id,
+                pick_up_point=pick_up_point,
+                pick_up_point_order_id=order_id
+            )
+            shift = StmShiftTime.objects.create(
+                route=route,
+                shift_time=shift_time,
+                time=time,
+                stop_order=order_id
+            )
+            logger.info(f"Added pickup point: {pickup}, shift time: {shift}")
+            return JsonResponse({'status': 'success', 'message': 'Pickup point added successfully'})
+
+        elif action == 'edit':
+            order_id = int(request.POST.get('order_id', 0))
+            stop_id = request.POST.get('stop_id')
+            pick_up_point = request.POST.get('pick_up_point')
+            time = request.POST.get('time')
+
+            logger.debug(f"Edit action: order_id={order_id}, stop_id={stop_id}, pick_up_point={pick_up_point}, time={time}")
+
+            if not all([stop_id, pick_up_point, time]):
+                logger.error("Missing required fields for edit")
+                return JsonResponse({'error': 'All fields (stop_id, pick_up_point, time) are required for edit'}, status=400)
+
+            try:
+                pickup = StmPickupPoint.objects.get(route=route, pick_up_point_order_id=order_id)
+                pickup.stop_id = stop_id
+                pickup.pick_up_point = pick_up_point
+                pickup.save()
+
+                shift = StmShiftTime.objects.get(route=route, stop_order=order_id, shift_time=shift_time)
+                shift.time = time
+                shift.save()
+                logger.info(f"Updated pickup point: {pickup}, shift time: {shift}")
+            except StmPickupPoint.DoesNotExist:
+                logger.error(f"Pickup point not found: order_id={order_id}")
+                return JsonResponse({'error': 'Pickup point not found'}, status=404)
+            except StmShiftTime.DoesNotExist:
+                logger.error(f"Shift time not found: order_id={order_id}, shift_time={shift_time}")
+                return JsonResponse({'error': 'Shift time not found for this stop order and shift time'}, status=404)
+            except StmShiftTime.MultipleObjectsReturned:
+                logger.error(f"Multiple shift times found: order_id={order_id}, shift_time={shift_time}")
+                return JsonResponse({'error': 'Multiple shift times found; database inconsistency'}, status=500)
+
+            return JsonResponse({'status': 'success', 'message': 'Pickup point updated successfully'})
+
+        elif action == 'delete':
+            order_id = int(request.POST.get('order_id', 0))
+
+            logger.debug(f"Delete action: order_id={order_id}")
+
+            try:
+                pickup = StmPickupPoint.objects.get(route=route, pick_up_point_order_id=order_id)
+                shift = StmShiftTime.objects.get(route=route, stop_order=order_id, shift_time=shift_time)
+                pickup.delete()
+                shift.delete()
+
+                # Adjust order_ids after deletion
+                StmPickupPoint.objects.filter(route=route, pick_up_point_order_id__gt=order_id).update(
+                    pick_up_point_order_id=F('pick_up_point_order_id') - 1
+                )
+                StmShiftTime.objects.filter(route=route, stop_order__gt=order_id).update(
+                    stop_order=F('stop_order') - 1
+                )
+                logger.info(f"Deleted pickup point: order_id={order_id}, shift time: {shift_time}")
+                return JsonResponse({'status': 'success', 'message': 'Pickup point deleted successfully'})
+            except StmPickupPoint.DoesNotExist:
+                logger.error(f"Pickup point not found: order_id={order_id}")
+                return JsonResponse({'error': 'Pickup point not found'}, status=404)
+            except StmShiftTime.DoesNotExist:
+                logger.error(f"Shift time not found: order_id={order_id}, shift_time={shift_time}")
+                return JsonResponse({'error': 'Shift time not found for this stop order and shift time'}, status=404)
+            except StmShiftTime.MultipleObjectsReturned:
+                logger.error(f"Multiple shift times found: order_id={order_id}, shift_time={shift_time}")
+                return JsonResponse({'error': 'Multiple shift times found; database inconsistency'}, status=500)
+
+    logger.error("Invalid request method for update_pickup_point")
+    return JsonResponse({'error': 'Invalid request'}, status=400)
+
+@login_required
+def update_shift_time(request):
+    if request.method == 'POST':
+        route_id = request.POST.get('route_id')
+        shift_time_original = request.POST.get('shift_time_original')
+        action = request.POST.get('action')
+
+        logger.debug(f"Received POST request for shift time: route_id={route_id}, action={action}, shift_time_original={shift_time_original}")
+
+        try:
+            route = StmRoute.objects.get(id=route_id)
+        except StmRoute.DoesNotExist:
+            logger.error(f"Route not found: {route_id}")
+            return JsonResponse({'error': 'Route not found'}, status=404)
+
+        if action == 'delete':
+            shift = StmShiftTime.objects.filter(route=route, shift_time=shift_time_original).first()
+            if shift:
+                shift.delete()
+                logger.info(f"Deleted shift time: {shift_time_original}")
+                return JsonResponse({'status': 'success', 'message': 'Shift time deleted successfully'})
+            logger.error(f"Shift time not found: {shift_time_original}")
+            return JsonResponse({'error': 'Shift time not found'}, status=404)
+
+        elif action == 'edit':
+            shift = StmShiftTime.objects.filter(route=route, shift_time=shift_time_original).first()
+            if shift:
+                form = StmShiftTimeForm(request.POST, instance=shift)
+                if form.is_valid():
+                    form.save()
+                    logger.info(f"Updated shift time: {shift_time_original}")
+                    return JsonResponse({'status': 'success', 'message': 'Shift time updated successfully'})
+                logger.error(f"Invalid form data for edit: {form.errors}")
+                return JsonResponse({'error': 'Invalid form data', 'errors': form.errors}, status=400)
+            logger.error(f"Shift time not found: {shift_time_original}")
+            return JsonResponse({'error': 'Shift time not found'}, status=404)
+
+        elif action == 'add':
+            form = StmShiftTimeForm(request.POST)
+            if form.is_valid():
+                new_shift = form.save(commit=False)
+                new_shift.route = route
+                new_shift.save()
+                logger.info(f"Added shift time: {new_shift.shift_time}")
+                return JsonResponse({'status': 'success', 'message': 'Shift time added successfully'})
+            logger.error(f"Invalid form data for add: {form.errors}")
+            return JsonResponse({'error': 'Invalid form data', 'errors': form.errors}, status=400)
+
+    logger.error("Invalid request method for update_shift_time")
+    return JsonResponse({'error': 'Invalid request'}, status=400)
+
+@login_required
+def manage_routes(request):
+    route_name = request.GET.get('route')
+    route_type = request.GET.get('type')
+    shift_time = request.GET.get('shift_time')
+
+    routes = StmRoute.objects.filter(route__iexact=route_name, route_type__iexact=route_type)
+    route_data_list = []
+    for route in routes:
+        shift_times = StmShiftTime.objects.filter(route=route, shift_time=shift_time)
+        pickup_points = StmPickupPoint.objects.filter(route=route)
+        route_data = {
+            'route_name': route.route,
+            'route_type': route.route_type,
+            'operating_days_1': route.operating_days_1,
+            'operating_days_2': route.operating_days_2,
+            'work_hub': route.work_hub,
+            'shift_time': shift_time,
+            'pickup_points': [
+                {
+                    'stop_id': point.stop_id,
+                    'pick_up_point': point.pick_up_point,
+                    'time': shift_times.filter(stop_order=point.pick_up_point_order_id).first().time if shift_times else '-',
+                    'special_time': shift_times.filter(stop_order=point.pick_up_point_order_id).first().special_time.strftime('%H:%M') if shift_times and shift_times.filter(stop_order=point.pick_up_point_order_id).first().special_time else '-'
+                } for point in pickup_points
+            ]
+        }
+        route_data_list.append(route_data)
+
+    logger.debug(f"Route management: route_name={route_name}, route_type={route_type}, shift_time={shift_time}")
+    return render(request, 'duty/search_results.html', {'route_data_list': route_data_list})
