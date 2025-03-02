@@ -222,26 +222,36 @@ $(document).ready(function() {
             var stopId = row.find('input[data-field="stop_id"]').val();
             var time = row.find('input[data-field="time"]').val();
             var shiftTime = $('#shiftTimeOriginal').val();
+            var action = orderId ? 'edit' : 'add';  // New rows have no orderId initially
 
-            console.log('Saving:', { route_id: $('#shiftRouteId').val(), order_id: orderId, stop_id: stopId, pick_up_point: pickUpPoint, time: time, shift_time: shiftTime });
+            if (!stopId || !pickUpPoint || !time) {
+                alert('Please fill in all fields (Stop ID, Pickup Point, Time)');
+                return;
+            }
+
+            console.log('Saving:', { route_id: $('#shiftRouteId').val(), order_id: orderId || row.index(), stop_id: stopId, pick_up_point: pickUpPoint, time: time, shift_time: shiftTime, action: action });
 
             $.post('/update-pickup-point/', {
                 route_id: $('#shiftRouteId').val(),
-                order_id: orderId,
+                order_id: orderId || row.index(),  // Use row index for new rows
                 stop_id: stopId,
                 pick_up_point: pickUpPoint,
                 time: time,
                 shift_time: shiftTime,
-                action: 'edit',
+                action: action,
                 csrfmiddlewaretoken: '{{ csrf_token }}'
             }, function(response) {
                 console.log('Save response:', response);
                 if (response.status === 'success') {
                     alert(response.message);
+                    if (action === 'add') {
+                        // Update the row with the correct order_id after successful add
+                        row.data('order-id', response.order_id || row.index());
+                    }
                     $('#shiftModal').modal('hide');
                     location.reload();
                 } else {
-                    alert('Error: ' + response.message);
+                    alert('Error: ' + response.error);  // Use response.error as per your backend
                 }
             }).fail(function(xhr, status, error) {
                 console.error('AJAX POST failed:', status, error);
@@ -253,6 +263,11 @@ $(document).ready(function() {
             var row = $(this).closest('tr');
             var orderId = row.data('order-id');
             var shiftTime = $('#shiftTimeOriginal').val();
+
+            if (!orderId) {
+                row.remove();  // Remove unsaved row from UI
+                return;
+            }
 
             if (confirm('Are you sure you want to delete this stop point?')) {
                 console.log('Deleting:', { route_id: $('#shiftRouteId').val(), order_id: orderId, shift_time: shiftTime });
@@ -270,7 +285,7 @@ $(document).ready(function() {
                         row.remove(); // Immediate UI feedback
                         location.reload();
                     } else {
-                        alert('Error: ' + response.message);
+                        alert('Error: ' + response.error);
                     }
                 }).fail(function(xhr, status, error) {
                     console.error('AJAX POST failed:', status, error);
@@ -281,10 +296,9 @@ $(document).ready(function() {
 
         $('.add-btn').off('click').on('click', function() {
             var row = $(this).closest('tr');
-            var orderId = parseInt(row.data('order-id')) + 1;
-            var shiftTime = $('#shiftTimeOriginal').val();
+            var orderId = row.data('order-id') ? parseInt(row.data('order-id')) + 1 : row.index() + 1;
             var newRow = `
-                <tr data-order-id="${orderId}">
+                <tr data-order-id="">
                     <td><input type="text" class="editable-input" value="" data-field="pick_up_point"></td>
                     <td><input type="text" class="editable-input" value="" data-field="stop_id"></td>
                     <td><input type="time" class="editable-input" value="" data-field="time"></td>
@@ -296,37 +310,7 @@ $(document).ready(function() {
                 </tr>
             `;
             row.after(newRow);
-
-            var newRowInputs = $(`tr[data-order-id="${orderId}"]`);
-            var pickUpPoint = newRowInputs.find('input[data-field="pick_up_point"]').val();
-            var stopId = newRowInputs.find('input[data-field="stop_id"]').val();
-            var time = newRowInputs.find('input[data-field="time"]').val();
-
-            console.log('Adding:', { route_id: $('#shiftRouteId').val(), order_id: orderId, stop_id: stopId, pick_up_point: pickUpPoint, time: time, shift_time: shiftTime });
-
-            $.post('/update-pickup-point/', {
-                route_id: $('#shiftRouteId').val(),
-                order_id: orderId,
-                stop_id: stopId,
-                pick_up_point: pickUpPoint,
-                time: time,
-                shift_time: shiftTime,
-                action: 'add',
-                csrfmiddlewaretoken: '{{ csrf_token }}'
-            }, function(response) {
-                console.log('Add response:', response);
-                if (response.status === 'success') {
-                    alert(response.message);
-                    attachEditHandlers();
-                } else {
-                    alert('Error: ' + response.message);
-                    newRowInputs.remove();
-                }
-            }).fail(function(xhr, status, error) {
-                console.error('AJAX POST failed:', status, error);
-                alert('Failed to add stop point');
-                newRowInputs.remove();
-            });
+            attachEditHandlers();  // Re-attach handlers to new row
         });
     }
 

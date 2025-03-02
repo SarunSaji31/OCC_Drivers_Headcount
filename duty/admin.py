@@ -162,3 +162,28 @@ class StmShiftTimeAdmin(admin.ModelAdmin):
     search_fields = ['route__route', 'shift_time']
     list_filter = ['route', 'time', 'shift_time']
     ordering = ['shift_time', 'stop_order']
+
+
+from django.contrib import admin
+from .models import BusMasterList  # Import your model
+
+# Register the BusMasterList model with the admin site
+@admin.register(BusMasterList)
+class BusMasterListAdmin(admin.ModelAdmin):
+    # Fields to display in the list view
+    list_display = ('bus_no', 'capacity')
+
+    # Enable search functionality
+    search_fields = ('bus_no',)
+
+    # Add filters for quick filtering
+    list_filter = ('capacity',)
+
+    # Optional: Define how many items to show per page
+    list_per_page = 25
+
+    # Optional: Ensure bus_no is stripped of whitespace on save
+    def save_model(self, request, obj, form, change):
+        obj.bus_no = obj.bus_no.strip()  # Remove leading/trailing whitespace
+        super().save_model(request, obj, form, change)
+
