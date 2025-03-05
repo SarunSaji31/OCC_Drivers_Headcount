@@ -1672,20 +1672,21 @@ def get_top_delayed_load_trips_api(request):
 
 # views.py
 from django.http import JsonResponse
-from .models import DelayData
 from django.utils.timezone import now
+from .models import DelayData
 
 def get_daily_delay_details(request):
-    date = request.GET.get('date', now().date().isoformat())
-    delays = DelayData.objects.filter(date=date)
+    date_str = request.GET.get('date', now().date().isoformat())
+    delays = DelayData.objects.filter(date=date_str)
     delay_details = [
         {
             'date': delay.date.strftime('%Y-%m-%d'),
             'route': delay.route,
             'in_out': delay.in_out,
-            'sta': str(delay.sta),
-            'ata': str(delay.ata),
-            'delay': str(delay.delay) if delay.delay else None,
+            'sta': str(delay.sta) if delay.sta else None,
+            'ata': str(delay.ata) if delay.ata else None,
+            'std': str(delay.std) if delay.std else None,
+            'atd': str(delay.atd) if delay.atd else None,
             'staff_count': delay.staff_count,
             'remarks': delay.remarks,
         }
@@ -1785,20 +1786,17 @@ def get_otp_details(request):
 
     logger.debug(f"Queryset after {status} filter: {qs.count()} records")
 
-    # Prepare response data
     delay_details = [
         {
             'date': delay.date.strftime('%Y-%m-%d'),
             'route': delay.route,
             'in_out': delay.in_out,
-            'std': str(delay.std),  # Use departure times in response
-            'atd': str(delay.atd),
-            'sta': str(delay.sta),  # Include arrival times for completeness
-            'ata': str(delay.ata),
-            'delay': str(delay.delay) if delay.delay else None,
+            'std': str(delay.std) if delay.std else None,
+            'atd': str(delay.atd) if delay.atd else None,
+            'sta': str(delay.sta) if delay.sta else None,
+            'ata': str(delay.ata) if delay.ata else None,
             'staff_count': delay.staff_count,
             'remarks': delay.remarks,
-            'delay_duration': str(delay.delay_duration)  # For debugging
         }
         for delay in qs
     ]

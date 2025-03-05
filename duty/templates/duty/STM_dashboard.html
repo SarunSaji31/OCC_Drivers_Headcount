@@ -102,7 +102,7 @@
           Daily Statistics ( <span id="current-date"></span> )
         </h3>
         <p class="text-xl sm:text-2xl font-bold text-blue-500 mt-2 delay-count-clickable" data-bs-toggle="modal" data-bs-target="#delayDetailsModal">
-          Delays: <span id="daily-delay-count">Loading...</span>
+          Delays: <span id="daily-delay-count">21</span>
         </p>
         <p class="text-xl sm:text-2xl font-bold text-blue-500">
           Breakdowns: <span id="daily-breakdown-count">Loading...</span>
@@ -137,23 +137,14 @@
       <div class="modal-dialog modal-lg modal-fullscreen-sm-down">
         <div class="modal-content">
           <div class="modal-header flex justify-between items-center bg-primary text-white px-4 py-2 sm:px-6 sm:py-3">
-            <h5 class="modal-title text-lg sm:text-xl font-bold" id="delayDetailsModalLabel">Daily OT Details</h5>
+            <h5 class="modal-title text-lg sm:text-xl font-bold" id="delayDetailsModalLabel">Daily NST Details</h5>
             <button type="button" class="btn-close bg-white rounded-full p-1" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body p-4 sm:p-6">
             <div class="table-responsive">
               <table class="table table-striped w-full text-sm sm:text-base">
-                <thead>
-                  <tr class="bg-gray-100">
-                    <th class="p-2 sm:p-3">Date</th>
-                    <th class="p-2 sm:p-3">Route</th>
-                    <th class="p-2 sm:p-3">In/Out</th>
-                    <th class="p-2 sm:p-3">STA</th>
-                    <th class="p-2 sm:p-3">ATA</th>
-                    <th class="p-2 sm:p-3">Delay</th>
-                    <th class="p-2 sm:p-3">Staff Count</th>
-                    <th class="p-2 sm:p-3">Remarks</th>
-                  </tr>
+                <thead id="delay-details-table-head">
+                  <!-- Headers will be dynamically set via JavaScript -->
                 </thead>
                 <tbody id="delay-details-table-body">
                   <!-- Details will be populated here via JavaScript -->
@@ -381,30 +372,67 @@
         });
       };
 
+      // Helper function to calculate time difference in HH:MM format
+      function calculateTimeDifference(startTime, endTime) {
+        if (!startTime || !endTime) return 'N/A';
+        var start = new Date(`1970-01-01T${startTime}Z`);
+        var end = new Date(`1970-01-01T${endTime}Z`);
+        var diffMs = end - start;
+        if (diffMs < 0) return 'N/A'; // Negative delay not shown
+        var diffMins = Math.floor(diffMs / 60000);
+        var hours = Math.floor(diffMins / 60);
+        var minutes = diffMins % 60;
+        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+      }
+
       function fetchDailyDelayDetails(date) {
         $.getJSON("/get-daily-delay-details/", { date: date }, function (data) {
+          var thead = $("#delay-details-table-head");
           var tbody = $("#delay-details-table-body");
+          thead.empty();
           tbody.empty();
+
+          // Headers for all fields when triggered by "Delays" count
+          thead.append(`
+            <tr class="bg-gray-100">
+              <th class="p-2 sm:p-3">Date</th>
+              <th class="p-2 sm:p-3">Route</th>
+              <th class="p-2 sm:p-3">In/Out</th>
+              <th class="p-2 sm:p-3">STA</th>
+              <th class="p-2 sm:p-3">ATA</th>
+              <th class="p-2 sm:p-3">STD</th>
+              <th class="p-2 sm:p-3">ATD</th>
+              <th class="p-2 sm:p-3">Delay</th>
+              <th class="p-2 sm:p-3">Staff Count</th>
+              <th class="p-2 sm:p-3">Remarks</th>
+            </tr>
+          `);
+
           if (data.length === 0) {
-            tbody.append('<tr><td colspan="8" class="text-center">No delay details available.</td></tr>');
+            tbody.append('<tr><td colspan="10" class="text-center">No delay details available.</td></tr>');
           } else {
             data.forEach(function (delay) {
+              // Use ATA - STA for delay, as per original behavior
+              var calculatedDelay = calculateTimeDifference(delay.sta, delay.ata);
               tbody.append(`
                 <tr>
                   <td>${delay.date}</td>
                   <td>${delay.route}</td>
                   <td>${delay.in_out}</td>
-                  <td>${delay.sta}</td>
-                  <td>${delay.ata}</td>
-                  <td>${delay.delay || 'N/A'}</td>
+                  <td>${delay.sta || 'N/A'}</td>
+                  <td>${delay.ata || 'N/A'}</td>
+                  <td>${delay.std || 'N/A'}</td>
+                  <td>${delay.atd || 'N/A'}</td>
+                  <td>${calculatedDelay}</td>
                   <td>${delay.staff_count}</td>
                   <td>${delay.remarks || 'N/A'}</td>
                 </tr>
               `);
             });
           }
+          $("#delayDetailsModalLabel").text("Daily NST Details");
         }).fail(function () {
-          $("#delay-details-table-body").html('<tr><td colspan="8" class="text-center">Error loading delay details.</td></tr>');
+          $("#delay-details-table-body").html('<tr><td colspan="10" class="text-center">Error loading delay details.</td></tr>');
         });
       }
 
@@ -566,24 +594,75 @@
           params.exclude_early = true;
         }
         $.getJSON("/get-otp-details/", params, function (data) {
+          var thead = $("#delay-details-table-head");
           var tbody = $("#delay-details-table-body");
+          thead.empty();
           tbody.empty();
+
+          // Set headers based on OT or NST
+          if (status === "OT") {
+            thead.append(`
+              <tr class="bg-gray-100">
+                <th class="p-2 sm:p-3">Date</th>
+                <th class="p-2 sm:p-3">Route</th>
+                <th class="p-2 sm:p-3">In/Out</th>
+                <th class="p-2 sm:p-3">STA</th>
+                <th class="p-2 sm:p-3">ATA</th>
+                <th class="p-2 sm:p-3">Delay</th>
+                <th class="p-2 sm:p-3">Staff Count</th>
+                <th class="p-2 sm:p-3">Remarks</th>
+              </tr>
+            `);
+          } else if (status === "NST") {
+            thead.append(`
+              <tr class="bg-gray-100">
+                <th class="p-2 sm:p-3">Date</th>
+                <th class="p-2 sm:p-3">Route</th>
+                <th class="p-2 sm:p-3">In/Out</th>
+                <th class="p-2 sm:p-3">STD</th>
+                <th class="p-2 sm:p-3">ATD</th>
+                <th class="p-2 sm:p-3">Delay</th>
+                <th class="p-2 sm:p-3">Staff Count</th>
+                <th class="p-2 sm:p-3">Remarks</th>
+              </tr>
+            `);
+          }
+
           if (data.length === 0) {
             tbody.append('<tr><td colspan="8" class="text-center">No details available.</td></tr>');
           } else {
             data.forEach(function (delay) {
-              tbody.append(`
-                <tr>
-                  <td>${delay.date}</td>
-                  <td>${delay.route}</td>
-                  <td>${delay.in_out}</td>
-                  <td>${delay.sta}</td>
-                  <td>${delay.ata}</td>
-                  <td>${delay.delay || 'N/A'}</td>
-                  <td>${delay.staff_count}</td>
-                  <td>${delay.remarks || 'N/A'}</td>
-                </tr>
-              `);
+              if (status === "OT") {
+                // Calculate delay as ATA - STA for OT
+                var calculatedDelay = calculateTimeDifference(delay.sta, delay.ata);
+                tbody.append(`
+                  <tr>
+                    <td>${delay.date}</td>
+                    <td>${delay.route}</td>
+                    <td>${delay.in_out}</td>
+                    <td>${delay.sta || 'N/A'}</td>
+                    <td>${delay.ata || 'N/A'}</td>
+                    <td>${calculatedDelay}</td>
+                    <td>${delay.staff_count}</td>
+                    <td>${delay.remarks || 'N/A'}</td>
+                  </tr>
+                `);
+              } else if (status === "NST") {
+                // Calculate delay as ATD - STD for NST
+                var calculatedDelay = calculateTimeDifference(delay.std, delay.atd);
+                tbody.append(`
+                  <tr>
+                    <td>${delay.date}</td>
+                    <td>${delay.route}</td>
+                    <td>${delay.in_out}</td>
+                    <td>${delay.std || 'N/A'}</td>
+                    <td>${delay.atd || 'N/A'}</td>
+                    <td>${calculatedDelay}</td>
+                    <td>${delay.staff_count}</td>
+                    <td>${delay.remarks || 'N/A'}</td>
+                  </tr>
+                `);
+              }
             });
           }
           $("#delayDetailsModalLabel").text(`${period.charAt(0).toUpperCase() + period.slice(1)} ${status} Details`);
