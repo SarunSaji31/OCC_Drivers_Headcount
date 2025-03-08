@@ -1,12 +1,12 @@
 from django.db import models
 
+
 class DriverImportLog(models.Model):
     driver_name = models.CharField(max_length=100)
     staff_id = models.CharField(max_length=100, unique=False)  # Ensure staff_id is unique
 
     def __str__(self):
         return self.driver_name
-
 
 class DutyCardTrip(models.Model):
     INBOUND_OUTBOUND_CHOICES = [
@@ -25,7 +25,6 @@ class DutyCardTrip(models.Model):
 
     def __str__(self):
         return f"{self.duty_card_no} - {self.route_name}"
-
 
 class DriverTrip(models.Model):
     INBOUND_OUTBOUND_CHOICES = [
@@ -46,8 +45,6 @@ class DriverTrip(models.Model):
     def __str__(self):
         return f"{self.driver.driver_name} - {self.route_name}"
 
-
-# Move DelayData out of DriverTrip so that it can be imported directly.
 class DelayData(models.Model):
     date = models.DateField(null=False, blank=False, verbose_name="Date of Delay")
     route = models.CharField(max_length=255)
@@ -63,50 +60,46 @@ class DelayData(models.Model):
     def __str__(self):
         return f"Delay on {self.date} for Route {self.route}"
 
-
 class BreakdownReport(models.Model):
-    # Section A Fields
-    report_datetime = models.DateTimeField(auto_now_add=True)  # Auto-add the report submission date and time
-    breakdown_datetime = models.DateTimeField()  # Breakdown date and time
-    location = models.CharField(max_length=255)  # Breakdown location
-    route_number = models.CharField(max_length=100)  # Route number
-    trip_work_order = models.CharField(max_length=100)  # Work order number
-    passengers_involved = models.PositiveIntegerField()  # Number of passengers involved
-    ek_staff_numbers = models.TextField(blank=True, null=True)  # EK staff numbers
-    non_ek_passenger_details = models.TextField(blank=True, null=True)  # Details of non-EK passengers
-    injured_passengers = models.PositiveIntegerField(default=0)  # Number of injured passengers
-    action_taken_for_injured = models.TextField(blank=True, null=True)  # Action taken for injured passengers
-    vehicle_damage = models.BooleanField(default=False)  # Whether there was vehicle damage (Yes/No)
-    driver_name = models.CharField(max_length=100)  # Driver's name
-    driver_id = models.CharField(max_length=100)  # Driver's ID number
-    driver_shift = models.CharField(max_length=100)  # Driver's shift
-    breakdown_description = models.TextField()  # Description of the breakdown
-    ek_vehicles_involved = models.PositiveIntegerField(default=0)  # Number of EK vehicles involved
-    vehicle_make_plate = models.CharField(max_length=100)  # Vehicle make and plate number
-    replacement_vehicle = models.CharField(max_length=100, blank=True, null=True)  # Replacement vehicle number (if applicable)
-    reported_to_person = models.CharField(max_length=100)  # Person at EK the incident was reported to
-    reported_datetime = models.DateTimeField()  # Date and time the breakdown was reported
+    report_datetime = models.DateTimeField(auto_now_add=True)
+    breakdown_datetime = models.DateTimeField()
+    location = models.CharField(max_length=255)
+    route_number = models.CharField(max_length=100)
+    trip_work_order = models.CharField(max_length=100)
+    passengers_involved = models.PositiveIntegerField()
+    ek_staff_numbers = models.TextField(blank=True, null=True)
+    non_ek_passenger_details = models.TextField(blank=True, null=True)
+    injured_passengers = models.PositiveIntegerField(default=0)
+    action_taken_for_injured = models.TextField(blank=True, null=True)
+    vehicle_damage = models.BooleanField(default=False)
+    driver_name = models.CharField(max_length=100)
+    driver_id = models.CharField(max_length=100)
+    driver_shift = models.CharField(max_length=100)
+    breakdown_description = models.TextField()
+    ek_vehicles_involved = models.PositiveIntegerField(default=0)
+    vehicle_make_plate = models.CharField(max_length=100)
+    replacement_vehicle = models.CharField(max_length=100, blank=True, null=True)
+    reported_to_person = models.CharField(max_length=100)
+    reported_datetime = models.DateTimeField()
 
     def __str__(self):
-        return f"Breakdown Report {self.id} - {self.breakdown_datetime}" 
-
+        return f"Breakdown Report {self.id} - {self.breakdown_datetime}"
 
 class StmRoute(models.Model):
-    route_id = models.CharField(max_length=50, unique=True, db_column='R_id')  # Unique route ID
-    route = models.CharField(max_length=50, db_column='Route')  # Route name/code
-    route_type = models.CharField(max_length=50, db_column='Type')  # Type of route (Inbound/Outbound)
-    operating_days_1 = models.CharField(max_length=7, db_column='Operating_days_1')  # Operating days 1, e.g., smtwtfa
-    operating_days_2 = models.CharField(max_length=7, blank=True, null=True, db_column='Operating_days_2')  # Optional operating days 2
-    work_hub = models.CharField(max_length=255, db_column='Work_Hub')  # Work hub for the route
-    connection_from = models.CharField(max_length=255, db_column='Connection_From', null=True, blank=True)  # New field
-    connection_to = models.CharField(max_length=255, db_column='Connection_To', null=True, blank=True)  # New field
+    route_id = models.CharField(max_length=50, unique=True, db_column='R_id')
+    route = models.CharField(max_length=50, db_column='Route')
+    route_type = models.CharField(max_length=50, db_column='Type')
+    operating_days_1 = models.CharField(max_length=7, db_column='Operating_days_1')
+    operating_days_2 = models.CharField(max_length=7, blank=True, null=True, db_column='Operating_days_2')
+    work_hub = models.CharField(max_length=255, db_column='Work_Hub')
+    connection_from = models.CharField(max_length=255, db_column='Connection_From', null=True, blank=True)
+    connection_to = models.CharField(max_length=255, db_column='Connection_To', null=True, blank=True)
 
     def __str__(self):
         return f'{self.route} ({self.route_type})'
 
     class Meta:
         db_table = 'Stm_Routes'
-
 
 class StmPickupPoint(models.Model):
     route = models.ForeignKey(StmRoute, on_delete=models.CASCADE, db_column='R_id', related_name='pickup_points')
@@ -121,13 +114,12 @@ class StmPickupPoint(models.Model):
         db_table = 'Stm_Pickup_Points'
         ordering = ['pick_up_point_order_id']
 
-
 class StmShiftTime(models.Model):
     route = models.ForeignKey(StmRoute, on_delete=models.CASCADE, db_column='R_id', related_name='shift_times')
     time = models.CharField(max_length=50, null=True, blank=True, db_column='Time')
     special_time = models.TimeField(null=True, blank=True, db_column='Special_Time')
     shift_time = models.TimeField(null=True, blank=True, db_column='Shift_time')
-    stop_order = models.PositiveIntegerField(default=0)  # Order of pickup points
+    stop_order = models.PositiveIntegerField(default=0)
 
     def __str__(self):
         return f"Route {self.route.route}, Shift Time: {self.shift_time}"
@@ -135,12 +127,6 @@ class StmShiftTime(models.Model):
     class Meta:
         db_table = 'Stm_ShiftTime'
         ordering = ['stop_order', 'time']
-
-
-from django.db import models
-
-# Ensure related models are imported if defined elsewhere:
-# from .models import DutyCardTrip, DriverImportLog
 
 class BusKmTracking(models.Model):
     duty_card = models.ForeignKey(
@@ -151,12 +137,11 @@ class BusKmTracking(models.Model):
         null=True,
         blank=True
     )
-    # This field stores the actual duty card number for easier lookup.
     duty_card_no = models.CharField(
         max_length=100,
         verbose_name="Duty Card No",
         blank=True,
-        editable=True  # Makes this field editable
+        editable=True
     )
     driver = models.ForeignKey(
         DriverImportLog, 
@@ -166,25 +151,17 @@ class BusKmTracking(models.Model):
         null=True,
         blank=True
     )
-    # New field: Submission Date – auto-populated but editable.
     submission_date = models.DateField(null=True, blank=True, verbose_name="Submission Date")
     bus_no = models.CharField(max_length=20, verbose_name="Bus Number")
     start_km = models.PositiveIntegerField(verbose_name="Start Kilometer")
     end_km = models.PositiveIntegerField(verbose_name="End Kilometer")
     bus_change = models.BooleanField(default=False, verbose_name="Bus Changed (Optional)")
-    
-    # New fields for basic bus times
     bus_start_time = models.TimeField(null=True, blank=True, verbose_name="Bus Start Time")
     bus_end_time = models.TimeField(null=True, blank=True, verbose_name="Bus End Time")
-    
-    # Fields for bus change details (store the changed times)
     start_time = models.TimeField(null=True, blank=True, verbose_name="Start Time Change (Optional)")
     end_time = models.TimeField(null=True, blank=True, verbose_name="End Time Change (Optional)")
-    
     start_km_change = models.PositiveIntegerField(null=True, blank=True, verbose_name="Start Kilometer Change (Optional)")
     end_km_change = models.PositiveIntegerField(null=True, blank=True, verbose_name="End Kilometer Change (Optional)")
-    
-    # New field: Changed Bus Number (if bus_change is True)
     changed_bus_no = models.CharField(
         max_length=20,
         verbose_name="Changed Bus Number",
@@ -193,15 +170,12 @@ class BusKmTracking(models.Model):
     )
 
     def save(self, *args, **kwargs):
-        # Auto-populate duty_card_no from the related DutyCardTrip if available.
         if self.duty_card and not self.duty_card_no:
             self.duty_card_no = self.duty_card.duty_card_no
         super().save(*args, **kwargs)
 
     def __str__(self):
         return f"Bus {self.bus_no} - Start: {self.start_km}, End: {self.end_km}"
-
-from django.db import models
 
 class BusMasterList(models.Model):
     bus_no = models.CharField(
@@ -220,3 +194,69 @@ class BusMasterList(models.Model):
         db_table = 'bus_master_list'
         verbose_name = "Bus Master Entry"
         verbose_name_plural = "Bus Master List"
+
+
+
+class Unit(models.Model):
+    code = models.CharField(max_length=10, unique=True)
+
+    def __str__(self):
+        return self.code
+
+    class Meta:
+        db_table = 'duty_unit'
+
+class EKSTMDailyTrips(models.Model):
+    unit = models.ForeignKey(Unit, on_delete=models.CASCADE, to_field='code')
+    routetime = models.CharField(max_length=50)
+    shift_out = models.CharField(max_length=50, blank=True, null=True)  # CSV header: shift_Out
+    shift_in = models.CharField(max_length=50, blank=True, null=True)
+    ride_date = models.DateField()
+    first_point = models.CharField(max_length=100)
+    route_id = models.CharField(max_length=50)
+    route_group = models.CharField(max_length=50)
+    route_type = models.CharField(max_length=20)
+    driver_name = models.CharField(max_length=100, blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.unit} - {self.route_id} - {self.ride_date}"
+
+    class Meta:
+        db_table = 'EKSTM_daily_trips'
+
+
+class EKSTMMileage(models.Model):
+    unit = models.ForeignKey(Unit, on_delete=models.CASCADE, to_field='code')
+    mileage = models.CharField(max_length=50)
+    date = models.DateField()  # Removed default=date.today
+
+    def __str__(self):
+        return f"{self.unit} - {self.mileage} ({self.date})"
+
+    class Meta:
+        db_table = 'EKSTM_mileage'
+
+class EKSTMSalik(models.Model):
+    unit = models.ForeignKey(Unit, on_delete=models.CASCADE, to_field='code')
+    salik_start_date = models.DateField()
+    salik_satrt_time = models.CharField(max_length=20)  # header: "salik_satrt_time"
+    initial_location = models.CharField(max_length=100)
+    salik_end_date = models.DateField()
+    salik_end_time = models.CharField(max_length=20)
+    final_location = models.CharField(max_length=100)
+    duration = models.CharField(max_length=20)
+    driver_name = models.CharField(max_length=100, blank=True, null=True)
+    crossing_rate = models.CharField(max_length=20)
+    routeid = models.CharField(max_length=50)
+    routename = models.CharField(max_length=255)  # increased max_length here
+    routetype = models.CharField(max_length=50)
+    shift_in = models.CharField(max_length=50, blank=True, null=True)
+    shift_out = models.CharField(max_length=50, blank=True, null=True)
+    routegroup = models.CharField(max_length=50)
+
+    def __str__(self):
+        return f"{self.unit} - {self.routeid} - {self.salik_start_date}"
+
+    class Meta:
+        db_table = 'EKSTM_salik'
+

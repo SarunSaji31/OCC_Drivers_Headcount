@@ -1808,3 +1808,292 @@ def get_otp_details(request):
         return JsonResponse({'message': f'No {status} details available for the selected {period_label} period.'}, safe=False)
 
     return JsonResponse(delay_details, safe=False)
+
+import csv
+from django.shortcuts import render
+from django.http import HttpResponse
+from datetime import datetime
+from .models import Unit, EKSTMDailyTrips, EKSTMSalik, EKSTMMileage
+
+def upload_gpsreports(request):
+    """Upload CSV for EKSTM_daily_trips (GPS report)"""
+    if request.method == 'POST' and request.FILES.get('csv_file'):
+        csv_file = request.FILES['csv_file']
+        decoded_file = csv_file.read().decode('utf-8-sig').splitlines()
+        if not decoded_file:
+            return HttpResponse("CSV file is empty.", status=400)
+        reader = csv.DictReader(decoded_file)
+        required_keys = ['unit', 'routetime', 'ride_date', 'route_id', 'first_point', 'route_group', 'route_type']
+        for idx, row in enumerate(reader, start=1):
+            row_lower = {k.strip().lower(): v.strip() for k, v in row.items() if k}
+            missing_keys = [key for key in required_keys if key not in row_lower or not row_lower[key]]
+            if missing_keys:
+                available = ", ".join(row_lower.keys())
+                return HttpResponse(
+                    f"Row {idx} is missing required field(s): {', '.join(missing_keys)}. Available keys: {available}",
+                    status=400
+                )
+            try:
+                ride_date = datetime.strptime(row_lower['ride_date'], '%d/%m/%Y').date()
+            except ValueError:
+                return HttpResponse(
+                    f"Row {idx}: Invalid date format for ride_date. Please use dd/mm/YYYY.",
+                    status=400
+                )
+            unit_obj, _ = Unit.objects.get_or_create(code=row_lower['unit'])
+            EKSTMDailyTrips.objects.update_or_create(
+                unit=unit_obj,
+                routetime=row_lower['routetime'],
+                ride_date=ride_date,
+                route_id=row_lower['route_id'],
+                defaults={
+                    'shift_out': row_lower.get('shift_out', ''),
+                    'shift_in': row_lower.get('shift_in', ''),
+                    'first_point': row_lower['first_point'],
+                    'route_group': row_lower['route_group'],
+                    'route_type': row_lower['route_type'],
+                    'driver_name': row_lower.get('driver_name', ''),
+                }
+            )
+        return HttpResponse("GPS report file uploaded successfully!")
+    return render(request, 'duty/stm_gpsreports_upload.html')
+
+
+def upload_salik(request):
+    """Upload CSV for EKSTM_salik"""
+    if request.method == 'POST' and request.FILES.get('csv_file'):
+        csv_file = request.FILES['csv_file']
+        # Use cp1252 encoding to handle non-breaking spaces (0xa0)
+        decoded_file = csv_file.read().decode('cp1252').splitlines()
+        if not decoded_file:
+            return HttpResponse("CSV file is empty.", status=400)
+        reader = csv.DictReader(decoded_file)
+        # Remove routeid, routename, routetype, and routegroup from required_keys
+        required_keys = [
+            'unit',
+            'salik_start_date',
+            'salik_satrt_time',
+            'initial_location',
+            'salik_end_date',
+            'salik_end_time',
+            'final_location',
+            'duration',
+            'crossing_rate'
+        ]
+        for idx, row in enumerate(reader, start=1):
+            row_lower = {k.strip().lower(): v.strip() for k, v in row.items() if k}
+            missing_keys = [key for key in required_keys if key not in row_lower or not row_lower[key]]
+            if missing_keys:
+                available = ", ".join(row_lower.keys())
+                return HttpResponse(
+                    f"Row {idx} is missing required field(s): {', '.join(missing_keys)}. Available keys: {available}",
+                    status=400
+                )
+            try:
+                salik_start_date = datetime.strptime(row_lower['salik_start_date'], '%d/%m/%Y').date()
+                salik_end_date = datetime.strptime(row_lower['salik_end_date'], '%d/%m/%Y').date()
+            except ValueError:
+                return HttpResponse(
+                    f"Row {idx}: Invalid date format for salik_start_date or salik_end_date. Please use dd/mm/YYYY.",
+                    status=400
+                )
+            unit_obj, _ = Unit.objects.get_or_create(code=row_lower['unit'])
+            EKSTMSalik.objects.update_or_create(
+                unit=unit_obj,
+                salik_start_date=salik_start_date,
+                salik_satrt_time=row_lower['salik_satrt_time'],
+                routeid=row_lower.get('routeid', ''),
+                defaults={
+                    'initial_location': row_lower['initial_location'],
+                    'salik_end_date': salik_end_date,
+                    'salik_end_time': row_lower['salik_end_time'],
+                    'final_location': row_lower['final_location'],
+                    'duration': row_lower['duration'],
+                    'driver_name': row_lower.get('driver_name', ''),
+                    'crossing_rate': row_lower['crossing_rate'],
+                    'routename': row_lower.get('routename', ''),
+                    'routetype': row_lower.get('routetype', ''),
+                    'shift_in': row_lower.get('shift_in', ''),
+                    'shift_out': row_lower.get('shift_out', ''),
+                    'routegroup': row_lower.get('routegroup', ''),
+                }
+            )
+        return HttpResponse("Salik file uploaded successfully!")
+    return render(request, 'duty/stm_gpsreports_upload.html')
+
+
+import csv
+from datetime import datetime
+from django.http import HttpResponse
+from django.shortcuts import render
+from .models import EKSTMMileage, Unit
+import chardet  # For encoding detection
+
+def upload_mileage(request):
+    """Upload CSV for EKSTM_mileage"""
+    if request.method == 'POST' and request.FILES.get('csv_file'):
+        csv_file = request.FILES['csv_file']
+        
+        # Read raw bytes and detect encoding
+        raw_data = csv_file.read()
+        detected = chardet.detect(raw_data)
+        encoding = detected['encoding'] if detected['encoding'] else 'utf-8'
+        
+        try:
+            # Decode with detected encoding
+            decoded_file = raw_data.decode(encoding).splitlines()
+        except UnicodeDecodeError:
+            # Fallback to latin1 if decoding fails
+            decoded_file = raw_data.decode('latin1', errors='replace').splitlines()
+
+        csv_reader = csv.reader(decoded_file)
+        next(csv_reader, None)  # Skip the header row
+
+        data_uploaded = False  # Track if any data is uploaded
+
+        for idx, row in enumerate(csv_reader, start=1):
+            # Skip empty or malformed rows
+            if not row or len(row) < 3:  
+                continue  
+
+            date_str = row[0].strip()  # First column is date
+            unit_code = row[1].strip() # Second column is unit code
+            mileage = row[2].strip()   # Third column is mileage
+
+            try:
+                mileage_date = datetime.strptime(date_str, '%d/%m/%Y').date()
+            except ValueError:
+                return HttpResponse(f"Row {idx} has invalid date format: {date_str}", status=400)
+
+            # Get or create Unit
+            unit, _ = Unit.objects.get_or_create(code=unit_code)
+
+            # Update or create EKSTMMileage entry
+            EKSTMMileage.objects.update_or_create(
+                unit=unit,
+                date=mileage_date,
+                defaults={'mileage': mileage}
+            )
+            
+            data_uploaded = True  # Set flag if at least one entry is processed
+        
+        if data_uploaded:
+            return HttpResponse("Mileage file uploaded successfully!")
+        else:
+            return HttpResponse("No valid data found to upload.", status=400)
+
+    return render(request, 'duty/stm_gpsreports_upload.html')
+
+from django.shortcuts import render
+from django.http import JsonResponse
+from django.db.models import Count, Q
+from datetime import datetime
+from .models import EKSTMDailyTrips, EKSTMMileage
+
+def ekstm_47seater_report_dashboard(request):
+    date_str = request.GET.get('date')
+    try:
+        selected_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+    except (ValueError, TypeError):
+        selected_date = datetime.today().date()
+
+    trips = EKSTMDailyTrips.objects.filter(ride_date=selected_date)
+
+    total_trips = trips.count()
+    inbound_trips = trips.filter(route_type__iexact='inbound').count()
+    outbound_trips = trips.filter(route_type__iexact='outbound').count()
+
+    route_group_counts = trips.values('route_group').annotate(count=Count('route_group')).order_by('route_group')
+
+    unit_counts = trips.values('unit__code').annotate(
+        count=Count('id'),
+        inbound_count=Count('id', filter=Q(route_type__iexact='inbound')),
+        outbound_count=Count('id', filter=Q(route_type__iexact='outbound'))
+    ).order_by('unit__code')
+
+    # Correct mileage data fetch for the selected date
+    mileage_data = EKSTMMileage.objects.filter(date=selected_date).values('unit__code', 'mileage')
+    mileage_dict = {item['unit__code']: item['mileage'] for item in mileage_data}
+
+    # Calculate current month mileage
+    current_month_start = selected_date.replace(day=1)  # First day of the current month
+    month_mileage_dict = {}
+
+    for unit in unit_counts:
+        unit_code = unit['unit__code']
+        
+        # Get mileage for the first day of the month
+        first_day_mileage = EKSTMMileage.objects.filter(
+            unit__code=unit_code,
+            date=current_month_start
+        ).values('mileage').first()
+        
+        # Get mileage for the selected date
+        selected_day_mileage = mileage_dict.get(unit_code, None)
+        
+        # Debugging output
+        print(f"Unit: {unit_code}")
+        print(f"First day mileage ({current_month_start}): {first_day_mileage}")
+        print(f"Selected day mileage ({selected_date}): {selected_day_mileage}")
+
+        # Calculate current month mileage with type conversion
+        if first_day_mileage and selected_day_mileage is not None:
+            try:
+                # Strip 'km' and any whitespace, then convert to float
+                first_day_km = float(first_day_mileage['mileage'].replace('km', '').strip())
+                selected_day_km = float(selected_day_mileage.replace('km', '').strip())
+                current_month_mileage = selected_day_km - first_day_km
+                # Convert to integer and append ' Km'
+                month_mileage_dict[unit_code] = f"{int(current_month_mileage)} Km"
+            except (ValueError, TypeError) as e:
+                print(f"Error converting mileage for {unit_code}: {e}")
+                month_mileage_dict[unit_code] = 'N/A'
+        else:
+            print(f"No data for {unit_code}: First day: {bool(first_day_mileage)}, Selected day: {bool(selected_day_mileage)}")
+            month_mileage_dict[unit_code] = 'N/A'
+
+        # Assign existing mileage for the selected date (keep original format with 'km')
+        unit['mileage'] = mileage_dict.get(unit_code, 'N/A')
+        unit['current_month_mileage'] = month_mileage_dict.get(unit_code, 'N/A')
+
+    context = {
+        'selected_date': selected_date,
+        'total_trips': total_trips,
+        'inbound_trips': inbound_trips,
+        'outbound_trips': outbound_trips,
+        'route_group_counts': route_group_counts,
+        'unit_counts': unit_counts,
+    }
+    return render(request, 'duty/ekstm_47seater_report_dashboard.html', context)
+
+def bus_trip_details(request, bus_code):
+    date_str = request.GET.get('date')
+    try:
+        selected_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+    except (ValueError, TypeError):
+        selected_date = datetime.today().date()
+
+    trips = EKSTMDailyTrips.objects.filter(
+        ride_date=selected_date,
+        unit__code=bus_code
+    ).values('route_id', 'route_type', 'shift_in', 'shift_out', 'ride_date')
+
+    trip_list = []
+    for trip in trips:
+        route_type = trip['route_type'].lower()
+        raw_time = trip['shift_in'] if route_type == 'inbound' else trip['shift_out']
+        try:
+            trip_time = datetime.strptime(raw_time, '%H:%M').time()
+        except (ValueError, TypeError):
+            continue
+
+        trip_list.append({
+            'route_id': trip['route_id'],
+            'route_type': route_type.capitalize(),
+            'time': trip_time.strftime('%H:%M'),
+            'date': trip['ride_date'].strftime('%Y-%m-%d')
+        })
+
+    sorted_trips = sorted(trip_list, key=lambda x: x['time'])
+
+    return JsonResponse(sorted_trips, safe=False)

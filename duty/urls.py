@@ -11,6 +11,7 @@ from .views import (
     fleet_counts_api,
     download_fleet_report,
     get_most_delayed_trips_api,
+    upload_gpsreports, upload_salik, upload_mileage,ekstm_47seater_report_dashboard,
 )
 
 urlpatterns = [
@@ -98,6 +99,14 @@ urlpatterns = [
     path('get-top-delayed-load-trips-api/', views.get_top_delayed_load_trips_api, name='get_top_delayed_load_trips_api'),
     path('get-daily-delay-details/', views.get_daily_delay_details, name='get_daily_delay_details'),
     path('get-otp-details/', views.get_otp_details, name='get_otp_details'),
+    
+    path('upload_gpsreports/', upload_gpsreports, name='upload_gpsreports'),
+    path('upload_salik/', upload_salik, name='upload_salik'),
+    path('upload_mileage/', upload_mileage, name='upload_mileage'),
+
+    path('ekstm_47seater_report_dashboard/', ekstm_47seater_report_dashboard, name='ekstm_47seater_report_dashboard'),
+    path('bus_trip_details/<str:bus_code>/', views.bus_trip_details, name='bus_trip_details'),
+
 ]
 
 # Serve static and media files during development
