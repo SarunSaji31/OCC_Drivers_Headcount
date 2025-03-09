@@ -88,10 +88,26 @@
 </head>
 <body>
     <div class="dashboard-container flex flex-col">
-        <!-- Header -->
-        <header class="header py-8 px-6 md:px-10 mb-8">
-            <h1 class="text-4xl md:text-5xl font-bold text-gray-900 text-center">47-Seater Report Dashboard</h1>
-            <p class="text-xl md:text-2xl text-gray-600 text-center mt-3">Actionable Insights for Your Fleet</p>
+        <!-- Header with Navigation Buttons -->
+        <header class="header py-8 px-6 md:px-10 mb-8 relative">
+            <!-- Left-side Home Button -->
+            <div class="absolute top-4 left-4">
+                <a href="{% url 'home' %}" class="bg-blue-900 text-white py-2 px-4 rounded shadow-md hover:bg-blue-800">
+                    Home
+                </a>
+            </div>
+            <!-- Right-side Subcategory Selection Button -->
+            <div class="absolute top-4 right-4">
+                <a href="{% url 'subcategory_selection' %}" class="bg-blue-900 text-white py-2 px-4 rounded shadow-md hover:bg-blue-800">
+                    Subcategory Selection
+                </a>
+            </div>
+            <h1 class="text-4xl md:text-5xl font-bold text-gray-900 text-center">
+                47-Seater Report Dashboard
+            </h1>
+            <p class="text-xl md:text-2xl text-gray-600 text-center mt-3">
+                Actionable Insights for Your Fleet
+            </p>
         </header>
 
         <!-- Filter Section -->

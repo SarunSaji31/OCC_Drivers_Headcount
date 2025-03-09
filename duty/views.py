@@ -2111,3 +2111,110 @@ def ekstm_47seater_report_dashboard(request):
         'dead_salik_cost': dead_salik_cost,
     }
     return render(request, 'duty/ekstm_47seater_report_dashboard.html', context)
+
+import logging
+from django.shortcuts import render
+from django.db.models import Count, Q, Sum
+from django.db.models.functions import Cast
+from django.db.models import FloatField
+from datetime import datetime
+
+# Set up logging
+logger = logging.getLogger(__name__)
+
+def public_ekstm_47seater_report_dashboard(request):
+    logger.info("Accessing public EKSTM 47-seater report dashboard.")
+    
+    # Use start of the month to today, similar to public_stm_dashboard
+    start_of_month = datetime.now().replace(day=1).date()
+    today = datetime.now().date()
+    
+    try:
+        # Daily trips queries (adjusted to filter by month range)
+        trips = EKSTMDailyTrips.objects.filter(ride_date__gte=start_of_month, ride_date__lte=today)
+        total_trips = trips.count()
+        inbound_trips = trips.filter(route_type__iexact='inbound').count()
+        outbound_trips = trips.filter(route_type__iexact='outbound').count()
+        route_group_counts = trips.values('route_group').annotate(count=Count('route_group')).order_by('route_group')
+        unit_counts = trips.values('unit__code').annotate(
+            count=Count('id'),
+            inbound_count=Count('id', filter=Q(route_type__iexact='inbound')),
+            outbound_count=Count('id', filter=Q(route_type__iexact='outbound'))
+        ).order_by('unit__code')
+        
+        logger.info(f"Trips fetched: {total_trips} (Inbound: {inbound_trips}, Outbound: {outbound_trips})")
+
+        # Mileage calculation (adjusted to use today’s data)
+        mileage_data = EKSTMMileage.objects.filter(date=today).values('unit__code', 'mileage')
+        mileage_dict = {item['unit__code']: item['mileage'] for item in mileage_data}
+        month_mileage_dict = {}
+        for unit in unit_counts:
+            unit_code = unit['unit__code']
+            first_day_mileage = EKSTMMileage.objects.filter(
+                unit__code=unit_code,
+                date=start_of_month
+            ).values('mileage').first()
+            selected_day_mileage = mileage_dict.get(unit_code, None)
+            if first_day_mileage and selected_day_mileage is not None:
+                try:
+                    first_day_km = float(first_day_mileage['mileage'].replace('km', '').strip())
+                    selected_day_km = float(selected_day_mileage.replace('km', '').strip())
+                    current_month_mileage = selected_day_km - first_day_km
+                    month_mileage_dict[unit_code] = f"{int(current_month_mileage)} Km"
+                except (ValueError, TypeError):
+                    month_mileage_dict[unit_code] = 'N/A'
+            else:
+                month_mileage_dict[unit_code] = 'N/A'
+            unit['mileage'] = mileage_dict.get(unit_code, 'N/A')
+            unit['current_month_mileage'] = month_mileage_dict.get(unit_code, 'N/A')
+        
+        # Salik calculations (adjusted to use today’s data)
+        salik_records = EKSTMSalik.objects.filter(salik_start_date=today)
+        
+        total_salik_count = salik_records.count()
+        total_salik_cost = salik_records.aggregate(
+            total_cost=Sum(Cast('crossing_rate', FloatField()))
+        )["total_cost"] or 0
+        total_salik_cost = f"{int(total_salik_cost)} Aed"
+
+        live_salik_records = salik_records.filter(
+            Q(routetype__iexact='inbound') | Q(routetype__iexact='outbound')
+        )
+        live_salik_count = live_salik_records.count()
+        live_salik_cost = live_salik_records.aggregate(
+            total_cost=Sum(Cast('crossing_rate', FloatField()))
+        )["total_cost"] or 0
+        live_salik_cost = f"{int(live_salik_cost)} Aed"
+
+        dead_salik_records = salik_records.filter(routetype='')
+        dead_salik_count = dead_salik_records.count()
+        dead_salik_cost = dead_salik_records.aggregate(
+            total_cost=Sum(Cast('crossing_rate', FloatField()))
+        )["total_cost"] or 0
+        dead_salik_cost = f"{int(dead_salik_cost)} Aed"
+        
+        logger.info(f"Salik data fetched: Total={total_salik_count}, Live={live_salik_count}, Dead={dead_salik_count}")
+
+    except Exception as e:
+        logger.error(f"Error fetching EKSTM dashboard data: {e}")
+        # Default empty values in case of error, similar to public_stm_dashboard
+        total_trips = inbound_trips = outbound_trips = 0
+        route_group_counts = unit_counts = []
+        total_salik_count = live_salik_count = dead_salik_count = 0
+        total_salik_cost = live_salik_cost = dead_salik_cost = "0 Aed"
+
+    context = {
+        'selected_date': today,
+        'total_trips': total_trips,
+        'inbound_trips': inbound_trips,
+        'outbound_trips': outbound_trips,
+        'route_group_counts': route_group_counts,
+        'unit_counts': unit_counts,
+        'total_salik_count': total_salik_count,
+        'total_salik_cost': total_salik_cost,
+        'live_salik_count': live_salik_count,
+        'live_salik_cost': live_salik_cost,
+        'dead_salik_count': dead_salik_count,
+        'dead_salik_cost': dead_salik_cost,
+    }
+    return render(request, 'duty/ekstm_47seater_report_dashboard.html', context)
