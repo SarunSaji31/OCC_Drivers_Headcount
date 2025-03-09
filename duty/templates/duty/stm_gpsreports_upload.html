@@ -65,7 +65,7 @@
         <div class="tab-panel" id="gps-panel">
           <form class="ajax-upload space-y-6" data-url="{% url 'upload_gpsreports' %}">
             {% csrf_token %}
-            <h2 class="text-2xl font-bold text-gray-800">GPS Report Upload</h2>
+            <h2 class="text-2xl font-bold text-gray-800">Daily Report Upload</h2>
             <div>
               <label for="csv_file_routeschedule" class="block text-lg font-medium text-gray-700">Select CSV File</label>
               <input type="file" name="csv_file" id="csv_file_routeschedule" accept=".csv"
