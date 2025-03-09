@@ -162,3 +162,75 @@ class StmShiftTimeAdmin(admin.ModelAdmin):
     search_fields = ['route__route', 'shift_time']
     list_filter = ['route', 'time', 'shift_time']
     ordering = ['shift_time', 'stop_order']
+
+
+from django.contrib import admin
+from .models import BusMasterList  # Import your model
+
+# Register the BusMasterList model with the admin site
+@admin.register(BusMasterList)
+class BusMasterListAdmin(admin.ModelAdmin):
+    # Fields to display in the list view
+    list_display = ('bus_no', 'capacity')
+
+    # Enable search functionality
+    search_fields = ('bus_no',)
+
+    # Add filters for quick filtering
+    list_filter = ('capacity',)
+
+    # Optional: Define how many items to show per page
+    list_per_page = 25
+
+    # Optional: Ensure bus_no is stripped of whitespace on save
+    def save_model(self, request, obj, form, change):
+        obj.bus_no = obj.bus_no.strip()  # Remove leading/trailing whitespace
+        super().save_model(request, obj, form, change)
+
+
+
+from django.contrib import admin
+from .models import Unit, EKSTMDailyTrips, EKSTMMileage, EKSTMSalik
+
+# Register Unit model
+@admin.register(Unit)
+class UnitAdmin(admin.ModelAdmin):
+    list_display = ('code',)
+    search_fields = ('code',)
+    ordering = ('code',)
+
+# Register EKSTMDailyTrips model
+@admin.register(EKSTMDailyTrips)
+class EKSTMDailyTripsAdmin(admin.ModelAdmin):
+    list_display = ('unit', 'route_id', 'ride_date', 'route_type', 'shift_in', 'shift_out', 'route_group', 'driver_name')
+    search_fields = ('unit__code', 'route_id', 'driver_name', 'route_group')
+    list_filter = ('ride_date', 'route_type', 'route_group')
+    ordering = ('-ride_date', 'unit')
+    date_hierarchy = 'ride_date'  # Adds a date-based navigation
+
+    # Optional: Improve readability of foreign key field in forms
+    autocomplete_fields = ('unit',)
+
+# Register EKSTMMileage model
+@admin.register(EKSTMMileage)
+class EKSTMMileageAdmin(admin.ModelAdmin):
+    list_display = ('unit', 'mileage', 'date')
+    search_fields = ('unit__code', 'mileage')
+    list_filter = ('date',)
+    ordering = ('-date', 'unit')
+    date_hierarchy = 'date'  # Adds a date-based navigation
+
+    # Optional: Improve readability of foreign key field in forms
+    autocomplete_fields = ('unit',)
+
+# Register EKSTMSalik model
+@admin.register(EKSTMSalik)
+class EKSTMSalikAdmin(admin.ModelAdmin):
+    list_display = ('unit', 'routeid', 'salik_start_date', 'salik_satrt_time', 'routetype', 'routegroup', 'driver_name')
+    search_fields = ('unit__code', 'routeid', 'driver_name', 'routegroup')
+    list_filter = ('salik_start_date', 'routetype', 'routegroup')
+    ordering = ('-salik_start_date', 'unit')
+    date_hierarchy = 'salik_start_date'  # Adds a date-based navigation
+
+    # Optional: Improve readability of foreign key field in forms
+    autocomplete_fields = ('unit',)

@@ -239,16 +239,12 @@ class EKSTMMileage(models.Model):
 class EKSTMSalik(models.Model):
     unit = models.ForeignKey(Unit, on_delete=models.CASCADE, to_field='code')
     salik_start_date = models.DateField()
-    salik_satrt_time = models.CharField(max_length=20)  # header: "salik_satrt_time"
+    salik_satrt_time = models.CharField(max_length=20)  # Note: Typo 'satrt' should be 'start'
     initial_location = models.CharField(max_length=100)
-    salik_end_date = models.DateField()
-    salik_end_time = models.CharField(max_length=20)
     final_location = models.CharField(max_length=100)
-    duration = models.CharField(max_length=20)
     driver_name = models.CharField(max_length=100, blank=True, null=True)
     crossing_rate = models.CharField(max_length=20)
     routeid = models.CharField(max_length=50)
-    routename = models.CharField(max_length=255)  # increased max_length here
     routetype = models.CharField(max_length=50)
     shift_in = models.CharField(max_length=50, blank=True, null=True)
     shift_out = models.CharField(max_length=50, blank=True, null=True)
@@ -259,4 +255,3 @@ class EKSTMSalik(models.Model):
 
     class Meta:
         db_table = 'EKSTM_salik'
-

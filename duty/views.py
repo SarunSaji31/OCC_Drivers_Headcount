@@ -1868,16 +1868,13 @@ def upload_salik(request):
         if not decoded_file:
             return HttpResponse("CSV file is empty.", status=400)
         reader = csv.DictReader(decoded_file)
-        # Remove routeid, routename, routetype, and routegroup from required_keys
+        # Required keys matching your model fields
         required_keys = [
             'unit',
             'salik_start_date',
-            'salik_satrt_time',
+            'salik_satrt_time',  # note: this field contains a typo, but it matches the model
             'initial_location',
-            'salik_end_date',
-            'salik_end_time',
             'final_location',
-            'duration',
             'crossing_rate'
         ]
         for idx, row in enumerate(reader, start=1):
@@ -1891,10 +1888,9 @@ def upload_salik(request):
                 )
             try:
                 salik_start_date = datetime.strptime(row_lower['salik_start_date'], '%d/%m/%Y').date()
-                salik_end_date = datetime.strptime(row_lower['salik_end_date'], '%d/%m/%Y').date()
             except ValueError:
                 return HttpResponse(
-                    f"Row {idx}: Invalid date format for salik_start_date or salik_end_date. Please use dd/mm/YYYY.",
+                    f"Row {idx}: Invalid date format for salik_start_date. Please use dd/mm/YYYY.",
                     status=400
                 )
             unit_obj, _ = Unit.objects.get_or_create(code=row_lower['unit'])
@@ -1905,13 +1901,9 @@ def upload_salik(request):
                 routeid=row_lower.get('routeid', ''),
                 defaults={
                     'initial_location': row_lower['initial_location'],
-                    'salik_end_date': salik_end_date,
-                    'salik_end_time': row_lower['salik_end_time'],
                     'final_location': row_lower['final_location'],
-                    'duration': row_lower['duration'],
                     'driver_name': row_lower.get('driver_name', ''),
                     'crossing_rate': row_lower['crossing_rate'],
-                    'routename': row_lower.get('routename', ''),
                     'routetype': row_lower.get('routetype', ''),
                     'shift_in': row_lower.get('shift_in', ''),
                     'shift_out': row_lower.get('shift_out', ''),
@@ -1922,12 +1914,14 @@ def upload_salik(request):
     return render(request, 'duty/stm_gpsreports_upload.html')
 
 
+
 import csv
 from datetime import datetime
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render
-from .models import EKSTMMileage, Unit
+from .models import EKSTMMileage, Unit, EKSTMDailyTrips, EKSTMSalik
 import chardet  # For encoding detection
+
 
 def upload_mileage(request):
     """Upload CSV for EKSTM_mileage"""
@@ -1957,8 +1951,8 @@ def upload_mileage(request):
                 continue  
 
             date_str = row[0].strip()  # First column is date
-            unit_code = row[1].strip() # Second column is unit code
-            mileage = row[2].strip()   # Third column is mileage
+            unit_code = row[1].strip()  # Second column is unit code
+            mileage = row[2].strip()    # Third column is mileage
 
             try:
                 mileage_date = datetime.strptime(date_str, '%d/%m/%Y').date()
@@ -1984,87 +1978,6 @@ def upload_mileage(request):
 
     return render(request, 'duty/stm_gpsreports_upload.html')
 
-from django.shortcuts import render
-from django.http import JsonResponse
-from django.db.models import Count, Q
-from datetime import datetime
-from .models import EKSTMDailyTrips, EKSTMMileage
-
-def ekstm_47seater_report_dashboard(request):
-    date_str = request.GET.get('date')
-    try:
-        selected_date = datetime.strptime(date_str, '%Y-%m-%d').date()
-    except (ValueError, TypeError):
-        selected_date = datetime.today().date()
-
-    trips = EKSTMDailyTrips.objects.filter(ride_date=selected_date)
-
-    total_trips = trips.count()
-    inbound_trips = trips.filter(route_type__iexact='inbound').count()
-    outbound_trips = trips.filter(route_type__iexact='outbound').count()
-
-    route_group_counts = trips.values('route_group').annotate(count=Count('route_group')).order_by('route_group')
-
-    unit_counts = trips.values('unit__code').annotate(
-        count=Count('id'),
-        inbound_count=Count('id', filter=Q(route_type__iexact='inbound')),
-        outbound_count=Count('id', filter=Q(route_type__iexact='outbound'))
-    ).order_by('unit__code')
-
-    # Correct mileage data fetch for the selected date
-    mileage_data = EKSTMMileage.objects.filter(date=selected_date).values('unit__code', 'mileage')
-    mileage_dict = {item['unit__code']: item['mileage'] for item in mileage_data}
-
-    # Calculate current month mileage
-    current_month_start = selected_date.replace(day=1)  # First day of the current month
-    month_mileage_dict = {}
-
-    for unit in unit_counts:
-        unit_code = unit['unit__code']
-        
-        # Get mileage for the first day of the month
-        first_day_mileage = EKSTMMileage.objects.filter(
-            unit__code=unit_code,
-            date=current_month_start
-        ).values('mileage').first()
-        
-        # Get mileage for the selected date
-        selected_day_mileage = mileage_dict.get(unit_code, None)
-        
-        # Debugging output
-        print(f"Unit: {unit_code}")
-        print(f"First day mileage ({current_month_start}): {first_day_mileage}")
-        print(f"Selected day mileage ({selected_date}): {selected_day_mileage}")
-
-        # Calculate current month mileage with type conversion
-        if first_day_mileage and selected_day_mileage is not None:
-            try:
-                # Strip 'km' and any whitespace, then convert to float
-                first_day_km = float(first_day_mileage['mileage'].replace('km', '').strip())
-                selected_day_km = float(selected_day_mileage.replace('km', '').strip())
-                current_month_mileage = selected_day_km - first_day_km
-                # Convert to integer and append ' Km'
-                month_mileage_dict[unit_code] = f"{int(current_month_mileage)} Km"
-            except (ValueError, TypeError) as e:
-                print(f"Error converting mileage for {unit_code}: {e}")
-                month_mileage_dict[unit_code] = 'N/A'
-        else:
-            print(f"No data for {unit_code}: First day: {bool(first_day_mileage)}, Selected day: {bool(selected_day_mileage)}")
-            month_mileage_dict[unit_code] = 'N/A'
-
-        # Assign existing mileage for the selected date (keep original format with 'km')
-        unit['mileage'] = mileage_dict.get(unit_code, 'N/A')
-        unit['current_month_mileage'] = month_mileage_dict.get(unit_code, 'N/A')
-
-    context = {
-        'selected_date': selected_date,
-        'total_trips': total_trips,
-        'inbound_trips': inbound_trips,
-        'outbound_trips': outbound_trips,
-        'route_group_counts': route_group_counts,
-        'unit_counts': unit_counts,
-    }
-    return render(request, 'duty/ekstm_47seater_report_dashboard.html', context)
 
 def bus_trip_details(request, bus_code):
     date_str = request.GET.get('date')
@@ -2081,19 +1994,120 @@ def bus_trip_details(request, bus_code):
     trip_list = []
     for trip in trips:
         route_type = trip['route_type'].lower()
+        # Use shift_in for inbound, shift_out for outbound
         raw_time = trip['shift_in'] if route_type == 'inbound' else trip['shift_out']
-        try:
-            trip_time = datetime.strptime(raw_time, '%H:%M').time()
-        except (ValueError, TypeError):
-            continue
 
-        trip_list.append({
-            'route_id': trip['route_id'],
-            'route_type': route_type.capitalize(),
-            'time': trip_time.strftime('%H:%M'),
-            'date': trip['ride_date'].strftime('%Y-%m-%d')
-        })
+        if raw_time:  # Ensure time exists before parsing
+            parsed_time = None
+            # Try the formats one by one
+            for fmt in ('%H:%M', '%H:%M:%S'):
+                try:
+                    parsed_time = datetime.strptime(raw_time, fmt).time()
+                    break  # Successfully parsed; break out of the loop
+                except ValueError:
+                    continue
+            if parsed_time is None:
+                continue  # Skip invalid time formats
+            trip_list.append({
+                'route_id': trip['route_id'],
+                'route_type': route_type.capitalize(),
+                'time': parsed_time.strftime('%H:%M'),
+                'date': trip['ride_date'].strftime('%Y-%m-%d')
+            })
 
     sorted_trips = sorted(trip_list, key=lambda x: x['time'])
-
     return JsonResponse(sorted_trips, safe=False)
+
+
+from django.db.models import Count, Q, Sum
+from django.db.models.functions import Cast
+from django.db.models import FloatField
+
+
+def ekstm_47seater_report_dashboard(request):
+    date_str = request.GET.get('date')
+    try:
+        selected_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+    except (ValueError, TypeError):
+        selected_date = datetime.today().date()
+
+    # Daily trips queries
+    trips = EKSTMDailyTrips.objects.filter(ride_date=selected_date)
+    total_trips = trips.count()
+    inbound_trips = trips.filter(route_type__iexact='inbound').count()
+    outbound_trips = trips.filter(route_type__iexact='outbound').count()
+    route_group_counts = trips.values('route_group').annotate(count=Count('route_group')).order_by('route_group')
+    unit_counts = trips.values('unit__code').annotate(
+        count=Count('id'),
+        inbound_count=Count('id', filter=Q(route_type__iexact='inbound')),
+        outbound_count=Count('id', filter=Q(route_type__iexact='outbound'))
+    ).order_by('unit__code')
+    
+    # Mileage calculation
+    mileage_data = EKSTMMileage.objects.filter(date=selected_date).values('unit__code', 'mileage')
+    mileage_dict = {item['unit__code']: item['mileage'] for item in mileage_data}
+    current_month_start = selected_date.replace(day=1)
+    month_mileage_dict = {}
+    for unit in unit_counts:
+        unit_code = unit['unit__code']
+        first_day_mileage = EKSTMMileage.objects.filter(
+            unit__code=unit_code,
+            date=current_month_start
+        ).values('mileage').first()
+        selected_day_mileage = mileage_dict.get(unit_code, None)
+        if first_day_mileage and selected_day_mileage is not None:
+            try:
+                first_day_km = float(first_day_mileage['mileage'].replace('km', '').strip())
+                selected_day_km = float(selected_day_mileage.replace('km', '').strip())
+                current_month_mileage = selected_day_km - first_day_km
+                month_mileage_dict[unit_code] = f"{int(current_month_mileage)} Km"
+            except (ValueError, TypeError):
+                month_mileage_dict[unit_code] = 'N/A'
+        else:
+            month_mileage_dict[unit_code] = 'N/A'
+        unit['mileage'] = mileage_dict.get(unit_code, 'N/A')
+        unit['current_month_mileage'] = month_mileage_dict.get(unit_code, 'N/A')
+    
+    # Salik calculations from EKSTMSalik table
+    salik_records = EKSTMSalik.objects.filter(salik_start_date=selected_date)
+    
+    # First Card: Total Salik and Cost
+    total_salik_count = salik_records.count()
+    total_salik_cost = salik_records.aggregate(
+        total_cost=Sum(Cast('crossing_rate', FloatField()))
+    )["total_cost"] or 0
+    total_salik_cost = f"{int(total_salik_cost)} Aed"
+
+    # Second Card: Live Salik (routetype is 'inbound' or 'outbound')
+    live_salik_records = salik_records.filter(
+        Q(routetype__iexact='inbound') | Q(routetype__iexact='outbound')
+    )
+    live_salik_count = live_salik_records.count()
+    live_salik_cost = live_salik_records.aggregate(
+        total_cost=Sum(Cast('crossing_rate', FloatField()))
+    )["total_cost"] or 0
+    live_salik_cost = f"{int(live_salik_cost)} Aed"
+
+    # Third Card: Dead Salik (routetype is empty)
+    dead_salik_records = salik_records.filter(routetype='')
+    dead_salik_count = dead_salik_records.count()
+    dead_salik_cost = dead_salik_records.aggregate(
+        total_cost=Sum(Cast('crossing_rate', FloatField()))
+    )["total_cost"] or 0
+    dead_salik_cost = f"{int(dead_salik_cost)} Aed"
+
+    context = {
+        'selected_date': selected_date,
+        'total_trips': total_trips,
+        'inbound_trips': inbound_trips,
+        'outbound_trips': outbound_trips,
+        'route_group_counts': route_group_counts,
+        'unit_counts': unit_counts,
+        'total_salik_count': total_salik_count,
+        'total_salik_cost': total_salik_cost,
+        'live_salik_count': live_salik_count,
+        'live_salik_cost': live_salik_cost,
+        'dead_salik_count': dead_salik_count,
+        'dead_salik_cost': dead_salik_cost,
+    }
+    return render(request, 'duty/ekstm_47seater_report_dashboard.html', context)
