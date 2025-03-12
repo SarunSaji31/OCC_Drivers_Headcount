@@ -1978,6 +1978,12 @@ def upload_mileage(request):
 
     return render(request, 'duty/stm_gpsreports_upload.html')
 
+from datetime import datetime, timedelta
+from django.db.models import Count, Q, Sum
+from django.db.models.functions import Cast
+from django.db.models import FloatField
+from django.http import JsonResponse
+from django.shortcuts import render
 
 def bus_trip_details(request, bus_code):
     date_str = request.GET.get('date')
@@ -1997,17 +2003,16 @@ def bus_trip_details(request, bus_code):
         # Use shift_in for inbound, shift_out for outbound
         raw_time = trip['shift_in'] if route_type == 'inbound' else trip['shift_out']
 
-        if raw_time:  # Ensure time exists before parsing
+        if raw_time:
             parsed_time = None
-            # Try the formats one by one
             for fmt in ('%H:%M', '%H:%M:%S'):
                 try:
                     parsed_time = datetime.strptime(raw_time, fmt).time()
-                    break  # Successfully parsed; break out of the loop
+                    break
                 except ValueError:
                     continue
             if parsed_time is None:
-                continue  # Skip invalid time formats
+                continue
             trip_list.append({
                 'route_id': trip['route_id'],
                 'route_type': route_type.capitalize(),
@@ -2018,11 +2023,12 @@ def bus_trip_details(request, bus_code):
     sorted_trips = sorted(trip_list, key=lambda x: x['time'])
     return JsonResponse(sorted_trips, safe=False)
 
-
+from datetime import datetime, timedelta
 from django.db.models import Count, Q, Sum
 from django.db.models.functions import Cast
 from django.db.models import FloatField
-
+from django.http import JsonResponse
+from django.shortcuts import render
 
 def ekstm_47seater_report_dashboard(request):
     date_str = request.GET.get('date')
@@ -2043,13 +2049,24 @@ def ekstm_47seater_report_dashboard(request):
         outbound_count=Count('id', filter=Q(route_type__iexact='outbound'))
     ).order_by('unit__code')
     
-    # Mileage calculation
+    # Mileage calculation for selected date
     mileage_data = EKSTMMileage.objects.filter(date=selected_date).values('unit__code', 'mileage')
     mileage_dict = {item['unit__code']: item['mileage'] for item in mileage_data}
+
+    # Mileage calculation for previous day (for daily mileage)
+    previous_date = selected_date - timedelta(days=1)
+    previous_mileage_data = EKSTMMileage.objects.filter(date=previous_date).values('unit__code', 'mileage')
+    previous_mileage_dict = {item['unit__code']: item['mileage'] for item in previous_mileage_data}
+
     current_month_start = selected_date.replace(day=1)
-    month_mileage_dict = {}
+    
     for unit in unit_counts:
         unit_code = unit['unit__code']
+        
+        # Total Mileage for selected day
+        unit['mileage'] = mileage_dict.get(unit_code, 'N/A')
+        
+        # Monthly Mileage Calculation & Conditional Card Background
         first_day_mileage = EKSTMMileage.objects.filter(
             unit__code=unit_code,
             date=current_month_start
@@ -2060,13 +2077,32 @@ def ekstm_47seater_report_dashboard(request):
                 first_day_km = float(first_day_mileage['mileage'].replace('km', '').strip())
                 selected_day_km = float(selected_day_mileage.replace('km', '').strip())
                 current_month_mileage = selected_day_km - first_day_km
-                month_mileage_dict[unit_code] = f"{int(current_month_mileage)} Km"
+                monthly_value = int(current_month_mileage)
+                unit['current_month_mileage'] = f"{monthly_value} Km"
+                # Only change card background if contract limit is exceeded
+                if monthly_value >= 7000:
+                    unit['card_bg'] = "bg-red-100"
+                else:
+                    unit['card_bg'] = ""
             except (ValueError, TypeError):
-                month_mileage_dict[unit_code] = 'N/A'
+                unit['current_month_mileage'] = 'N/A'
+                unit['card_bg'] = ""
         else:
-            month_mileage_dict[unit_code] = 'N/A'
-        unit['mileage'] = mileage_dict.get(unit_code, 'N/A')
-        unit['current_month_mileage'] = month_mileage_dict.get(unit_code, 'N/A')
+            unit['current_month_mileage'] = 'N/A'
+            unit['card_bg'] = ""
+        
+        # Daily Mileage Calculation
+        previous_day_mileage = previous_mileage_dict.get(unit_code, None)
+        if selected_day_mileage and previous_day_mileage and selected_day_mileage != 'N/A' and previous_day_mileage != 'N/A':
+            try:
+                selected_day_km = float(selected_day_mileage.replace('km', '').strip())
+                previous_day_km = float(previous_day_mileage.replace('km', '').strip())
+                daily_mileage = selected_day_km - previous_day_km
+                unit['daily_mileage'] = f"{int(daily_mileage)} Km"
+            except (ValueError, TypeError):
+                unit['daily_mileage'] = 'N/A'
+        else:
+            unit['daily_mileage'] = 'N/A'
     
     # Salik calculations from EKSTMSalik table
     salik_records = EKSTMSalik.objects.filter(salik_start_date=selected_date)
@@ -2078,7 +2114,7 @@ def ekstm_47seater_report_dashboard(request):
     )["total_cost"] or 0
     total_salik_cost = f"{int(total_salik_cost)} Aed"
 
-    # Second Card: Live Salik (routetype is 'inbound' or 'outbound')
+    # Second Card: Live Salik (route type inbound or outbound)
     live_salik_records = salik_records.filter(
         Q(routetype__iexact='inbound') | Q(routetype__iexact='outbound')
     )
@@ -2088,7 +2124,7 @@ def ekstm_47seater_report_dashboard(request):
     )["total_cost"] or 0
     live_salik_cost = f"{int(live_salik_cost)} Aed"
 
-    # Third Card: Dead Salik (routetype is empty)
+    # Third Card: Dead Salik (empty route type)
     dead_salik_records = salik_records.filter(routetype='')
     dead_salik_count = dead_salik_records.count()
     dead_salik_cost = dead_salik_records.aggregate(
@@ -2111,6 +2147,7 @@ def ekstm_47seater_report_dashboard(request):
         'dead_salik_cost': dead_salik_cost,
     }
     return render(request, 'duty/ekstm_47seater_report_dashboard.html', context)
+
 
 import logging
 from django.shortcuts import render
