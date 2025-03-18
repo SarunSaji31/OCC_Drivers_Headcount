@@ -1522,28 +1522,44 @@ def generate_chart_data(daily_delays, daily_breakdowns, monthly_delays, monthly_
         ]
     }
 
-# View function that skips stm dashboard authentication:
 from django.shortcuts import render
 from .models import DelayData, BreakdownReport
 from django.db.models import Count, ExpressionWrapper, DurationField, F
-from datetime import timedelta
+from datetime import timedelta, datetime
+import logging
+
+logger = logging.getLogger(__name__)
 
 def public_stm_dashboard(request):
     logger.info("Accessing public STM dashboard.")
-    start_of_month = now().replace(day=1).date()
-    today = now().date()
+    
+    # Get the date from the URL parameter (?date=YYYY-MM-DD), default to today if not provided
+    date_str = request.GET.get('date')
+    if date_str:
+        try:
+            selected_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+            logger.info(f"Date parameter provided: {selected_date}")
+        except ValueError:
+            logger.warning(f"Invalid date format in URL: {date_str}. Using today instead.")
+            selected_date = datetime.now().date()
+    else:
+        selected_date = datetime.now().date()
+        logger.info("No date parameter provided, using today: %s", selected_date)
+    
+    start_of_month = selected_date.replace(day=1)
+    logger.info(f"Date range: {start_of_month} to {selected_date}")
     
     try:
         delayed_trips = (
             DelayData.objects.annotate(
                 delay_duration=ExpressionWrapper(F('ata') - F('sta'), output_field=DurationField())
             )
-            .filter(date__gte=start_of_month, date__lte=today, delay_duration__gt=timedelta(minutes=30))
+            .filter(date__gte=start_of_month, date__lte=selected_date, delay_duration__gt=timedelta(minutes=30))
             .annotate(delay_count=Count('id'))
             .values('route', 'sta', 'delay_count')
             .order_by('-delay_count')
         )
-        logger.info(f"Delayed trips fetched: {len(delayed_trips)}")
+        logger.info(f"Delayed trips fetched: {len(delayed_trips)} for date range {start_of_month} to {selected_date}")
 
     except Exception as e:
         logger.error(f"Error fetching delayed trips: {e}")
@@ -1552,8 +1568,11 @@ def public_stm_dashboard(request):
     for trip in delayed_trips:
         trip['sta'] = str(trip['sta'])
 
-    return render(request, 'duty/STM_dashboard.html', {'delayed_trips': delayed_trips})
-
+    context = {
+        'delayed_trips': delayed_trips,
+        'selected_date': selected_date,
+    }
+    return render(request, 'duty/STM_dashboard.html', context)
 
 # duty/views.py
 

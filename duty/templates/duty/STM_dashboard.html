@@ -62,20 +62,19 @@
     .delay-count-clickable:hover {
       color: #2563eb;
     }
-    /* Responsive Table */
     .table-responsive {
       overflow-x: auto;
       -webkit-overflow-scrolling: touch;
     }
     th, td {
-      white-space: nowrap; /* Prevent text wrapping */
+      white-space: nowrap;
     }
     @media (max-width: 640px) {
       .modal-header h5 {
-        font-size: 1.1rem; /* Smaller title on mobile */
+        font-size: 1.1rem;
       }
       .modal-footer button {
-        width: 100%; /* Full-width button on mobile */
+        width: 100%;
       }
     }
   </style>
@@ -102,7 +101,7 @@
           Daily Statistics ( <span id="current-date"></span> )
         </h3>
         <p class="text-xl sm:text-2xl font-bold text-blue-500 mt-2 delay-count-clickable" data-bs-toggle="modal" data-bs-target="#delayDetailsModal">
-          Delays: <span id="daily-delay-count">21</span>
+          Delays: <span id="daily-delay-count">Loading...</span>
         </p>
         <p class="text-xl sm:text-2xl font-bold text-blue-500">
           Breakdowns: <span id="daily-breakdown-count">Loading...</span>
@@ -143,12 +142,8 @@
           <div class="modal-body p-4 sm:p-6">
             <div class="table-responsive">
               <table class="table table-striped w-full text-sm sm:text-base">
-                <thead id="delay-details-table-head">
-                  <!-- Headers will be dynamically set via JavaScript -->
-                </thead>
-                <tbody id="delay-details-table-body">
-                  <!-- Details will be populated here via JavaScript -->
-                </tbody>
+                <thead id="delay-details-table-head"></thead>
+                <tbody id="delay-details-table-body"></tbody>
               </table>
             </div>
           </div>
@@ -161,7 +156,6 @@
 
     <!-- Charts Section -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mt-6 sm:mt-8">
-      <!-- Fleet Delay and Breakdown Chart -->
       <div class="bg-white rounded-lg shadow-lg p-4 sm:p-6">
         <h3 class="text-lg sm:text-xl font-bold text-primary text-center mb-4">Fleet Delay and Breakdown</h3>
         <div class="relative h-[300px] sm:h-[400px] w-full">
@@ -169,7 +163,6 @@
         </div>
       </div>
 
-      <!-- Most Delayed Trips (Monthly) Chart -->
       <div class="bg-white rounded-lg shadow-lg p-4 sm:p-6">
         <h3 class="text-lg sm:text-xl font-bold text-primary text-center mb-4">Most Delayed Trips (Monthly)</h3>
         <div class="relative h-[300px] sm:h-[400px] w-full">
@@ -177,7 +170,6 @@
         </div>
       </div>
 
-      <!-- Top 5 Delayed Trips with Highest Load -->
       <div class="bg-white rounded-lg shadow-lg p-4 sm:p-6">
         <h3 class="text-lg sm:text-xl font-bold text-primary text-center mb-4">Top 5 Delayed Trips with Highest Load (Monthly)</h3>
         <div class="relative h-[300px] sm:h-[400px] w-full">
@@ -190,21 +182,18 @@
     <div class="bg-white rounded-lg shadow-lg p-4 sm:p-6 mt-6 sm:mt-8">
       <h3 class="text-lg sm:text-xl font-bold text-primary text-center mb-4">On Time Performance (OTP)</h3>
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
-        <!-- Daily OTP -->
         <div class="flex flex-col items-center">
           <h4 class="font-semibold mb-2 text-sm sm:text-base">Daily</h4>
           <div class="relative h-[250px] sm:h-[300px] w-full">
             <canvas id="otp-daily-chart" class="w-full h-full"></canvas>
           </div>
         </div>
-        <!-- Monthly OTP -->
         <div class="flex flex-col items-center">
           <h4 class="font-semibold mb-2 text-sm sm:text-base">Monthly</h4>
           <div class="relative h-[250px] sm:h-[300px] w-full">
             <canvas id="otp-monthly-chart" class="w-full h-full"></canvas>
           </div>
         </div>
-        <!-- Yearly OTP -->
         <div class="flex flex-col items-center">
           <h4 class="font-semibold mb-2 text-sm sm:text-base">Yearly</h4>
           <div class="relative h-[250px] sm:h-[300px] w-full">
@@ -280,6 +269,14 @@
       var switchMessage = $("#switch-daily-message");
       var currentDateElement = $("#current-date");
       var currentMonthElement = $("#current-month");
+
+      // Function to get URL parameter
+      function getUrlParameter(name) {
+        name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+        var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
+        var results = regex.exec(location.search);
+        return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+      }
 
       function formatDate(date) {
         var options = { day: "2-digit", month: "2-digit", weekday: "short" };
@@ -372,13 +369,12 @@
         });
       };
 
-      // Helper function to calculate time difference in HH:MM format
       function calculateTimeDifference(startTime, endTime) {
         if (!startTime || !endTime) return 'N/A';
         var start = new Date(`1970-01-01T${startTime}Z`);
         var end = new Date(`1970-01-01T${endTime}Z`);
         var diffMs = end - start;
-        if (diffMs < 0) return 'N/A'; // Negative delay not shown
+        if (diffMs < 0) return 'N/A';
         var diffMins = Math.floor(diffMs / 60000);
         var hours = Math.floor(diffMins / 60);
         var minutes = diffMins % 60;
@@ -392,7 +388,6 @@
           thead.empty();
           tbody.empty();
 
-          // Headers for all fields when triggered by "Delays" count
           thead.append(`
             <tr class="bg-gray-100">
               <th class="p-2 sm:p-3">Date</th>
@@ -412,7 +407,6 @@
             tbody.append('<tr><td colspan="10" class="text-center">No delay details available.</td></tr>');
           } else {
             data.forEach(function (delay) {
-              // Use ATA - STA for delay, as per original behavior
               var calculatedDelay = calculateTimeDifference(delay.sta, delay.ata);
               tbody.append(`
                 <tr>
@@ -599,7 +593,6 @@
           thead.empty();
           tbody.empty();
 
-          // Set headers based on OT or NST
           if (status === "OT") {
             thead.append(`
               <tr class="bg-gray-100">
@@ -633,7 +626,6 @@
           } else {
             data.forEach(function (delay) {
               if (status === "OT") {
-                // Calculate delay as ATA - STA for OT
                 var calculatedDelay = calculateTimeDifference(delay.sta, delay.ata);
                 tbody.append(`
                   <tr>
@@ -648,7 +640,6 @@
                   </tr>
                 `);
               } else if (status === "NST") {
-                // Calculate delay as ATD - STD for NST
                 var calculatedDelay = calculateTimeDifference(delay.std, delay.atd);
                 tbody.append(`
                   <tr>
@@ -671,13 +662,15 @@
         });
       }
 
-      var today = new Date().toISOString().split("T")[0];
-      dateFilter.val(today);
+      // Check for date parameter in URL on page load
+      var urlDate = getUrlParameter('date');
+      var initialDate = urlDate || new Date().toISOString().split("T")[0]; // Default to today if no date in URL
+      dateFilter.val(initialDate);
       $("#filter-type").val("daily");
-      updateDisplay(today, "daily");
-      updateDashboard("until_date", today);
-      fetchMostDelayedTrips(today);
-      fetchTopDelayedLoadTrips(today);
+      updateDisplay(initialDate, "daily");
+      updateDashboard("until_date", initialDate);
+      fetchMostDelayedTrips(initialDate);
+      fetchTopDelayedLoadTrips(initialDate);
       fetchOtpChart("daily", "otp-daily-chart");
       fetchOtpChart("monthly", "otp-monthly-chart");
       fetchOtpChart("yearly", "otp-yearly-chart");
@@ -694,6 +687,8 @@
             fetchOtpChart("daily", "otp-daily-chart");
             fetchOtpChart("monthly", "otp-monthly-chart");
             fetchOtpChart("yearly", "otp-yearly-chart");
+            // Update URL without reloading page
+            window.history.pushState({}, document.title, "/stm-dashboard/?date=" + selectedDate);
           } else {
             alert("Please select a valid date!");
           }
@@ -707,6 +702,8 @@
             fetchOtpChart("daily", "otp-daily-chart");
             fetchOtpChart("monthly", "otp-monthly-chart");
             fetchOtpChart("yearly", "otp-yearly-chart");
+            // Update URL without reloading page
+            window.history.pushState({}, document.title, "/stm-dashboard/?date=" + selectedMonth + "-01");
           } else {
             alert("Please select a valid month!");
           }
