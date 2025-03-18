@@ -10,28 +10,30 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Chart.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <!-- Google Fonts: Montserrat -->
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <!-- Google Fonts: Montserrat & Poppins -->
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     body {
-      font-family: 'Montserrat', sans-serif;
+      font-family: 'Poppins', sans-serif;
       min-height: 100vh;
       margin: 0;
       padding: 0;
-      background: linear-gradient(135deg, #e5e7eb, #dbeafe);
+      background: linear-gradient(135deg, #f3f4f6, #dbeafe);
       overflow-x: hidden;
+      color: #1f2937;
     }
     .dashboard-container {
       min-height: 100vh;
       width: 100vw;
-      padding: 1.5rem;
+      padding: 2rem;
     }
     .header {
       background: #ffffff;
-      border-radius: 1.25rem;
-      box-shadow: 0 6px 25px rgba(0, 0, 0, 0.08);
+      border-radius: 1.5rem;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05);
       position: relative;
       overflow: hidden;
+      padding: 2rem;
     }
     .header::before {
       content: '';
@@ -39,164 +41,226 @@
       top: 0;
       left: 0;
       width: 100%;
-      height: 8px;
-      background: linear-gradient(to right, #1e3a8a, #60a5fa);
+      height: 10px;
+      background: linear-gradient(to right, #1e40af, #3b82f6);
+    }
+    .header h1 {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 2.75rem;
+      font-weight: 700;
+      color: #1e3a8a;
+      letter-spacing: -0.025em;
+    }
+    .header p {
+      font-size: 1.25rem;
+      color: #6b7280;
+      font-weight: 400;
     }
     .card {
       background: #ffffff;
       border: none;
-      border-radius: 1.25rem;
-      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+      border-radius: 1.5rem;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
       transition: transform 0.3s ease, box-shadow 0.3s ease;
     }
     .card:hover {
-      transform: translateY(-8px);
-      box-shadow: 0 14px 40px rgba(0, 0, 0, 0.15);
+      transform: translateY(-10px);
+      box-shadow: 0 15px 50px rgba(0, 0, 0, 0.12);
+    }
+    .card-body {
+      min-height: 320px;
+      padding: 2.5rem;
+    }
+    .card h5 {
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 600;
+      color: #1e3a8a;
+      letter-spacing: -0.02em;
+    }
+    .card p {
+      font-weight: 500;
+      color: #374151;
     }
     .chart-container {
       background: #ffffff;
-      border-radius: 1.25rem;
-      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
-      height: 100%;
-      min-height: 450px;
+      border-radius: 1.5rem;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+      min-height: 480px;
+      padding: 2rem;
+    }
+    .btn-custom {
+      background: #1e40af;
+      color: #ffffff;
+      font-weight: 600;
+      padding: 0.75rem 2rem;
+      border-radius: 0.75rem;
+      transition: background 0.3s ease;
+    }
+    .btn-custom:hover {
+      background: #1e3a8a;
+    }
+    .text-highlight {
+      color: #3b82f6;
+      font-weight: 600;
+    }
+    .text-success {
+      color: #16a34a;
+    }
+    .text-danger {
+      color: #dc2626;
+    }
+    .text-secondary {
+      color: #6b7280;
     }
     @media (max-width: 640px) {
       .dashboard-container {
-        padding: 1rem;
-      }
-      .header h1 {
-        font-size: 1.75rem;
-      }
-      .card-body {
         padding: 1.25rem;
       }
+      .header h1 {
+        font-size: 2rem;
+      }
+      .header p {
+        font-size: 1rem;
+      }
+      .card-body {
+        padding: 1.5rem;
+        min-height: 280px;
+      }
       .chart-container {
-        min-height: 350px;
+        min-height: 360px;
       }
     }
   </style>
 </head>
 <body>
   <div class="dashboard-container flex flex-col">
-    <!-- Responsive Header with Navigation Buttons -->
-    <header class="header py-8 px-6 md:px-10 mb-8">
+    <!-- Header -->
+    <header class="header mb-10">
       <div class="flex flex-col sm:flex-row justify-between items-center">
-        <a href="{% url 'home' %}" class="bg-blue-900 text-white py-2 px-4 rounded shadow-md hover:bg-blue-800 mb-4 sm:mb-0">
-          Home
-        </a>
-        <h1 class="text-4xl md:text-5xl font-bold text-gray-900 text-center">
-          47-Seater Report Dashboard
-        </h1>
-        <a href="{% url 'subcategory_selection' %}" class="bg-blue-900 text-white py-2 px-4 rounded shadow-md hover:bg-blue-800 mt-4 sm:mt-0">
-          Subcategory Selection
-        </a>
+        <a href="{% url 'home' %}" class="btn-custom mb-4 sm:mb-0">Home</a>
+        <h1 class="text-center">47-Seater Report Dashboard</h1>
+        <a href="{% url 'subcategory_selection' %}" class="btn-custom mt-4 sm:mt-0">Subcategory Selection</a>
       </div>
-      <p class="text-xl md:text-2xl text-gray-600 text-center mt-3">
-        Actionable Insights for Your Fleet
-      </p>
+      <p class="text-center mt-4">Actionable Insights for Your Fleet</p>
     </header>
 
     <!-- Filter Section -->
-    <div class="bg-white rounded-2xl shadow-xl p-6 mb-8 mx-auto w-full max-w-4xl">
+    <div class="bg-white rounded-2xl shadow-xl p-6 mb-10 mx-auto w-full max-w-4xl">
       <form method="get" class="flex flex-col sm:flex-row gap-4 justify-center items-center">
         <input type="date" name="date" value="{{ selected_date|date:'Y-m-d' }}"
           class="w-full sm:w-72 p-4 text-lg border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm">
-        <button type="submit" class="w-full sm:w-auto bg-blue-900 text-white font-semibold text-lg py-4 px-8 rounded-xl hover:bg-blue-800 transition-all shadow-md">
-          Apply Filter
-        </button>
+        <button type="submit" class="btn-custom w-full sm:w-auto">Apply Filter</button>
       </form>
     </div>
 
     <!-- Stats Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 mb-8 px-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 mb-10 px-4">
       <div class="card">
-        <div class="card-body p-8 text-center relative">
-          <h5 class="text-2xl font-semibold text-gray-900 mb-4">Total Trips</h5>
-          <p class="text-5xl font-bold text-gray-900">{{ total_trips }}</p>
-          <span class="absolute top-4 right-4 text-sm text-gray-800">{{ selected_date|date:"d M Y" }}</span>
+        <div class="card-body text-center relative">
+          <h5 class="text-3xl mb-6">Total Trips</h5>
+          <p class="text-xl mt-4">Daily: <span class="text-highlight">{{ total_trips }}</span></p>
+          <p class="text-xl mt-4">Monthly: <span class="text-highlight">{{ monthly_trips }}</span></p>
+          <span class="absolute top-4 right-4 text-sm text-secondary">{{ selected_date|date:"d M Y" }}</span>
         </div>
       </div>
       <div class="card">
-        <div class="card-body p-8 text-center relative">
-          <h5 class="text-2xl font-semibold text-gray-900 mb-4">Inbound Trips</h5>
-          <p class="text-5xl font-bold text-green-600">{{ inbound_trips }}</p>
-          <span class="absolute top-4 right-4 text-sm text-gray-800">{{ selected_date|date:"d M Y" }}</span>
+        <div class="card-body text-center relative">
+          <h5 class="text-2xl mb-6">Inbound Trips</h5>
+          <p class="text-5xl font-bold text-success">{{ inbound_trips }}</p>
+          <span class="absolute top-4 right-4 text-sm text-secondary">{{ selected_date|date:"d M Y" }}</span>
         </div>
       </div>
       <div class="card">
-        <div class="card-body p-8 text-center relative">
-          <h5 class="text-2xl font-semibold text-gray-900 mb-4">Outbound Trips</h5>
-          <p class="text-5xl font-bold text-red-600">{{ outbound_trips }}</p>
-          <span class="absolute top-4 right-4 text-sm text-gray-800">{{ selected_date|date:"d M Y" }}</span>
+        <div class="card-body text-center relative">
+          <h5 class="text-2xl mb-6">Outbound Trips</h5>
+          <p class="text-5xl font-bold text-danger">{{ outbound_trips }}</p>
+          <span class="absolute top-4 right-4 text-sm text-secondary">{{ selected_date|date:"d M Y" }}</span>
         </div>
       </div>
       <div class="card">
-        <div class="card-body p-8 text-center relative">
-          <h5 class="text-2xl font-semibold text-gray-900 mb-4">Total Salik</h5>
-          <p class="text-5xl font-bold text-gray-900">{{ total_salik_count }}</p>
-          <p class="text-lg text-gray-600 mt-2">Cost: {{ total_salik_cost }}</p>
-          <span class="absolute top-4 right-4 text-sm text-gray-800">{{ selected_date|date:"d M Y" }}</span>
+        <div class="card-body text-center relative">
+          <h5 class="text-3xl mb-6">Total Salik</h5>
+          <p class="text-xl mt-4">Daily: <span class="text-highlight">{{ total_salik_count }}</span> - <span class="text-highlight">{{ total_salik_cost }} Aed</span></p>
+          <p class="text-xl mt-4">Monthly: <span class="text-highlight">{{ monthly_salik_count }}</span> - <span class="text-highlight">{{ monthly_salik_cost }} Aed</span></p>
+          <span class="absolute top-4 right-4 text-sm text-secondary">{{ selected_date|date:"d M Y" }}</span>
         </div>
       </div>
       <div class="card">
-        <div class="card-body p-8 text-center relative">
-          <h5 class="text-2xl font-semibold text-gray-900 mb-4">Live Salik</h5>
-          <p class="text-5xl font-bold text-green-600">{{ live_salik_count }}</p>
-          <p class="text-lg text-gray-600 mt-2">Cost: {{ live_salik_cost }}</p>
-          <span class="absolute top-4 right-4 text-sm text-gray-800">{{ selected_date|date:"d M Y" }}</span>
+        <div class="card-body text-center relative">
+          <h5 class="text-2xl mb-6">Live Salik</h5>
+          <p class="text-5xl font-bold text-success">{{ live_salik_count }}</p>
+          <p class="text-xl text-secondary mt-4">Cost: {{ live_salik_cost }}</p>
+          <span class="absolute top-4 right-4 text-sm text-secondary">{{ selected_date|date:"d M Y" }}</span>
         </div>
       </div>
       <div class="card">
-        <div class="card-body p-8 text-center relative">
-          <h5 class="text-2xl font-semibold text-gray-900 mb-4">Dead Salik</h5>
-          <p class="text-5xl font-bold text-red-600">{{ dead_salik_count }}</p>
-          <p class="text-lg text-gray-600 mt-2">Cost: {{ dead_salik_cost }}</p>
-          <span class="absolute top-4 right-4 text-sm text-gray-800">{{ selected_date|date:"d M Y" }}</span>
+        <div class="card-body text-center relative">
+          <h5 class="text-2xl mb-6">Dead Salik</h5>
+          <p class="text-5xl font-bold text-danger">{{ dead_salik_count }}</p>
+          <p class="text-xl text-secondary mt-4">Cost: {{ dead_salik_cost }}</p>
+          <span class="absolute top-4 right-4 text-sm text-secondary">{{ selected_date|date:"d M Y" }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Additional Insights Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 mb-10 px-4">
+      <div class="card insights-card cursor-pointer" data-category="not_used">
+        <div class="card-body text-center">
+          <h5 class="text-2xl mb-6">Buses Not Used (Last 3 Days)</h5>
+          <p class="text-5xl font-bold text-highlight">{{ not_used_count }}</p>
+        </div>
+      </div>
+      <div class="card insights-card cursor-pointer" data-category="exceeds">
+        <div class="card-body text-center">
+          <h5 class="text-2xl mb-6">Monthly Mileage > 7000 Km</h5>
+          <p class="text-5xl font-bold text-highlight">{{ exceeds_count }}</p>
+        </div>
+      </div>
+      <div class="card insights-card cursor-pointer" data-category="less_usage">
+        <div class="card-body text-center">
+          <h5 class="text-2xl mb-6">Monthly Mileage < 1500 Km</h5>
+          <p class="text-5xl font-bold text-highlight">{{ less_usage_count }}</p>
         </div>
       </div>
     </div>
 
     <!-- Chart Section -->
-    <div class="mb-8 px-4">
-      <h2 class="text-3xl md:text-4xl font-bold text-gray-900 text-center mb-6">Trips by Route Group</h2>
-      <div class="chart-container p-6">
+    <div class="mb-10 px-4">
+      <h2 class="text-3xl md:text-4xl font-bold text-center mb-6" style="font-family: 'Montserrat', sans-serif; color: #1e3a8a;">Trips by Route Group</h2>
+      <div class="chart-container">
         <canvas id="routeGroupChart"></canvas>
       </div>
       {% if not route_group_counts %}
-      <p class="text-center text-gray-600 text-lg mt-4">No route group data available.</p>
+      <p class="text-center text-secondary text-lg mt-4">No route group data available.</p>
       {% endif %}
     </div>
 
     <!-- Bus Details Section -->
     <div class="px-4">
-      <h2 class="text-3xl md:text-4xl font-bold text-gray-900 text-center mb-6">Trips by Bus</h2>
+      <h2 class="text-3xl md:text-4xl font-bold text-center mb-6" style="font-family: 'Montserrat', sans-serif; color: #1e3a8a;">Trips by Bus</h2>
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
         {% for unit in unit_counts %}
-        <!-- Here we add the dynamic background color class (unit.card_bg) to the card container -->
         <div class="card cursor-pointer {{ unit.card_bg }}" data-bs-toggle="modal" data-bs-target="#tripModal" data-bus-code="{{ unit.unit__code }}">
-          <div class="card-body p-8 text-center relative">
-            <h5 class="text-2xl font-semibold text-gray-900 mb-4">Bus {{ unit.unit__code }}</h5>
-            <p class="text-5xl font-bold text-blue-900">{{ unit.count }}</p>
-            <p class="text-lg text-gray-600 mt-2">Inbound: {{ unit.inbound_count }} | Outbound: {{ unit.outbound_count }}</p>
-            <p class="text-lg text-blue-600 font-medium mt-2">Total Mileage: {{ unit.mileage }}</p>
-            <p class="text-lg text-green-600 font-medium mt-2">
-              Monthly Mileage: {{ unit.current_month_mileage }}
-            </p>
-            <p class="text-lg text-purple-600 font-medium mt-2">
-              Daily Mileage: {{ unit.daily_mileage }}
-            </p>
-            <span class="absolute top-4 right-4 text-sm text-gray-800">{{ selected_date|date:"d M Y" }}</span>
+          <div class="card-body text-center relative">
+            <h5 class="text-2xl mb-6">Bus {{ unit.unit__code }}</h5>
+            <p class="text-5xl font-bold text-highlight">{{ unit.count }}</p>
+            <p class="text-xl text-secondary mt-4">Inbound: <span class="text-success">{{ unit.inbound_count }}</span> | Outbound: <span class="text-danger">{{ unit.outbound_count }}</span></p>
+            <p class="text-xl text-highlight mt-4">Total Mileage: {{ unit.mileage }}</p>
+            <p class="text-xl text-success mt-4">Monthly: {{ unit.current_month_mileage }}</p>
+            <p class="text-xl text-highlight mt-4">Daily: {{ unit.daily_mileage }}</p>
+            <span class="absolute top-4 right-4 text-sm text-secondary">{{ selected_date|date:"d M Y" }}</span>
           </div>
         </div>
         {% empty %}
         <div class="col-span-full">
-          <p class="text-center text-gray-600 text-lg">No bus data available.</p>
+          <p class="text-center text-secondary text-lg">No bus data available.</p>
         </div>
         {% endfor %}
       </div>
     </div>
 
-    <!-- Modal -->
+    <!-- Modal for Trip Details -->
     <div class="modal fade" id="tripModal" tabindex="-1" aria-labelledby="tripModalLabel" aria-hidden="true">
       <div class="modal-dialog modal-lg">
         <div class="modal-content rounded-2xl shadow-xl">
@@ -220,7 +284,32 @@
         </div>
       </div>
     </div>
+
+    <!-- Modal for Insights Details -->
+    <div class="modal fade" id="insightsModal" tabindex="-1" aria-labelledby="insightsModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content rounded-2xl shadow-xl">
+          <div class="modal-header bg-gray-50 rounded-t-2xl">
+            <h5 class="modal-title text-2xl font-semibold text-gray-900" id="insightsModalLabel">Insights Details</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body p-6">
+            <table class="table table-bordered">
+              <thead class="bg-blue-900 text-white">
+                <tr id="insightsHeader"></tr>
+              </thead>
+              <tbody id="insightsContent" class="text-lg"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
+
+  <!-- Include JSON data for insights -->
+  {{ not_used_units|json_script:"notUsedData" }}
+  {{ exceeds_units|json_script:"exceedsData" }}
+  {{ less_usage_units|json_script:"lessUsageData" }}
 
   <!-- Bootstrap JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
@@ -241,55 +330,88 @@
             datasets: [{
               label: 'Trip Count',
               data: routeGroupData.map(item => item.count),
-              backgroundColor: '#1e3a8a',
-              borderColor: '#1e40af',
+              backgroundColor: '#1e40af',
+              borderColor: '#1e3a8a',
               borderWidth: 1,
-              borderRadius: 10,
-              barThickness: 25
+              borderRadius: 12,
+              barThickness: 30
             }]
           },
           options: {
             responsive: true,
             maintainAspectRatio: false,
             scales: {
-              y: { beginAtZero: true, title: { display: true, text: 'Number of Trips', font: { size: 16 } } },
-              x: { title: { display: true, text: 'Route Groups', font: { size: 16 } } }
+              y: { beginAtZero: true, title: { display: true, text: 'Number of Trips', font: { size: 16, family: 'Poppins' } } },
+              x: { title: { display: true, text: 'Route Groups', font: { size: 16, family: 'Poppins' } } }
             },
             plugins: { legend: { display: false } }
           }
         });
       }
-    });
-    
-    const tripModal = document.getElementById('tripModal');
-    if (tripModal) {
-      tripModal.addEventListener('show.bs.modal', function (event) {
-        const card = event.relatedTarget;
-        const busCode = card.getAttribute('data-bus-code');
-        const selectedDate = "{{ selected_date|date:'Y-m-d'|escapejs }}";
-        fetch(`/bus_trip_details/${busCode}/?date=${selectedDate}`)
-          .then(response => response.json())
-          .then(data => {
-            const modalContent = document.getElementById('modalContent');
-            modalContent.innerHTML = '';
-            data.forEach(trip => {
-              modalContent.innerHTML += `
-                <tr>
-                  <td class="py-3">${trip.date}</td>
-                  <td class="py-3">${trip.route_id}</td>
-                  <td class="py-3">${trip.route_type}</td>
-                  <td class="py-3">${trip.time}</td>
-                </tr>
-              `;
-            });
-          })
-          .catch(error => {
-            console.error('Error:', error);
-            document.getElementById('modalContent').innerHTML = '<tr><td colspan="4" class="py-3">Error loading data.</td></tr>';
-          });
-        document.getElementById('tripModalLabel').textContent = `Trip Details for Bus ${busCode}`;
+
+      const insightsCards = document.querySelectorAll('.insights-card');
+      insightsCards.forEach(card => {
+        card.addEventListener('click', function() {
+          const category = card.getAttribute('data-category');
+          let data, headerHtml, rowHtml = '';
+          if (category === 'not_used') {
+            data = JSON.parse(document.getElementById('notUsedData').textContent);
+            headerHtml = '<th>Bus Number</th>';
+            data.forEach(item => rowHtml += `<tr><td>${item.bus}</td></tr>`);
+            document.getElementById('insightsModalLabel').textContent = 'Buses Not Used (Last 3 Days)';
+          } else if (category === 'not_used') {
+            data = JSON.parse(document.getElementById('notUsedData').textContent);
+            headerHtml = '<th>Bus Number</th>';
+            data.forEach(item => rowHtml += `<tr><td>${item.bus}</td></tr>`);
+            document.getElementById('insightsModalLabel').textContent = 'Buses Not Used (Last 3 Days)';
+          } else if (category === 'exceeds') {
+            data = JSON.parse(document.getElementById('exceedsData').textContent);
+            headerHtml = '<th>Bus Number</th><th>Monthly Mileage (Km)</th>';
+            data.forEach(item => rowHtml += `<tr><td>${item.bus}</td><td>${item.mileage}</td></tr>`);
+            document.getElementById('insightsModalLabel').textContent = 'Buses with Monthly Mileage > 7000 Km';
+          } else if (category === 'less_usage') {
+            data = JSON.parse(document.getElementById('lessUsageData').textContent);
+            headerHtml = '<th>Bus Number</th><th>Monthly Mileage (Km)</th>';
+            data.forEach(item => rowHtml += `<tr><td>${item.bus}</td><td>${item.mileage}</td></tr>`);
+            document.getElementById('insightsModalLabel').textContent = 'Buses with Monthly Mileage < 1500 Km';
+          }
+          document.getElementById('insightsHeader').innerHTML = headerHtml;
+          document.getElementById('insightsContent').innerHTML = rowHtml;
+          var insightsModal = new bootstrap.Modal(document.getElementById('insightsModal'));
+          insightsModal.show();
+        });
       });
-    }
+
+      const tripModal = document.getElementById('tripModal');
+      if (tripModal) {
+        tripModal.addEventListener('show.bs.modal', function (event) {
+          const card = event.relatedTarget;
+          const busCode = card.getAttribute('data-bus-code');
+          const selectedDate = "{{ selected_date|date:'Y-m-d'|escapejs }}";
+          fetch(`/bus_trip_details/${busCode}/?date=${selectedDate}`)
+            .then(response => response.json())
+            .then(data => {
+              const modalContent = document.getElementById('modalContent');
+              modalContent.innerHTML = '';
+              data.forEach(trip => {
+                modalContent.innerHTML += `
+                  <tr>
+                    <td class="py-3">${trip.date}</td>
+                    <td class="py-3">${trip.route_id}</td>
+                    <td class="py-3">${trip.route_type}</td>
+                    <td class="py-3">${trip.time}</td>
+                  </tr>
+                `;
+              });
+            })
+            .catch(error => {
+              console.error('Error:', error);
+              document.getElementById('modalContent').innerHTML = '<tr><td colspan="4" class="py-3">Error loading data.</td></tr>';
+            });
+          document.getElementById('tripModalLabel').textContent = `Trip Details for Bus ${busCode}`;
+        });
+      }
+    });
   </script>
 </body>
 </html>

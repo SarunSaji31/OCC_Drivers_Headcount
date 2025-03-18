@@ -2044,133 +2044,193 @@ def bus_trip_details(request, bus_code):
 
 
 from datetime import datetime, timedelta
-from django.db.models import Count, Q, Sum
+from django.db.models import Count, Q, Sum, IntegerField
 from django.db.models.functions import Cast
-from django.db.models import FloatField
-from django.http import JsonResponse
 from django.shortcuts import render
+from .models import Unit, EKSTMDailyTrips, EKSTMSalik, EKSTMMileage
 
 def ekstm_47seater_report_dashboard(request):
-    """
-    Dashboard view for the 47-Seater Report.
-    Calculates daily trips and mileage details, and applies conditional styling
-    on bus cards based on monthly mileage thresholds:
-      - Below 6000 km: default background.
-      - 6000 km to 6999 km: yellow background.
-      - 7000 km or above: red background.
-    """
+    # Parse selected date from query string or use today
     date_str = request.GET.get('date')
     try:
         selected_date = datetime.strptime(date_str, '%Y-%m-%d').date()
     except (ValueError, TypeError):
         selected_date = datetime.today().date()
 
-    # Daily trips queries.
-    trips = EKSTMDailyTrips.objects.filter(ride_date=selected_date)
-    total_trips = trips.count()
-    inbound_trips = trips.filter(route_type__iexact='inbound').count()
-    outbound_trips = trips.filter(route_type__iexact='outbound').count()
-    route_group_counts = trips.values('route_group').annotate(count=Count('route_group')).order_by('route_group')
-    unit_counts = trips.values('unit__code').annotate(
-        count=Count('id'),
-        inbound_count=Count('id', filter=Q(route_type__iexact='inbound')),
-        outbound_count=Count('id', filter=Q(route_type__iexact='outbound'))
-    ).order_by('unit__code')
-    
-    # Mileage calculation for the selected date.
+    previous_date = selected_date - timedelta(days=1)
+    current_month_start = selected_date.replace(day=1)
+    three_days_ago = selected_date - timedelta(days=3)
+
+    # Get all units and annotate with trip counts for the selected date.
+    units = Unit.objects.all().order_by('code').annotate(
+        count=Count('ekstmdailytrips', filter=Q(ekstmdailytrips__ride_date=selected_date)),
+        inbound_count=Count('ekstmdailytrips', filter=Q(ekstmdailytrips__ride_date=selected_date,
+                                                          ekstmdailytrips__route_type__iexact='inbound')),
+        outbound_count=Count('ekstmdailytrips', filter=Q(ekstmdailytrips__ride_date=selected_date,
+                                                           ekstmdailytrips__route_type__iexact='outbound'))
+    )
+
+    # Mileage data for the selected day, previous day, and three days ago.
     mileage_data = EKSTMMileage.objects.filter(date=selected_date).values('unit__code', 'mileage')
     mileage_dict = {item['unit__code']: item['mileage'] for item in mileage_data}
 
-    # Mileage calculation for the previous day (for daily mileage).
-    previous_date = selected_date - timedelta(days=1)
     previous_mileage_data = EKSTMMileage.objects.filter(date=previous_date).values('unit__code', 'mileage')
     previous_mileage_dict = {item['unit__code']: item['mileage'] for item in previous_mileage_data}
 
-    current_month_start = selected_date.replace(day=1)
-    
-    for unit in unit_counts:
-        unit_code = unit['unit__code']
-        
-        # Total Mileage for selected day.
-        unit['mileage'] = mileage_dict.get(unit_code, 'N/A')
-        
-        # Monthly Mileage Calculation & Conditional Card Background.
+    three_days_mileage_data = EKSTMMileage.objects.filter(date=three_days_ago).values('unit__code', 'mileage')
+    three_days_mileage_dict = {item['unit__code']: item['mileage'] for item in three_days_mileage_data}
+
+    # Build list of units with extra computed fields.
+    unit_list = []
+    for unit in units:
+        # Keep the unit number key for display
+        unit.unit__code = unit.code
+
+        # Ensure trip counts are set (defaulting to 0 if no trips)
+        unit.count = unit.count or 0
+        unit.inbound_count = unit.inbound_count or 0
+        unit.outbound_count = unit.outbound_count or 0
+
+        # Total Mileage: use available mileage or "0 Km"
+        selected_day_mileage = mileage_dict.get(unit.code)
+        if selected_day_mileage:
+            unit.mileage = selected_day_mileage
+        else:
+            unit.mileage = "0 Km"
+
+        # Daily Mileage Calculation (using previous day's mileage)
+        previous_day_mileage = previous_mileage_dict.get(unit.code)
+        if selected_day_mileage and previous_day_mileage:
+            try:
+                selected_day_km = float(selected_day_mileage.replace('km', '').strip())
+                previous_day_km = float(previous_day_mileage.replace('km', '').strip())
+                daily_mileage = selected_day_km - previous_day_km
+                unit.daily_mileage = f"{int(daily_mileage)} Km"
+            except (ValueError, TypeError):
+                unit.daily_mileage = 'N/A'
+        else:
+            unit.daily_mileage = 'N/A'
+
+        # Monthly Mileage Calculation using the first day of the month mileage
         first_day_mileage = EKSTMMileage.objects.filter(
-            unit__code=unit_code,
+            unit__code=unit.code,
             date=current_month_start
         ).values('mileage').first()
-        selected_day_mileage = mileage_dict.get(unit_code, None)
-        if first_day_mileage and selected_day_mileage is not None:
+        if first_day_mileage and selected_day_mileage:
             try:
                 first_day_km = float(first_day_mileage['mileage'].replace('km', '').strip())
                 selected_day_km = float(selected_day_mileage.replace('km', '').strip())
                 current_month_mileage = selected_day_km - first_day_km
                 monthly_value = int(current_month_mileage)
-                unit['current_month_mileage'] = f"{monthly_value} Km"
-                # Apply background only if thresholds are exceeded.
+                unit.current_month_mileage = f"{monthly_value} Km"
+                # Apply background based on mileage thresholds
                 if monthly_value < 6000:
-                    unit['card_bg'] = ""  # default background
+                    unit.card_bg = ""
                 elif monthly_value < 7000:
-                    unit['card_bg'] = "bg-yellow-200"  # Warning: approaching limit.
+                    unit.card_bg = "bg-yellow-200"
                 else:
-                    unit['card_bg'] = "bg-red-200"  # Exceeded limit.
+                    unit.card_bg = "bg-red-200"
             except (ValueError, TypeError):
-                unit['current_month_mileage'] = 'N/A'
-                unit['card_bg'] = ""
+                unit.current_month_mileage = 'N/A'
+                unit.card_bg = ""
         else:
-            unit['current_month_mileage'] = 'N/A'
-            unit['card_bg'] = ""
-        
-        # Daily Mileage Calculation.
-        previous_day_mileage = previous_mileage_dict.get(unit_code, None)
-        if selected_day_mileage and previous_day_mileage and selected_day_mileage != 'N/A' and previous_day_mileage != 'N/A':
+            unit.current_month_mileage = 'N/A'
+            unit.card_bg = ""
+
+        unit_list.append(unit)
+
+    # Compute additional details for the insights cards.
+    not_used_units = []
+    exceeds_units = []
+    less_usage_units = []
+
+    for unit in unit_list:
+        # Check "Not used" over the last three days: compare selected day mileage vs three days ago.
+        s_mileage = mileage_dict.get(unit.code)
+        t_mileage = three_days_mileage_dict.get(unit.code)
+        if s_mileage and t_mileage:
             try:
-                selected_day_km = float(selected_day_mileage.replace('km', '').strip())
-                previous_day_km = float(previous_day_mileage.replace('km', '').strip())
-                daily_mileage = selected_day_km - previous_day_km
-                unit['daily_mileage'] = f"{int(daily_mileage)} Km"
-            except (ValueError, TypeError):
-                unit['daily_mileage'] = 'N/A'
-        else:
-            unit['daily_mileage'] = 'N/A'
-    
-    # Salik calculations from EKSTMSalik table.
+                s_val = float(s_mileage.replace('km','').strip())
+                t_val = float(t_mileage.replace('km','').strip())
+                if (s_val - t_val) < 25:
+                    not_used_units.append({'bus': unit.code})
+            except Exception:
+                pass
+
+        # Check monthly mileage details if available.
+        if unit.current_month_mileage != 'N/A':
+            try:
+                m_val = int(unit.current_month_mileage.replace('Km','').strip())
+                if m_val > 7000:
+                    exceeds_units.append({'bus': unit.code, 'mileage': m_val})
+                if m_val < 1500:
+                    less_usage_units.append({'bus': unit.code, 'mileage': m_val})
+            except Exception:
+                pass
+
+    # Total Trips for the selected day.
+    total_trips = EKSTMDailyTrips.objects.filter(ride_date=selected_date).count()
+    # Monthly Trips: from the first day of the month to the selected date.
+    monthly_trips = EKSTMDailyTrips.objects.filter(ride_date__gte=current_month_start, ride_date__lte=selected_date).count()
+
+    # Salik calculations for the selected day.
     salik_records = EKSTMSalik.objects.filter(salik_start_date=selected_date)
     total_salik_count = salik_records.count()
     total_salik_cost = salik_records.aggregate(
-        total_cost=Sum(Cast('crossing_rate', FloatField()))
+        total_cost=Sum(Cast('crossing_rate', IntegerField()))
     )["total_cost"] or 0
     total_salik_cost = f"{int(total_salik_cost)} Aed"
+
+    # Monthly Salik: from the first day of the month to the selected date.
+    monthly_salik_records = EKSTMSalik.objects.filter(salik_start_date__gte=current_month_start, salik_start_date__lte=selected_date)
+    monthly_salik_count = monthly_salik_records.count()
+    monthly_salik_cost = monthly_salik_records.aggregate(
+        total_cost=Sum(Cast('crossing_rate', IntegerField()))
+    )["total_cost"] or 0
+    monthly_salik_cost = f"{int(monthly_salik_cost)} Aed"
 
     live_salik_records = salik_records.filter(
         Q(routetype__iexact='inbound') | Q(routetype__iexact='outbound')
     )
     live_salik_count = live_salik_records.count()
     live_salik_cost = live_salik_records.aggregate(
-        total_cost=Sum(Cast('crossing_rate', FloatField()))
+        total_cost=Sum(Cast('crossing_rate', IntegerField()))
     )["total_cost"] or 0
     live_salik_cost = f"{int(live_salik_cost)} Aed"
 
     dead_salik_records = salik_records.filter(routetype='')
     dead_salik_count = dead_salik_records.count()
     dead_salik_cost = dead_salik_records.aggregate(
-        total_cost=Sum(Cast('crossing_rate', FloatField()))
+        total_cost=Sum(Cast('crossing_rate', IntegerField()))
     )["total_cost"] or 0
     dead_salik_cost = f"{int(dead_salik_cost)} Aed"
 
     context = {
         'selected_date': selected_date,
         'total_trips': total_trips,
-        'inbound_trips': inbound_trips,
-        'outbound_trips': outbound_trips,
-        'route_group_counts': route_group_counts,
-        'unit_counts': unit_counts,
+        'monthly_trips': monthly_trips,
+        'inbound_trips': EKSTMDailyTrips.objects.filter(ride_date=selected_date, route_type__iexact='inbound').count(),
+        'outbound_trips': EKSTMDailyTrips.objects.filter(ride_date=selected_date, route_type__iexact='outbound').count(),
+        'route_group_counts': EKSTMDailyTrips.objects.filter(ride_date=selected_date)
+                              .values('route_group')
+                              .annotate(count=Count('route_group'))
+                              .order_by('route_group'),
+        'unit_counts': unit_list,  # All units with details
         'total_salik_count': total_salik_count,
+        'monthly_salik_count': monthly_salik_count,
         'total_salik_cost': total_salik_cost,
+        'monthly_salik_cost': monthly_salik_cost,
         'live_salik_count': live_salik_count,
         'live_salik_cost': live_salik_cost,
         'dead_salik_count': dead_salik_count,
         'dead_salik_cost': dead_salik_cost,
+        # Additional insights data:
+        'not_used_count': len(not_used_units),
+        'exceeds_count': len(exceeds_units),
+        'less_usage_count': len(less_usage_units),
+        'not_used_units': not_used_units,
+        'exceeds_units': exceeds_units,
+        'less_usage_units': less_usage_units,
     }
     return render(request, 'duty/ekstm_47seater_report_dashboard.html', context)
 
