@@ -2082,6 +2082,7 @@ def ekstm_47seater_report_dashboard(request):
 
     # Build list of units with extra computed fields.
     unit_list = []
+    low_usage_today_units = []  # New list for today's low usage (< 10 km)
     for unit in units:
         # Keep the unit number key for display
         unit.unit__code = unit.code
@@ -2106,6 +2107,9 @@ def ekstm_47seater_report_dashboard(request):
                 previous_day_km = float(previous_day_mileage.replace('km', '').strip())
                 daily_mileage = selected_day_km - previous_day_km
                 unit.daily_mileage = f"{int(daily_mileage)} Km"
+                # Check for today's low usage (< 10 km)
+                if daily_mileage < 10:
+                    low_usage_today_units.append({'bus': unit.code, 'daily_mileage': f"{int(daily_mileage)} Km"})
             except (ValueError, TypeError):
                 unit.daily_mileage = 'N/A'
         else:
@@ -2231,6 +2235,9 @@ def ekstm_47seater_report_dashboard(request):
         'not_used_units': not_used_units,
         'exceeds_units': exceeds_units,
         'less_usage_units': less_usage_units,
+        # New insights data for today's low usage (< 10 Km)
+        'low_usage_today_count': len(low_usage_today_units),
+        'low_usage_today_units': low_usage_today_units,
     }
     return render(request, 'duty/ekstm_47seater_report_dashboard.html', context)
 

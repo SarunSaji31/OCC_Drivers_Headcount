@@ -132,6 +132,7 @@
     <!-- Stats Cards -->
     <section class="mb-4">
       <div class="row g-3">
+        <!-- Total Trips Card -->
         <div class="col-12 col-md-6 col-lg-4">
           <div class="card">
             <div class="card-body text-center">
@@ -201,24 +202,28 @@
     <!-- Additional Insights Cards -->
     <section class="mb-4">
       <div class="row g-3">
+        <!-- Buses Not Used (Last 3 Days) Card -->
         <div class="col-12 col-md-6 col-lg-4">
-          <div class="card insights-card cursor-pointer" data-category="not_used">
+          <div class="card insights-card cursor-pointer" data-category="not_used" data-bs-toggle="modal" data-bs-target="#insightsModal">
             <div class="card-body text-center">
-              <h5 class="mb-3 display-6">Buses Not Used (Last 3 Days)</h5>
-              <p class="display-4 text-highlight">{{ not_used_count }}</p>
+              <h5 class="mb-3 display-6">Low-Activity Buses (3-Day & Daily Usage)</h5>
+              <p class="fs-5">No Usage (3 Days): <span class="text-highlight">{{ not_used_count }}</span></p>
+              <p class="fs-5">Today's Usage < 10 KM: <span class="text-highlight">{{ low_usage_today_count }}</span></p>
             </div>
           </div>
         </div>
+        <!-- Monthly Mileage > 7000 Km Card -->
         <div class="col-12 col-md-6 col-lg-4">
-          <div class="card insights-card cursor-pointer" data-category="exceeds">
+          <div class="card insights-card cursor-pointer" data-category="exceeds" data-bs-toggle="modal" data-bs-target="#insightsModal">
             <div class="card-body text-center">
               <h5 class="mb-3 display-6">Monthly Mileage > 7000 Km</h5>
               <p class="display-4 text-highlight">{{ exceeds_count }}</p>
             </div>
           </div>
         </div>
+        <!-- Monthly Mileage < 1500 Km Card -->
         <div class="col-12 col-md-6 col-lg-4">
-          <div class="card insights-card cursor-pointer" data-category="less_usage">
+          <div class="card insights-card cursor-pointer" data-category="less_usage" data-bs-toggle="modal" data-bs-target="#insightsModal">
             <div class="card-body text-center">
               <h5 class="mb-3 display-6">Monthly Mileage < 1500 Km</h5>
               <p class="display-4 text-highlight">{{ less_usage_count }}</p>
@@ -239,7 +244,7 @@
       {% endif %}
     </section>
 
-<!-- Bus Details Section -->
+    <!-- Bus Details Section -->
     <section class="mb-4">
       <h2 class="text-center mb-3" style="font-family: 'Montserrat', sans-serif; color: #1e3a8a; font-size:2rem;">Trips by Bus</h2>
       <div class="row g-3">
@@ -247,8 +252,7 @@
         <div class="col-12 col-md-6 col-lg-4">
           <div class="card cursor-pointer {{ unit.card_bg }}" data-bs-toggle="modal" data-bs-target="#tripModal" data-bus-code="{{ unit.unit__code }}">
             <div class="card-body text-center">
-              <!-- Bus number with larger, bold font -->
-              <h4 class="display-4 " style="color: black;">Bus {{ unit.unit__code }}</h4>
+              <h4 class="display-4" style="color: black;">Bus {{ unit.unit__code }}</h4>
               <p class="display-4 text-highlight">{{ unit.count }}</p>
               <p class="fs-5 mt-2">Inbound: <span class="text-success">{{ unit.inbound_count }}</span> | Outbound: <span class="text-danger">{{ unit.outbound_count }}</span></p>
               <p class="fs-5 mt-2">Total Mileage: <span class="text-highlight">{{ unit.mileage }}</span></p>
@@ -265,7 +269,6 @@
         {% endfor %}
       </div>
     </section>
-
 
     <!-- Trip Details Modal -->
     <div class="modal fade" id="tripModal" tabindex="-1" aria-labelledby="tripModalLabel" aria-hidden="true">
@@ -315,8 +318,7 @@
 
   <!-- JSON Data for Insights -->
   {{ not_used_units|json_script:"notUsedData" }}
-  {{ exceeds_units|json_script:"exceedsData" }}
-  {{ less_usage_units|json_script:"lessUsageData" }}
+  {{ low_usage_today_units|json_script:"lowUsageTodayData" }}
 
   <!-- Bootstrap JS Bundle -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
@@ -362,10 +364,19 @@
           const category = card.getAttribute('data-category');
           let data, headerHtml = '', rowHtml = '';
           if (category === 'not_used') {
-            data = JSON.parse(document.getElementById('notUsedData').textContent);
-            headerHtml = '<th>Bus Number</th>';
-            data.forEach(item => rowHtml += `<tr><td>${item.bus}</td></tr>`);
-            document.getElementById('insightsModalLabel').textContent = 'Buses Not Used (Last 3 Days)';
+            const notUsed = JSON.parse(document.getElementById('notUsedData').textContent);
+            const lowUsageToday = JSON.parse(document.getElementById('lowUsageTodayData').textContent);
+            headerHtml = '<th>Category</th><th>Bus Number</th><th>Daily Mileage</th>';
+            
+            notUsed.forEach(item => {
+              rowHtml += `<tr><td>No Usage (3 Days)</td><td>${item.bus}</td><td>N/A</td></tr>`;
+            });
+            
+            lowUsageToday.forEach(item => {
+              rowHtml += `<tr><td>Today < 10 KM</td><td>${item.bus}</td><td>${item.daily_mileage}</td></tr>`;
+            });
+            
+            document.getElementById('insightsModalLabel').textContent = 'Buses Not Used (3 Days) & Today Low Usage';
           } else if (category === 'exceeds') {
             data = JSON.parse(document.getElementById('exceedsData').textContent);
             headerHtml = '<th>Bus Number</th><th>Monthly Mileage (Km)</th>';
@@ -379,7 +390,6 @@
           }
           document.getElementById('insightsHeader').innerHTML = headerHtml;
           document.getElementById('insightsContent').innerHTML = rowHtml;
-          new bootstrap.Modal(document.getElementById('insightsModal')).show();
         });
       });
 
