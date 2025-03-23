@@ -202,11 +202,11 @@
     <!-- Additional Insights Cards -->
     <section class="mb-4">
       <div class="row g-3">
-        <!-- Buses Not Used (Last 3 Days) Card -->
+        <!-- Underutilized Buses Card (combines 3-day not used and today's low usage) -->
         <div class="col-12 col-md-6 col-lg-4">
           <div class="card insights-card cursor-pointer" data-category="not_used" data-bs-toggle="modal" data-bs-target="#insightsModal">
             <div class="card-body text-center">
-              <h5 class="mb-3 display-6">Low-Activity Buses (3-Day & Daily Usage)</h5>
+              <h5 class="mb-3 display-6">Underutilized Buses (Last 3 Days & Today)</h5>
               <p class="fs-5">No Usage (3 Days): <span class="text-highlight">{{ not_used_count }}</span></p>
               <p class="fs-5">Today's Usage < 10 KM: <span class="text-highlight">{{ low_usage_today_count }}</span></p>
             </div>
@@ -319,6 +319,8 @@
   <!-- JSON Data for Insights -->
   {{ not_used_units|json_script:"notUsedData" }}
   {{ low_usage_today_units|json_script:"lowUsageTodayData" }}
+  {{ exceeds_units|json_script:"exceedsData" }}
+  {{ less_usage_units|json_script:"lessUsageData" }}
 
   <!-- Bootstrap JS Bundle -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
@@ -367,16 +369,13 @@
             const notUsed = JSON.parse(document.getElementById('notUsedData').textContent);
             const lowUsageToday = JSON.parse(document.getElementById('lowUsageTodayData').textContent);
             headerHtml = '<th>Category</th><th>Bus Number</th><th>Daily Mileage</th>';
-            
             notUsed.forEach(item => {
               rowHtml += `<tr><td>No Usage (3 Days)</td><td>${item.bus}</td><td>N/A</td></tr>`;
             });
-            
             lowUsageToday.forEach(item => {
               rowHtml += `<tr><td>Today < 10 KM</td><td>${item.bus}</td><td>${item.daily_mileage}</td></tr>`;
             });
-            
-            document.getElementById('insightsModalLabel').textContent = 'Buses Not Used (3 Days) & Today Low Usage';
+            document.getElementById('insightsModalLabel').textContent = 'Underutilized Buses (Last 3 Days & Today)';
           } else if (category === 'exceeds') {
             data = JSON.parse(document.getElementById('exceedsData').textContent);
             headerHtml = '<th>Bus Number</th><th>Monthly Mileage (Km)</th>';
