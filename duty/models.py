@@ -255,3 +255,40 @@ class EKSTMSalik(models.Model):
 
     class Meta:
         db_table = 'EKSTM_salik'
+
+from django.db import models
+from .models import DriverImportLog
+
+class DriverProfile(models.Model):
+    driver = models.OneToOneField(DriverImportLog, on_delete=models.CASCADE, related_name='profile')
+    date_of_birth = models.DateField(null=True, blank=True)
+    joining_date = models.DateField(null=True, blank=True)
+    mobile_no = models.CharField(max_length=15, null=True, blank=True)
+    secondary_contact_no = models.CharField(max_length=15, null=True, blank=True)
+    email = models.EmailField(null=True, blank=True)
+    
+    # Driving License Details
+    license_no = models.CharField(max_length=50, null=True, blank=True)
+    license_issue_date = models.DateField(null=True, blank=True)
+    license_expiry_date = models.DateField(null=True, blank=True)
+    license_place_of_issue = models.CharField(max_length=100, null=True, blank=True)
+    license_front_file_id = models.CharField(max_length=255, null=True, blank=True)  # Google Drive file ID
+    license_back_file_id = models.CharField(max_length=255, null=True, blank=True)   # Google Drive file ID
+    
+    # Emirates ID Details
+    eid_no = models.CharField(max_length=50, null=True, blank=True)
+    eid_issue_date = models.DateField(null=True, blank=True)
+    eid_expiry_date = models.DateField(null=True, blank=True)
+    eid_nationality = models.CharField(max_length=100, null=True, blank=True)
+    eid_front_file_id = models.CharField(max_length=255, null=True, blank=True)      # Google Drive file ID
+    eid_back_file_id = models.CharField(max_length=255, null=True, blank=True)       # Google Drive file ID
+    
+    # Passport Details
+    passport_no = models.CharField(max_length=50, null=True, blank=True)
+    passport_issue_date = models.DateField(null=True, blank=True)
+    passport_expiry_date = models.DateField(null=True, blank=True)
+    passport_front_file_id = models.CharField(max_length=255, null=True, blank=True) # Google Drive file ID
+    passport_back_file_id = models.CharField(max_length=255, null=True, blank=True)  # Google Drive file ID
+
+    def __str__(self):
+        return f"Profile for {self.driver.driver_name}"

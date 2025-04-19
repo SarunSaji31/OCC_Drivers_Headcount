@@ -2348,3 +2348,105 @@ def public_ekstm_47seater_report_dashboard(request):
         'dead_salik_cost': dead_salik_cost,
     }
     return render(request, 'duty/ekstm_47seater_report_dashboard.html', context)
+
+from django.shortcuts import render, redirect
+from django.urls import reverse
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.http import JsonResponse
+
+from .models import DriverProfile, DriverImportLog
+from .forms import DriverProfileForm
+from .utils import upload_file_to_drive
+
+
+@login_required
+def user_profile(request):
+    driver = DriverImportLog.objects.filter(staff_id=request.user.username).first()
+    if not driver:
+        messages.error(request, "Driver information not found.")
+        return redirect('home')
+
+    profile, created = DriverProfile.objects.get_or_create(driver=driver)
+    code = request.GET.get('code')
+
+    # Ajax handler for per-section file uploads
+    if request.method == 'POST' and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        section = request.POST.get('section')
+        field_map = {
+            'license': [
+                ('license_front_file', 'license_front_file_id'),
+                ('license_back_file',  'license_back_file_id'),
+            ],
+            'eid': [
+                ('eid_front_file', 'eid_front_file_id'),
+                ('eid_back_file',  'eid_back_file_id'),
+            ],
+            'passport': [
+                ('passport_front_file', 'passport_front_file_id'),
+                ('passport_back_file',  'passport_back_file_id'),
+            ],
+        }
+        for file_field, id_field in field_map.get(section, []):
+            upload = request.FILES.get(file_field)
+            if upload:
+                file_id, auth_url = upload_file_to_drive(
+                    upload,
+                    f"{driver.staff_id}_{section}_{upload.name}",
+                    code
+                )
+                if auth_url:
+                    # tell client to redirect for OAuth
+                    return JsonResponse({'redirect': auth_url}, status=200)
+                setattr(profile, id_field, file_id)
+        profile.save()
+        return JsonResponse({'success': True})
+
+    # Full form submission (all fields)
+    if request.method == 'POST':
+        form = DriverProfileForm(request.POST, request.FILES, instance=profile)
+        if form.is_valid():
+            profile = form.save(commit=False)
+
+            file_fields = [
+                ('license_front_file', 'license_front_file_id'),
+                ('license_back_file',  'license_back_file_id'),
+                ('eid_front_file',     'eid_front_file_id'),
+                ('eid_back_file',      'eid_back_file_id'),
+                ('passport_front_file','passport_front_file_id'),
+                ('passport_back_file', 'passport_back_file_id'),
+            ]
+            for field_name, id_field in file_fields:
+                file = request.FILES.get(field_name)
+                if file:
+                    file_id, auth_url = upload_file_to_drive(
+                        file,
+                        f"{driver.staff_id}_{field_name}_{file.name}",
+                        code
+                    )
+                    if auth_url:
+                        return redirect(auth_url)
+                    setattr(profile, id_field, file_id)
+
+            profile.save()
+            messages.success(request, "Profile updated successfully!")
+            return redirect('user_profile')
+        else:
+            messages.error(request, "Please correct the errors below.")
+    else:
+        form = DriverProfileForm(instance=profile)
+
+    context = {
+        'driver': driver,
+        'form': form,
+        'profile': profile,
+    }
+    return render(request, 'duty/user_profile.html', context)
+
+
+@login_required
+def oauth2callback(request):
+    code = request.GET.get('code')
+    if code:
+        return redirect(f"{reverse('user_profile')}?code={code}")
+    return redirect('user_profile')

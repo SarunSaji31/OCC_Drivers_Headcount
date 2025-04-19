@@ -213,3 +213,38 @@ class BusKmTrackingForm(forms.ModelForm):
             'end_km_change': forms.NumberInput(attrs={'class': 'form-control'}),
             'changed_bus_no': forms.TextInput(attrs={'class': 'form-control'}),
         }
+
+from django import forms
+from .models import DriverProfile
+
+class DriverProfileForm(forms.ModelForm):
+    # File fields for uploading to Google Drive (not part of the model)
+    license_front_file = forms.FileField(required=False, widget=forms.ClearableFileInput())
+    license_back_file = forms.FileField(required=False, widget=forms.ClearableFileInput())
+    eid_front_file = forms.FileField(required=False, widget=forms.ClearableFileInput())
+    eid_back_file = forms.FileField(required=False, widget=forms.ClearableFileInput())
+    passport_front_file = forms.FileField(required=False, widget=forms.ClearableFileInput())
+    passport_back_file = forms.FileField(required=False, widget=forms.ClearableFileInput())
+
+    class Meta:
+        model = DriverProfile
+        fields = [
+            # Personal Details
+            'date_of_birth', 'joining_date', 'mobile_no', 'secondary_contact_no', 'email',
+            # Driving License Details
+            'license_no', 'license_issue_date', 'license_expiry_date', 'license_place_of_issue',
+            # Emirates ID Details
+            'eid_no', 'eid_issue_date', 'eid_expiry_date', 'eid_nationality',
+            # Passport Details
+            'passport_no', 'passport_issue_date', 'passport_expiry_date',
+        ]
+        widgets = {
+            'date_of_birth': forms.DateInput(attrs={'type': 'date'}),
+            'joining_date': forms.DateInput(attrs={'type': 'date'}),
+            'license_issue_date': forms.DateInput(attrs={'type': 'date'}),
+            'license_expiry_date': forms.DateInput(attrs={'type': 'date'}),
+            'eid_issue_date': forms.DateInput(attrs={'type': 'date'}),
+            'eid_expiry_date': forms.DateInput(attrs={'type': 'date'}),
+            'passport_issue_date': forms.DateInput(attrs={'type': 'date'}),
+            'passport_expiry_date': forms.DateInput(attrs={'type': 'date'}),
+        }

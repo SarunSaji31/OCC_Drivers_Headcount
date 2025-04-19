@@ -106,7 +106,11 @@ urlpatterns = [
 
     path('ekstm_47seater_report_dashboard/', ekstm_47seater_report_dashboard, name='ekstm_47seater_report_dashboard'),
     path('bus_trip_details/<str:bus_code>/', views.bus_trip_details, name='bus_trip_details'),
+    path('profile/', views.user_profile, name='user_profile'),
+    path('oauth2callback/', views.oauth2callback, name='oauth2callback'),
+    
 
+    
 ]
 
 # Serve static and media files during development
