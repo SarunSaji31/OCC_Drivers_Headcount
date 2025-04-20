@@ -267,28 +267,31 @@ class DriverProfile(models.Model):
     secondary_contact_no = models.CharField(max_length=15, null=True, blank=True)
     email = models.EmailField(null=True, blank=True)
     
+    # Profile Picture
+    picture = models.CharField(max_length=255, null=True, blank=True)  # Google Drive file ID
+    
     # Driving License Details
     license_no = models.CharField(max_length=50, null=True, blank=True)
     license_issue_date = models.DateField(null=True, blank=True)
     license_expiry_date = models.DateField(null=True, blank=True)
     license_place_of_issue = models.CharField(max_length=100, null=True, blank=True)
-    license_front_file_id = models.CharField(max_length=255, null=True, blank=True)  # Google Drive file ID
-    license_back_file_id = models.CharField(max_length=255, null=True, blank=True)   # Google Drive file ID
+    license_front_file_id = models.CharField(max_length=255, null=True, blank=True)
+    license_back_file_id = models.CharField(max_length=255, null=True, blank=True)
     
     # Emirates ID Details
     eid_no = models.CharField(max_length=50, null=True, blank=True)
     eid_issue_date = models.DateField(null=True, blank=True)
     eid_expiry_date = models.DateField(null=True, blank=True)
     eid_nationality = models.CharField(max_length=100, null=True, blank=True)
-    eid_front_file_id = models.CharField(max_length=255, null=True, blank=True)      # Google Drive file ID
-    eid_back_file_id = models.CharField(max_length=255, null=True, blank=True)       # Google Drive file ID
+    eid_front_file_id = models.CharField(max_length=255, null=True, blank=True)
+    eid_back_file_id = models.CharField(max_length=255, null=True, blank=True)
     
     # Passport Details
     passport_no = models.CharField(max_length=50, null=True, blank=True)
     passport_issue_date = models.DateField(null=True, blank=True)
     passport_expiry_date = models.DateField(null=True, blank=True)
-    passport_front_file_id = models.CharField(max_length=255, null=True, blank=True) # Google Drive file ID
-    passport_back_file_id = models.CharField(max_length=255, null=True, blank=True)  # Google Drive file ID
+    passport_front_file_id = models.CharField(max_length=255, null=True, blank=True)
+    passport_back_file_id = models.CharField(max_length=255, null=True, blank=True)
 
     def __str__(self):
         return f"Profile for {self.driver.driver_name}"

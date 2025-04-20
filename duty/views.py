@@ -49,28 +49,35 @@ logger = logging.getLogger(__name__)
 
 @login_required
 def home(request):
-    """Render the home page for logged-in users with driver trip details."""
+    """Render the home page with driver trips and profile picture."""
     staff_id = request.user.username
-    staff_name = DriverImportLog.objects.filter(staff_id=staff_id).values_list('driver_name', flat=True).first() or staff_id
 
-    # Fetch driver trips
-    driver_trips = DriverTrip.objects.filter(driver__staff_id=staff_id).select_related('duty_card')
+    # 1) Get (or create) the DriverImportLog & Profile
+    driver, _  = DriverImportLog.objects.get_or_create(
+        staff_id=staff_id,
+        defaults={'driver_name': request.user.get_full_name() or staff_id}
+    )
+    profile, _ = DriverProfile.objects.get_or_create(driver=driver)
+
+    # 2) Fetch driver trips
+    trips = DriverTrip.objects.filter(driver__staff_id=staff_id).select_related('duty_card')
     driver_trip_data = [{
-        'route_name': trip.route_name,
-        'pick_up_time': trip.pick_up_time.strftime('%H:%M:%S'),
-        'drop_off_time': trip.drop_off_time.strftime('%H:%M:%S'),
-        'shift_time': trip.shift_time.strftime('%H:%M:%S'),
-        'head_count': trip.head_count,
-        'trip_type': trip.trip_type,
-        'date': trip.date.strftime('%Y-%m-%d'),
-        'capacity': trip.duty_card.capacity  # Include capacity from the related DutyCardTrip
-    } for trip in driver_trips]
+        'route_name'   : t.route_name,
+        'pick_up_time' : t.pick_up_time.strftime('%H:%M:%S'),
+        'drop_off_time': t.drop_off_time.strftime('%H:%M:%S'),
+        'shift_time'   : t.shift_time.strftime('%H:%M:%S'),
+        'head_count'   : t.head_count,
+        'trip_type'    : t.trip_type,
+        'date'         : t.date.strftime('%Y-%m-%d'),
+        'capacity'     : t.duty_card.capacity,
+    } for t in trips]
 
-    context = {
-        'staff_name': staff_name,
+    return render(request, 'duty/home.html', {
+        'staff_name'  : driver.driver_name or staff_id,
         'driver_trips': driver_trip_data,
-    }
-    return render(request, 'duty/home.html', context)
+        'profile'     : profile,
+    })
+
 
 from datetime import date
 from django.shortcuts import render
@@ -2349,44 +2356,55 @@ def public_ekstm_47seater_report_dashboard(request):
     }
     return render(request, 'duty/ekstm_47seater_report_dashboard.html', context)
 
+import logging
+import os
+import io
+import requests                                # ← install requests in your venv
+from django.conf    import settings
 from django.shortcuts import render, redirect
-from django.urls import reverse
+from django.urls    import reverse
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.http import JsonResponse
+from django.http    import JsonResponse, HttpResponse, Http404
 
 from .models import DriverProfile, DriverImportLog
-from .forms import DriverProfileForm
-from .utils import upload_file_to_drive
-
+from .forms  import DriverProfileForm
+from .utils  import upload_file_to_drive, get_drive_file_url
+logger = logging.getLogger(__name__)
 
 @login_required
 def user_profile(request):
-    driver = DriverImportLog.objects.filter(staff_id=request.user.username).first()
-    if not driver:
-        messages.error(request, "Driver information not found.")
-        return redirect('home')
-
-    profile, created = DriverProfile.objects.get_or_create(driver=driver)
+    # Ensure a driver record exists (prevents unwanted redirects)
+    driver, _ = DriverImportLog.objects.get_or_create(
+        staff_id=request.user.username,
+        defaults={'driver_name': request.user.get_full_name() or request.user.username}
+    )
+    profile, _ = DriverProfile.objects.get_or_create(driver=driver)
     code = request.GET.get('code')
 
-    # Ajax handler for per-section file uploads
+    # Ajax handler for per-section uploads
     if request.method == 'POST' and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         section = request.POST.get('section')
+        code = request.POST.get('code') or code
+
         field_map = {
+            'profile_picture': [
+                ('profile_picture', 'picture'),
+            ],
             'license': [
                 ('license_front_file', 'license_front_file_id'),
-                ('license_back_file',  'license_back_file_id'),
+                ('license_back_file', 'license_back_file_id'),
             ],
             'eid': [
                 ('eid_front_file', 'eid_front_file_id'),
-                ('eid_back_file',  'eid_back_file_id'),
+                ('eid_back_file', 'eid_back_file_id'),
             ],
             'passport': [
                 ('passport_front_file', 'passport_front_file_id'),
-                ('passport_back_file',  'passport_back_file_id'),
+                ('passport_back_file', 'passport_back_file_id'),
             ],
         }
+
         for file_field, id_field in field_map.get(section, []):
             upload = request.FILES.get(file_field)
             if upload:
@@ -2396,24 +2414,37 @@ def user_profile(request):
                     code
                 )
                 if auth_url:
-                    # tell client to redirect for OAuth
-                    return JsonResponse({'redirect': auth_url}, status=200)
+                    logger.info(f"Redirecting to Google consent URL: {auth_url}")
+                    return JsonResponse({'redirect': auth_url})
+                logger.info(f"Uploaded file ID for {id_field}: {file_id}")
                 setattr(profile, id_field, file_id)
-        profile.save()
-        return JsonResponse({'success': True})
 
-    # Full form submission (all fields)
+        profile.save()
+
+        # Return the picture URL for profile_picture section
+        response_data = {'success': True, 'code': code} if code else {'success': True}
+        if section == 'profile_picture' and profile.picture:
+            picture_url = get_drive_file_url(profile.picture)
+            logger.info(f"Profile picture URL generated: {picture_url}")
+            response_data['picture_url'] = picture_url
+        else:
+            logger.info(f"No picture URL generated for section {section}. Profile picture: {profile.picture}")
+
+        return JsonResponse(response_data)
+
+    # Full-form submission for all fields
     if request.method == 'POST':
         form = DriverProfileForm(request.POST, request.FILES, instance=profile)
         if form.is_valid():
             profile = form.save(commit=False)
 
             file_fields = [
+                ('profile_picture', 'picture'),
                 ('license_front_file', 'license_front_file_id'),
-                ('license_back_file',  'license_back_file_id'),
-                ('eid_front_file',     'eid_front_file_id'),
-                ('eid_back_file',      'eid_back_file_id'),
-                ('passport_front_file','passport_front_file_id'),
+                ('license_back_file', 'license_back_file_id'),
+                ('eid_front_file', 'eid_front_file_id'),
+                ('eid_back_file', 'eid_back_file_id'),
+                ('passport_front_file', 'passport_front_file_id'),
                 ('passport_back_file', 'passport_back_file_id'),
             ]
             for field_name, id_field in file_fields:
@@ -2425,7 +2456,9 @@ def user_profile(request):
                         code
                     )
                     if auth_url:
+                        logger.info(f"Redirecting to Google consent URL: {auth_url}")
                         return redirect(auth_url)
+                    logger.info(f"Uploaded file ID for {id_field}: {file_id}")
                     setattr(profile, id_field, file_id)
 
             profile.save()
@@ -2436,12 +2469,20 @@ def user_profile(request):
     else:
         form = DriverProfileForm(instance=profile)
 
-    context = {
+    # Generate the profile picture URL if it exists
+    picture_url = None
+    if profile.picture:
+        picture_url = get_drive_file_url(profile.picture)
+        logger.info(f"Initial profile picture URL: {picture_url}")
+    else:
+        logger.info("No profile picture found in the database.")
+
+    return render(request, 'duty/user_profile.html', {
         'driver': driver,
         'form': form,
         'profile': profile,
-    }
-    return render(request, 'duty/user_profile.html', context)
+        'picture_url': picture_url,
+    })
 
 
 @login_required
@@ -2450,3 +2491,25 @@ def oauth2callback(request):
     if code:
         return redirect(f"{reverse('user_profile')}?code={code}")
     return redirect('user_profile')
+
+
+
+@login_required
+def drive_image_proxy(request, file_id):
+    """
+    Fetch the image bytes from Google Drive (using a direct-download URL)
+    and stream them to the client so the browser sees it as coming
+    from our own domain (no ad-blocker issues).
+    """
+    if not file_id:
+        raise Http404("Missing file ID")
+
+    url = f"https://docs.google.com/uc?export=download&id={file_id}"
+    try:
+        r = requests.get(url, timeout=10)
+        r.raise_for_status()
+    except Exception:
+        raise Http404("Could not fetch image")
+
+    content_type = r.headers.get('Content-Type', 'application/octet-stream')
+    return HttpResponse(r.content, content_type=content_type)

@@ -1,12 +1,11 @@
 import os
-import tempfile
+import io
 import logging
-
 from django.conf import settings
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
-from googleapiclient.http import MediaFileUpload
+from googleapiclient.http import MediaFileUpload, MediaIoBaseUpload
 from google.auth.transport.requests import Request
 
 # Scopes and file names
@@ -17,12 +16,11 @@ FOLDER_ID = '1AxWS1DvExOXDu5o-XG3eE1v-pF2N5rKM'  # Your folder ID
 
 logger = logging.getLogger(__name__)
 
-
 def get_drive_service(code=None):
     """
     Authenticate and return a Google Drive service object.
+    If OAuth flow is required, returns (None, auth_url).
     Raises FileNotFoundError if credentials file is missing.
-    If OAuth is required, returns (None, auth_url).
     """
     creds = None
     token_path = os.path.join(settings.BASE_DIR, TOKEN_FILE)
@@ -31,25 +29,26 @@ def get_drive_service(code=None):
     if os.path.exists(token_path):
         creds = Credentials.from_authorized_user_file(token_path, SCOPES)
 
-    # Check validity
+    # Refresh or initiate OAuth flow
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
             with open(token_path, 'w') as token:
                 token.write(creds.to_json())
         else:
-            # Ensure credentials.json exists
             creds_path = os.path.join(settings.BASE_DIR, CREDENTIALS_FILE)
             if not os.path.exists(creds_path):
-                msg = f"Google OAuth credentials file not found at {creds_path}. " \
-                      "Please place your credentials.json in your project root or configure GOOGLE_APPLICATION_CREDENTIALS."
+                msg = (
+                    f"Google OAuth credentials file not found at {creds_path}."
+                    " Please place your credentials.json in your project root or set GOOGLE_APPLICATION_CREDENTIALS."
+                )
                 logger.error(msg)
                 raise FileNotFoundError(msg)
 
             flow = InstalledAppFlow.from_client_secrets_file(
                 creds_path,
                 SCOPES,
-                redirect_uri='http://localhost:8000/oauth2callback/'
+                redirect_uri='http://127.0.0.1:8000/oauth2callback/'
             )
             if code:
                 flow.fetch_token(code=code)
@@ -60,49 +59,70 @@ def get_drive_service(code=None):
                 auth_url, _ = flow.authorization_url(prompt='consent')
                 return None, auth_url
 
-    # Build service
     service = build('drive', 'v3', credentials=creds)
     return service, None
 
 
 def upload_file_to_drive(file, filename, code=None):
     """
-    Upload a file to Google Drive and return the file ID.
-    Raises FileNotFoundError if credentials missing.
-    If OAuth needed, returns (None, auth_url).
+    Upload a Django UploadedFile to Google Drive and return the file ID.
+    Handles both TemporaryUploadedFile (disk-based) and InMemoryUploadedFile (memory-based)
+    without leaving locked temp files on Windows.
     """
-    try:
-        service, auth_url = get_drive_service(code)
-        if auth_url:
-            return None, auth_url
+    service, auth_url = get_drive_service(code)
+    if auth_url:
+        return None, auth_url
 
-        # Prepare MediaFileUpload
+    try:
         if hasattr(file, 'temporary_file_path'):
             file_path = file.temporary_file_path()
             media = MediaFileUpload(file_path, mimetype=file.content_type)
         else:
-            with tempfile.NamedTemporaryFile(delete=False) as temp:
-                temp.write(file.read())
-                temp_path = temp.name
-            media = MediaFileUpload(temp_path, mimetype=file.content_type)
+            file.seek(0)
+            stream = io.BytesIO(file.read())
+            stream.seek(0)
+            media = MediaIoBaseUpload(stream, mimetype=file.content_type)
 
-        # Metadata and upload
         file_metadata = {'name': filename, 'parents': [FOLDER_ID]}
-        uploaded = service.files().create(
-            body=file_metadata,
-            media_body=media,
-            fields='id'
-        ).execute()
+        uploaded = (
+            service.files()
+            .create(body=file_metadata, media_body=media, fields='id')
+            .execute()
+        )
 
-        # Clean up
-        if not hasattr(file, 'temporary_file_path'):
-            os.remove(temp_path)
+        file_id = uploaded.get('id')
+        permission = {'type': 'anyone', 'role': 'reader'}
+        try:
+            service.permissions().create(fileId=file_id, body=permission).execute()
+        except Exception as e:
+            logger.warning(f"Failed to set permissions for file {file_id}: {e}")
+            permissions = service.permissions().list(fileId=file_id).execute()
+            has_reader = any(
+                p for p in permissions.get('permissions', [])
+                if p['type'] == 'anyone' and p['role'] == 'reader'
+            )
+            if not has_reader:
+                logger.error(f"File {file_id} is not publicly viewable.")
+                raise
 
-        return uploaded.get('id'), None
+        return file_id, None
 
     except FileNotFoundError:
-        # Re-raise for view to handle and show message
+        logger.error("Credentials file not found for Google Drive API.")
         raise
-    except Exception as e:
+    except Exception:
         logger.exception("Error uploading file to Google Drive")
         raise
+
+
+def get_drive_file_url(file_id):
+    """
+    Generate a direct-download link for a Drive file so the browser
+    treats it as an image and doesn’t block it.
+    """
+    if not file_id:
+        logger.error("File ID is None or empty.")
+        return None
+
+    # Return the raw image bytes rather than an HTML “view” wrapper
+    return f"https://docs.google.com/uc?export=download&id={file_id}"

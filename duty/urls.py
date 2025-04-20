@@ -108,6 +108,7 @@ urlpatterns = [
     path('bus_trip_details/<str:bus_code>/', views.bus_trip_details, name='bus_trip_details'),
     path('profile/', views.user_profile, name='user_profile'),
     path('oauth2callback/', views.oauth2callback, name='oauth2callback'),
+     path('profile/image/<str:file_id>/', views.drive_image_proxy, name='profile_picture_proxy'),
     
 
     
