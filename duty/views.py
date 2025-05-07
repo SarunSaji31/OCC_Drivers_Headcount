@@ -12,6 +12,7 @@ from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Pt
 import pdfkit
+from .models import DriverProfile
 
 # Django Imports
 from django.conf import settings
@@ -47,37 +48,28 @@ from .models import (
 # Setup logger
 logger = logging.getLogger(__name__)
 
-@login_required
 def home(request):
-    """Render the home page with driver trips and profile picture."""
+    """Render the home page for logged-in users with driver trip details."""
     staff_id = request.user.username
+    staff_name = DriverImportLog.objects.filter(staff_id=staff_id).values_list('driver_name', flat=True).first() or staff_id
 
-    # 1) Get (or create) the DriverImportLog & Profile
-    driver, _  = DriverImportLog.objects.get_or_create(
-        staff_id=staff_id,
-        defaults={'driver_name': request.user.get_full_name() or staff_id}
-    )
-    profile, _ = DriverProfile.objects.get_or_create(driver=driver)
-
-    # 2) Fetch driver trips
-    trips = DriverTrip.objects.filter(driver__staff_id=staff_id).select_related('duty_card')
+    # Fetch driver trips
+    driver_trips = DriverTrip.objects.filter(driver__staff_id=staff_id)
     driver_trip_data = [{
-        'route_name'   : t.route_name,
-        'pick_up_time' : t.pick_up_time.strftime('%H:%M:%S'),
-        'drop_off_time': t.drop_off_time.strftime('%H:%M:%S'),
-        'shift_time'   : t.shift_time.strftime('%H:%M:%S'),
-        'head_count'   : t.head_count,
-        'trip_type'    : t.trip_type,
-        'date'         : t.date.strftime('%Y-%m-%d'),
-        'capacity'     : t.duty_card.capacity,
-    } for t in trips]
+        'route_name': trip.route_name,
+        'pick_up_time': trip.pick_up_time.strftime('%H:%M:%S'),
+        'drop_off_time': trip.drop_off_time.strftime('%H:%M:%S'),
+        'shift_time': trip.shift_time.strftime('%H:%M:%S'),
+        'head_count': trip.head_count,
+        'trip_type': trip.trip_type,
+        'date': trip.date.strftime('%Y-%m-%d')
+    } for trip in driver_trips]
 
-    return render(request, 'duty/home.html', {
-        'staff_name'  : driver.driver_name or staff_id,
+    context = {
+        'staff_name': staff_name,
         'driver_trips': driver_trip_data,
-        'profile'     : profile,
-    })
-
+    }
+    return render(request, 'duty/home.html', context)
 
 from datetime import date
 from django.shortcuts import render
