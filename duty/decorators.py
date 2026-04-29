@@ -1,11 +1,21 @@
-from django.http import HttpResponseForbidden
-from django.shortcuts import redirect
+from functools import wraps
+
+from django.shortcuts import render
+
 from .models import DriverImportLog
 
-def user_in_driverimportlog_required(view_func):
+
+def admin_required(view_func):
+    """Allow Django staff/superusers through; block regular drivers."""
+    @wraps(view_func)
     def _wrapped_view(request, *args, **kwargs):
-        staff_id = request.user.username  # Assuming the username is the staff_id
-        if DriverImportLog.objects.filter(staff_id=staff_id).exists():
-            return HttpResponseForbidden("You do not have permission to access this page.")
+        if request.user.is_staff or request.user.is_superuser:
+            return view_func(request, *args, **kwargs)
+        if DriverImportLog.objects.filter(staff_id=request.user.username).exists():
+            return render(request, 'duty/access_denied.html')
         return view_func(request, *args, **kwargs)
     return _wrapped_view
+
+
+# Backward-compatible alias kept so any external references don't break.
+user_in_driverimportlog_required = admin_required
