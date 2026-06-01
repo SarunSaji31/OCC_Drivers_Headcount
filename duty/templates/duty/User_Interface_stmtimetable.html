@@ -1,9 +1,17 @@
-{% extends "duty/base.html" %}
+{% extends "duty/base_generic.html" %}
 {% load static %}
 
+{% block title %}STM Timetable · OCC-EKG{% endblock %}
+
+{% block nav_links %}
+    <a href="{% url 'home' %}"><i class="bi bi-house-door"></i> Home</a>
+    <a href="{% url 'subcategory_selection' %}"><i class="bi bi-grid"></i> STM-EKG</a>
+    <a href="{% url 'logout' %}"><i class="bi bi-box-arrow-right"></i> Logout</a>
+{% endblock %}
+
 {% block content %}
-<div class="container-fluid mt-4">
-    <h1 class="mb-4">STM Timetable User Interface</h1>
+<div class="container-fluid">
+    <div class="page-header"><h2 class="mb-0">STM Timetable User Interface</h2></div>
 
     <!-- Search and Filter -->
     <form method="GET" class="mb-4">

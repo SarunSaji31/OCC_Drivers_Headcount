@@ -1,305 +1,178 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
-    <style>
-        body {
-            font-family: 'Arial', sans-serif;
-            background-color: #f4f6f9;
-        }
+{% extends "duty/base_generic.html" %}
 
-        .dashboard-header {
-            text-align: center;
-            margin-bottom: 40px;
-            padding: 20px;
-        }
+{% block title %}Passenger Dashboard · OCC-EKG{% endblock %}
 
-        .card-metric {
-            background-color: #ffffff;
-            border-radius: 10px;
-            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
-            padding: 20px;
-            text-align: center;
-            margin-bottom: 20px;
-            transition: transform 0.3s ease-in-out;
-        }
+{% block nav_links %}
+    <a href="{% url 'home' %}"><i class="bi bi-house-door"></i> Home</a>
+    <a href="{% url 'report' %}"><i class="bi bi-file-earmark-text"></i> Report</a>
+    <a href="{% url 'logout' %}"><i class="bi bi-box-arrow-right"></i> Logout</a>
+{% endblock %}
 
-        .card-metric:hover {
-            transform: translateY(-5px);
-            box-shadow: 0px 8px 15px rgba(0, 0, 0, 0.15);
-        }
+{% block extra_head %}
+<style>
+    .card-metric {
+        background: var(--color-surface); border: 1px solid var(--color-border);
+        border-radius: var(--radius); box-shadow: var(--shadow-sm);
+        padding: 1.25rem; text-align: center; margin-bottom: 1.25rem;
+        transition: transform .2s ease, box-shadow .2s ease;
+    }
+    .card-metric:hover { transform: translateY(-4px); box-shadow: var(--shadow); }
+    .card-metric h5 { font-size: .85rem; color: var(--color-muted); text-transform: uppercase; letter-spacing: .03em; }
+    .card-metric p { font-size: 2rem; font-weight: 700; color: var(--color-primary); margin: 0; }
+    .chart-card {
+        width: 100%; max-width: 360px; height: 360px; padding: 1.25rem;
+        background: var(--color-surface); border: 1px solid var(--color-border);
+        border-radius: var(--radius); box-shadow: var(--shadow-sm);
+        text-align: center; margin: 0 auto; position: relative;
+    }
+    .chart-text { position: absolute; top: 58%; left: 50%; transform: translate(-50%, -50%); font-size: 1.5rem; font-weight: 700; color: var(--color-text); }
+</style>
+{% endblock %}
 
-        .card-metric h5 {
-            font-size: 1.1rem;
-            color: #6c757d;
-        }
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+    <a href="{% url 'home' %}" class="btn btn-outline-primary"><i class="bi bi-arrow-left me-1"></i>Back to Home</a>
+    <a href="{% url 'report' %}" class="btn btn-outline-success"><i class="bi bi-file-text me-1"></i>View Report</a>
+    <a href="/dashboard/duty-card-submission-data/?download=xlsx&date=2024-09-28" class="btn btn-outline-warning" id="download-btn">
+        <i class="bi bi-download me-1"></i>Download Pending Card
+    </a>
+</div>
 
-        .card-metric p {
-            font-size: 2rem;
-            font-weight: bold;
-            color: #007bff;
-        }
+<div class="page-header text-center">
+    <h2 class="text-primary">Passenger Dashboard</h2>
+    <p class="subtitle">View real-time staff loads</p>
+</div>
 
-        .donut-chart-container {
-            margin-top: 40px;
-            display: flex;
-            justify-content: center;
-        }
-
-        .chart-card {
-            width: 100%;
-            max-width: 350px;
-            height: 350px;
-            padding: 20px;
-            background-color: #fff;
-            border-radius: 10px;
-            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
-            text-align: center;
-            margin-bottom: 20px;
-            position: relative;
-        }
-
-        .chart-text {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: #333;
-        }
-
-        /* Responsive Design */
-        @media (max-width: 576px) {
-            .dashboard-header h2 {
-                font-size: 1.5rem;
-            }
-
-            .card-metric p {
-                font-size: 1.5rem;
-            }
-
-            .chart-card {
-                max-width: 280px;
-                height: 280px;
-            }
-
-            .chart-text {
-                font-size: 1.2rem;
-            }
-        }
-    </style>
-</head>
-
-<body>
-    <div class="container mt-5">
-        <!-- Back Button and Report Button -->
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <a href="{% url 'home' %}" class="btn btn-outline-primary">
-                <i class="fas fa-arrow-left"></i> Back to Home
-            </a>
-            <a href="{% url 'report' %}" class="btn btn-outline-success">
-                <i class="fas fa-file-alt"></i> View Report
-            </a>
-            <a href="/dashboard/duty-card-submission-data/?download=xlsx&date=2024-09-28" class="btn btn-outline-warning" id="download-btn">
-                <i class="fas fa-file-download"></i> Download Pending card
-            </a>            
+<!-- Filters -->
+<div class="content-surface mb-4">
+    <div class="row g-3">
+        <div class="col-md-4">
+            <label for="date-filter" class="form-label">Date</label>
+            <input type="date" id="date-filter" class="form-control">
         </div>
-
-        <div class="dashboard-header">
-            <h2 class="text-primary">Passenger Dashboard</h2>
-            <p class="text-muted">View real-time staff loads</p>
+        <div class="col-md-4">
+            <label for="shift-filter" class="form-label">Shift Time</label>
+            <select id="shift-filter" class="form-select">
+                <option value="">All</option>
+                <option value="morning">Morning</option>
+                <option value="evening">Evening</option>
+            </select>
         </div>
-
-        <!-- Filters Section -->
-        <div class="row mb-4">
-            <div class="col-md-4 col-sm-12 mb-3 mb-md-0">
-                <label for="date-filter" class="form-label">Date</label>
-                <input type="date" id="date-filter" class="form-control">
-            </div>
-            <div class="col-md-4 col-sm-6 mb-3 mb-md-0">
-                <label for="shift-filter" class="form-label">Shift Time</label>
-                <select id="shift-filter" class="form-control">
-                    <option value="">All</option>
-                    <option value="morning">Morning</option>
-                    <option value="evening">Evening</option>
-                </select>
-            </div>
-            <div class="col-md-4 col-sm-6">
-                <label for="type-filter" class="form-label">Type</label>
-                <select id="type-filter" class="form-control">
-                    <option value="">All</option>
-                    <option value="Inbound">Inbound</option>
-                    <option value="Outbound">Outbound</option>
-                </select>
-            </div>
-        </div>
-
-        <!-- Summary Cards -->
-        <div class="row">
-            <div class="col-lg-3 col-md-6 col-sm-12">
-                <div class="card-metric">
-                    <h5>Total Staff Members</h5>
-                    <p id="total-staff">0</p>
-                </div>
-            </div>
-            <div class="col-lg-2 col-md-4 col-sm-6">
-                <div class="card-metric">
-                    <h5>GD Staff</h5>
-                    <p id="gd-staff">0</p>
-                </div>
-            </div>
-            <div class="col-lg-2 col-md-4 col-sm-6">
-                <div class="card-metric">
-                    <h5>GK Staff</h5>
-                    <p id="gk-staff">0</p>
-                </div>
-            </div>
-            <div class="col-lg-2 col-md-4 col-sm-6">
-                <div class="card-metric">
-                    <h5>GE Staff</h5>
-                    <p id="ge-staff">0</p>
-                </div>
-            </div>
-            <div class="col-lg-2 col-md-4 col-sm-6">
-                <div class="card-metric">
-                    <h5>DWC Staff</h5>
-                    <p id="dwc-staff">0</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Donut Chart Section -->
-        <div class="row donut-chart-container">
-            <div class="chart-card">
-                <h5>Duty Card Submission</h5>
-                <canvas id="dutyCardChart"></canvas>
-                <div class="chart-text" id="dutyCardTotal">0</div> <!-- This will display the total duty cards -->
-            </div>
+        <div class="col-md-4">
+            <label for="type-filter" class="form-label">Type</label>
+            <select id="type-filter" class="form-select">
+                <option value="">All</option>
+                <option value="Inbound">Inbound</option>
+                <option value="Outbound">Outbound</option>
+            </select>
         </div>
     </div>
+</div>
 
-    <!-- Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script>
-        $(document).ready(function() {
-            const today = new Date().toISOString().split('T')[0];
-            $('#date-filter').val(today);  // Set default date to today
+<!-- Summary Cards -->
+<div class="row">
+    <div class="col-lg-3 col-md-6"><div class="card-metric"><h5>Total Staff Members</h5><p id="total-staff">0</p></div></div>
+    <div class="col-lg-2 col-md-3 col-6"><div class="card-metric"><h5>GD Staff</h5><p id="gd-staff">0</p></div></div>
+    <div class="col-lg-2 col-md-3 col-6"><div class="card-metric"><h5>GK Staff</h5><p id="gk-staff">0</p></div></div>
+    <div class="col-lg-2 col-md-3 col-6"><div class="card-metric"><h5>GE Staff</h5><p id="ge-staff">0</p></div></div>
+    <div class="col-lg-2 col-md-3 col-6"><div class="card-metric"><h5>DWC Staff</h5><p id="dwc-staff">0</p></div></div>
+</div>
 
-            let donutChart = null; // Store the donut chart instance
+<!-- Donut Chart -->
+<div class="row mt-4">
+    <div class="col-12 d-flex justify-content-center">
+        <div class="chart-card">
+            <h5>Duty Card Submission</h5>
+            <canvas id="dutyCardChart"></canvas>
+            <div class="chart-text" id="dutyCardTotal">0</div>
+        </div>
+    </div>
+</div>
+{% endblock %}
 
-            // Fetch and update dashboard data based on selected filters
-            function fetchDashboardData() {
-                const date = $('#date-filter').val();  // Get the selected date
-                const shift = $('#shift-filter').val();
-                const type = $('#type-filter').val();
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    $(document).ready(function() {
+        const today = new Date().toISOString().split('T')[0];
+        $('#date-filter').val(today);
 
-                $.ajax({
-                    url: '{% url "dashboard_data" %}',  // Update this URL based on your route
-                    method: 'GET',
-                    data: {
-                        date: date || today,  // Use today's date if no date is selected
-                        shift: shift,
-                        type: type
-                    },
-                    success: function(data) {
-                        // Update the staff counts in the summary cards
-                        $('#total-staff').text(data.total_staff);
-                        $('#gd-staff').text(data.gd_staff);
-                        $('#gk-staff').text(data.gk_staff);
-                        $('#ge-staff').text(data.ge_staff);
-                        $('#dwc-staff').text(data.dwc_staff);
-                    },
-                    error: function() {
-                        console.log("Error loading dashboard data");
-                    }
-                });
-            }
+        let donutChart = null;
 
-            // Fetch and update donut chart based on selected date
-            function fetchDutyCardData() {
-                const date = $('#date-filter').val();  // Get the selected date
+        function fetchDashboardData() {
+            const date = $('#date-filter').val();
+            const shift = $('#shift-filter').val();
+            const type = $('#type-filter').val();
 
-                $.ajax({
-                    url: '{% url "duty_card_submission_data" %}',  // Update this URL based on your route
-                    method: 'GET',
-                    data: { date: date || today },
-                    success: function(data) {
-                        // Destroy previous chart if it exists
-                        if (donutChart !== null) {
-                            donutChart.destroy();
-                        }
-
-                        // Create and update the donut chart
-                        createDonutChart(data.total_duty_cards, data.submitted_cards, data.pending_cards);
-                        $('#dutyCardTotal').text(data.total_duty_cards);
-                    },
-                    error: function() {
-                        console.log("Error loading duty card data");
-                    }
-                });
-            }
-
-            // Function to create the donut chart
-            function createDonutChart(totalCards, submittedCards, pendingCards) {
-                const ctx = document.getElementById('dutyCardChart').getContext('2d');
-                
-                // Create a new chart
-                donutChart = new Chart(ctx, {
-                    type: 'doughnut',
-                    data: {
-                        labels: ['Submitted', 'Pending'],
-                        datasets: [{
-                            data: [submittedCards, pendingCards],
-                            backgroundColor: ['#28a745', '#dc3545'],
-                            hoverBackgroundColor: ['#218838', '#c82333'],
-                            borderWidth: 2,
-                            borderColor: '#fff',
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        cutout: '75%',
-                        plugins: {
-                            tooltip: {
-                                callbacks: {
-                                    label: function(tooltipItem) {
-                                        return tooltipItem.label + ': ' + tooltipItem.raw;
-                                    }
-                                }
-                            },
-                            legend: {
-                                display: true,
-                                position: 'bottom',
-                            }
-                        }
-                    }
-                });
-            }
-
-            // Download Excel when clicking the button
-            $('#download-btn').on('click', function(e) {
-                const date = $('#date-filter').val();
-                // Modify the href of the download button with the selected date
-                $(this).attr('href', `/dashboard/duty-card-submission-data/?download=xlsx&date=${date}`);
+            $.ajax({
+                url: '{% url "dashboard_data" %}',
+                method: 'GET',
+                data: { date: date || today, shift: shift, type: type },
+                success: function(data) {
+                    $('#total-staff').text(data.total_staff);
+                    $('#gd-staff').text(data.gd_staff);
+                    $('#gk-staff').text(data.gk_staff);
+                    $('#ge-staff').text(data.ge_staff);
+                    $('#dwc-staff').text(data.dwc_staff);
+                },
+                error: function() { console.log("Error loading dashboard data"); }
             });
+        }
 
-            // Initial fetch when the page loads
+        function fetchDutyCardData() {
+            const date = $('#date-filter').val();
+            $.ajax({
+                url: '{% url "duty_card_submission_data" %}',
+                method: 'GET',
+                data: { date: date || today },
+                success: function(data) {
+                    if (donutChart !== null) { donutChart.destroy(); }
+                    createDonutChart(data.total_duty_cards, data.submitted_cards, data.pending_cards);
+                    $('#dutyCardTotal').text(data.total_duty_cards);
+                },
+                error: function() { console.log("Error loading duty card data"); }
+            });
+        }
+
+        function createDonutChart(totalCards, submittedCards, pendingCards) {
+            const ctx = document.getElementById('dutyCardChart').getContext('2d');
+            donutChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Submitted', 'Pending'],
+                    datasets: [{
+                        data: [submittedCards, pendingCards],
+                        backgroundColor: ['#16a34a', '#dc2626'],
+                        hoverBackgroundColor: ['#15803d', '#b91c1c'],
+                        borderWidth: 2,
+                        borderColor: '#fff',
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '75%',
+                    plugins: {
+                        tooltip: { callbacks: { label: function(tooltipItem) { return tooltipItem.label + ': ' + tooltipItem.raw; } } },
+                        legend: { display: true, position: 'bottom' }
+                    }
+                }
+            });
+        }
+
+        $('#download-btn').on('click', function(e) {
+            const date = $('#date-filter').val();
+            $(this).attr('href', `/dashboard/duty-card-submission-data/?download=xlsx&date=${date}`);
+        });
+
+        fetchDashboardData();
+        fetchDutyCardData();
+
+        $('#date-filter, #shift-filter, #type-filter').on('change', function() {
             fetchDashboardData();
             fetchDutyCardData();
-
-            // Update data and charts on filter change (date, shift, type)
-            $('#date-filter, #shift-filter, #type-filter').on('change', function() {
-                fetchDashboardData();
-                fetchDutyCardData();  // Update the donut chart on date change
-            });
         });
-    </script>
-</body>
-</html>
+    });
+</script>
+{% endblock %}

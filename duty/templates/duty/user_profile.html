@@ -1,521 +1,226 @@
+{% extends "duty/base_generic.html" %}
 {% load static widget_tweaks %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>User Profile</title>
-  <!-- Bootstrap CSS -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <!-- Bootstrap Icons -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
-  <style>
-    :root {
-      --primary: #2563eb;
-      --secondary: #6b7280;
-      --background: #f8fafc;
-      --card-bg: #ffffff;
-      --success: #22c55e;
-      --danger: #ef4444;
-    }
 
-    body {
-      background-color: var(--background);
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      line-height: 1.6;
-    }
+{% block title %}My Profile · OCC-EKG Staff Transport{% endblock %}
 
-    .profile-card {
-      border: none;
-      border-radius: 12px;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-      transition: transform 0.2s ease;
-    }
+{% block nav_links %}
+    <a href="{% url 'home' %}"><i class="bi bi-house-door"></i> Home</a>
+    <a href="{% url 'logout' %}"><i class="bi bi-box-arrow-right"></i> Logout</a>
+{% endblock %}
 
-    .profile-card:hover {
-      transform: translateY(-4px);
-    }
+{% block container_class %}container py-4 py-md-5{% endblock %}
 
-    .avatar-container {
-      position: relative;
-      transition: transform 0.2s ease;
-    }
-
-    .avatar-container:hover {
-      transform: scale(1.05);
-    }
-
-    .form-control {
-      border-radius: 8px;
-      padding: 10px 12px;
-      border: 1px solid #d1d5db;
-      transition: border-color 0.2s ease, box-shadow 0.2s ease;
-    }
-
-    .form-control:focus {
-      border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-    }
-
-    .form-label {
-      font-weight: 500;
-      color: #374151;
-      margin-bottom: 6px;
-    }
-
-    .accordion-button {
-      border-radius: 8px !important;
-      padding: 16px;
-      font-weight: 500;
-    }
-
-    .accordion-button:not(.collapsed) {
-      background-color: #f8fafc;
-      color: var(--primary);
-    }
-
-    .btn-primary {
-      background-color: var(--primary);
-      border-color: var(--primary);
-      padding: 10px 24px;
-      border-radius: 8px;
-      font-weight: 500;
-      transition: background-color 0.2s ease, transform 0.2s ease;
-    }
-
-    .btn-primary:hover {
-      background-color: #1d4ed8;
-      transform: translateY(-1px);
-    }
-
-    .btn-outline-primary {
-      border-radius: 8px;
-      padding: 8px 16px;
-      font-weight: 500;
-    }
-
-    .btn-outline-secondary {
-      border-radius: 8px;
-      padding: 8px 16px;
-      font-weight: 500;
-      border-color: var(--secondary);
-      color: var(--secondary);
-    }
-
-    .btn-outline-secondary:hover {
-      background-color: #f1f5f9;
-      border-color: #4b5563;
-      color: #4b5563;
-    }
-
-    .alert {
-      border-radius: 8px;
-      padding: 12px 16px;
-      margin-bottom: 16px;
-    }
-
+{% block extra_head %}
+<style>
+    .profile-card { border: 1px solid var(--color-border); border-radius: 12px; box-shadow: var(--shadow-sm); transition: transform 0.2s ease, box-shadow .2s ease; }
+    .profile-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+    .avatar-container { position: relative; transition: transform 0.2s ease; }
+    .avatar-container:hover { transform: scale(1.05); }
+    .accordion-button { border-radius: 8px !important; padding: 16px; font-weight: 500; }
+    .accordion-button:not(.collapsed) { background-color: var(--color-primary-soft); color: var(--color-primary); }
+    .accordion-button:focus { box-shadow: 0 0 0 .2rem rgba(37,99,235,.15); }
     @media (max-width: 768px) {
-      .container {
-        padding: 16px;
-      }
-
-      .profile-card {
-        margin-bottom: 16px;
-      }
-
-      .avatar-container img,
-      .avatar-container .bg-primary {
-        width: 80px !important;
-        height: 80px !important;
-      }
-
-      h2 {
-        font-size: 1.5rem;
-      }
-
-      .form-control {
-        font-size: 0.875rem;
-      }
-
-      .back-home-btn {
-        margin-top: 8px;
-        width: 100%;
-        text-align: center;
-      }
+        .avatar-container img, .avatar-container .bg-primary { width: 80px !important; height: 80px !important; }
+        .back-home-btn { margin-top: 8px; width: 100%; text-align: center; }
     }
-  </style>
-</head>
-<body>
-  <div class="container py-4 py-md-5">
-    <!-- Profile Header -->
-    <div class="card mb-4 shadow-sm profile-card">
-      <div class="row g-0 align-items-center p-3 p-md-4">
-        <!-- Avatar + Placeholder -->
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Profile Header -->
+<div class="card mb-4 shadow-sm profile-card">
+    <div class="row g-0 align-items-center p-3 p-md-4">
         <div class="col-auto">
-          <div id="profile-picture-container" class="avatar-container">
-            {% if profile.picture %}
-              <img
-                id="profile-picture"
-                src="{% url 'profile_picture_proxy' profile.picture %}"
-                alt="Profile Picture"
-                class="rounded-circle border border-2 border-primary"
-                width="100" height="100"
-                style="display:block; object-fit: cover;"
-                onerror="
-                  this.style.display='none';
-                  document.getElementById('profile-picture-placeholder').style.display='flex';
-                "
-              >
-            {% else %}
-              <img
-                id="profile-picture"
-                alt="Profile Picture"
-                class="rounded-circle border border-2 border-primary"
-                width="100" height="100"
-                style="display:none;"
-              >
-              <div
-                id="profile-picture-placeholder"
-                class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center"
-                style="width:100px; height:100px; display:flex;"
-              >
-                <i class="bi bi-person-fill fs-3"></i>
-              </div>
-            {% endif %}
-          </div>
-          <label class="btn btn-outline-primary btn-sm mt-2 d-block text-center">
-            <i class="bi bi-camera-fill me-1"></i> Change
-            <input
-              type="file"
-              name="profile_picture"
-              accept="image/*"
-              class="visually-hidden"
-              id="profile-picture-input"
-            >
-          </label>
+            <div id="profile-picture-container" class="avatar-container">
+                {% if profile.picture %}
+                    <img id="profile-picture" src="{% url 'profile_picture_proxy' profile.picture %}" alt="Profile Picture"
+                         class="rounded-circle border border-2 border-primary" width="100" height="100"
+                         style="display:block; object-fit: cover;"
+                         onerror="this.style.display='none';document.getElementById('profile-picture-placeholder').style.display='flex';">
+                {% else %}
+                    <img id="profile-picture" alt="Profile Picture" class="rounded-circle border border-2 border-primary" width="100" height="100" style="display:none;">
+                    <div id="profile-picture-placeholder" class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width:100px; height:100px; display:flex;">
+                        <i class="bi bi-person-fill fs-3"></i>
+                    </div>
+                {% endif %}
+            </div>
+            <label class="btn btn-outline-primary btn-sm mt-2 d-block text-center">
+                <i class="bi bi-camera-fill me-1"></i> Change
+                <input type="file" name="profile_picture" accept="image/*" class="visually-hidden" id="profile-picture-input">
+            </label>
         </div>
-        <!-- Name + Staff ID -->
         <div class="col ms-3 ms-md-4">
-          <h2 class="mb-1 fw-bold">{{ driver.driver_name }}</h2>
-          <p class="text-muted mb-0">
-            Staff ID: <span class="fw-semibold">{{ driver.staff_id }}</span>
-          </p>
+            <h2 class="mb-1 fw-bold">{{ driver.driver_name }}</h2>
+            <p class="text-muted mb-0">Staff ID: <span class="fw-semibold">{{ driver.staff_id }}</span></p>
         </div>
-        <!-- Back to Home Button -->
         <div class="col-auto ms-auto">
-          <a href="/" class="btn btn-outline-secondary btn-sm back-home-btn">
-            <i class="bi bi-house-door-fill me-1"></i> Back to Home
-          </a>
+            <a href="{% url 'home' %}" class="btn btn-outline-secondary btn-sm back-home-btn">
+                <i class="bi bi-house-door-fill me-1"></i> Back to Home
+            </a>
         </div>
-      </div>
+    </div>
+</div>
+
+<!-- Profile Form -->
+<form method="post" enctype="multipart/form-data" id="profileForm">
+    {% csrf_token %}
+    <!-- Personal Information Card -->
+    <div class="card mb-4 profile-card">
+        <div class="card-header bg-white border-0"><h5 class="mb-0 fw-semibold">Personal Information</h5></div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="id_date_of_birth" class="form-label">Date of Birth</label>
+                    {{ form.date_of_birth|add_class:'form-control' }}
+                    {% if form.date_of_birth.errors %}<div class="invalid-feedback d-block text-danger">{{ form.date_of_birth.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-6">
+                    <label for="id_joining_date" class="form-label">Joining Date</label>
+                    {{ form.joining_date|add_class:'form-control' }}
+                    {% if form.joining_date.errors %}<div class="invalid-feedback d-block text-danger">{{ form.joining_date.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-6">
+                    <label for="id_mobile_no" class="form-label">Mobile Number</label>
+                    {{ form.mobile_no|add_class:'form-control' }}
+                    {% if form.mobile_no.errors %}<div class="invalid-feedback d-block text-danger">{{ form.mobile_no.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-6">
+                    <label for="id_secondary_contact_no" class="form-label">Secondary Contact (UAE)</label>
+                    {{ form.secondary_contact_no|add_class:'form-control' }}
+                    {% if form.secondary_contact_no.errors %}<div class="invalid-feedback d-block text-danger">{{ form.secondary_contact_no.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-12">
+                    <label for="id_email" class="form-label">Email Address</label>
+                    {{ form.email|add_class:'form-control' }}
+                    {% if form.email.errors %}<div class="invalid-feedback d-block text-danger">{{ form.email.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+        </div>
     </div>
 
-    <!-- Flash Messages -->
-    {% if messages %}
-      <div class="mb-4">
-        {% for m in messages %}
-          <div
-            class="alert alert-{{ m.tags|yesno:'danger,success' }} alert-dismissible fade show"
-            role="alert"
-          >
-            {{ m }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-          </div>
-        {% endfor %}
-      </div>
-    {% endif %}
-
-    <!-- Profile Form -->
-    <form method="post" enctype="multipart/form-data" id="profileForm">
-      {% csrf_token %}
-      <!-- Personal Information Card -->
-      <div class="card mb-4 profile-card">
-        <div class="card-header bg-white border-0">
-          <h5 class="mb-0 fw-semibold">Personal Information</h5>
-        </div>
-        <div class="card-body">
-          <div class="row g-3">
-            <div class="col-md-6">
-              <label for="id_date_of_birth" class="form-label">Date of Birth</label>
-              {{ form.date_of_birth|add_class:'form-control' }}
-              {% if form.date_of_birth.errors %}
-                <div class="invalid-feedback d-block text-danger">
-                  {{ form.date_of_birth.errors.0 }}
-                </div>
-              {% endif %}
-            </div>
-            <div class="col-md-6">
-              <label for="id_joining_date" class="form-label">Joining Date</label>
-              {{ form.joining_date|add_class:'form-control' }}
-              {% if form.joining_date.errors %}
-                <div class="invalid-feedback d-block text-danger">
-                  {{ form.joining_date.errors.0 }}
-                </div>
-              {% endif %}
-            </div>
-            <div class="col-md-6">
-              <label for="id_mobile_no" class="form-label">Mobile Number</label>
-              {{ form.mobile_no|add_class:'form-control' }}
-              {% if form.mobile_no.errors %}
-                <div class="invalid-feedback d-block text-danger">
-                  {{ form.mobile_no.errors.0 }}
-                </div>
-              {% endif %}
-            </div>
-            <div class="col-md-6">
-              <label for="id_secondary_contact_no" class="form-label">Secondary Contact (UAE)</label>
-              {{ form.secondary_contact_no|add_class:'form-control' }}
-              {% if form.secondary_contact_no.errors %}
-                <div class="invalid-feedback d-block text-danger">
-                  {{ form.secondary_contact_no.errors.0 }}
-                </div>
-              {% endif %}
-            </div>
-            <div class="col-12">
-              <label for="id_email" class="form-label">Email Address</label>
-              {{ form.email|add_class:'form-control' }}
-              {% if form.email.errors %}
-                <div class="invalid-feedback d-block text-danger">
-                  {{ form.email.errors.0 }}
-                </div>
-              {% endif %}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Documents Accordion -->
-      <div class="accordion mb-4" id="docAccordion">
+    <!-- Documents Accordion -->
+    <div class="accordion mb-4" id="docAccordion">
         <!-- Driving License -->
         <div class="accordion-item profile-card mb-3">
-          <h2 class="accordion-header" id="headingLicense">
-            <button
-              class="accordion-button"
-              type="button"
-              data-bs-toggle="collapse"
-              data-bs-target="#collapseLicense"
-              aria-expanded="true"
-            >
-              <i class="bi bi-credit-card-2-front-fill me-2"></i>
-              Driving License Details
-              {% if profile.license_front_file_id and profile.license_back_file_id %}
-                <i class="bi bi-check-circle-fill ms-auto text-success"></i>
-              {% endif %}
-            </button>
-          </h2>
-          <div
-            id="collapseLicense"
-            class="accordion-collapse collapse show"
-            aria-labelledby="headingLicense"
-            data-bs-parent="#docAccordion"
-          >
-            <div class="accordion-body">
-              <div class="row g-3">
-                <div class="col-md-6">
-                  <label for="id_license_no" class="form-label">License Number</label>
-                  {{ form.license_no|add_class:'form-control' }}
+            <h2 class="accordion-header" id="headingLicense">
+                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseLicense" aria-expanded="true">
+                    <i class="bi bi-credit-card-2-front-fill me-2"></i> Driving License Details
+                    {% if profile.license_front_file_id and profile.license_back_file_id %}<i class="bi bi-check-circle-fill ms-auto text-success"></i>{% endif %}
+                </button>
+            </h2>
+            <div id="collapseLicense" class="accordion-collapse collapse show" aria-labelledby="headingLicense" data-bs-parent="#docAccordion">
+                <div class="accordion-body">
+                    <div class="row g-3">
+                        <div class="col-md-6"><label for="id_license_no" class="form-label">License Number</label>{{ form.license_no|add_class:'form-control' }}</div>
+                        <div class="col-md-6"><label for="id_license_issue_date" class="form-label">Issue Date</label>{{ form.license_issue_date|add_class:'form-control' }}</div>
+                        <div class="col-md-6"><label for="id_license_expiry_date" class="form-label">Expiry Date</label>{{ form.license_expiry_date|add_class:'form-control' }}</div>
+                        <div class="col-md-6"><label for="id_license_place_of_issue" class="form-label">Place of Issue</label>{{ form.license_place_of_issue|add_class:'form-control' }}</div>
+                        <div class="col-md-6"><label class="form-label">Front Copy</label>{{ form.license_front_file|add_class:'form-control' }}</div>
+                        <div class="col-md-6"><label class="form-label">Back Copy</label>{{ form.license_back_file|add_class:'form-control' }}</div>
+                    </div>
+                    <div class="mt-3 text-end">
+                        <button type="button" class="btn btn-outline-primary btn-sm attach-btn" data-section="license">Attach Files</button>
+                        <span class="text-success ms-2 attach-notif d-none" data-for="license">✓ Uploaded!</span>
+                    </div>
                 </div>
-                <div class="col-md-6">
-                  <label for="id_license_issue_date" class="form-label">Issue Date</label>
-                  {{ form.license_issue_date|add_class:'form-control' }}
-                </div>
-                <div class="col-md-6">
-                  <label for="id_license_expiry_date" class="form-label">Expiry Date</label>
-                  {{ form.license_expiry_date|add_class:'form-control' }}
-                </div>
-                <div class="col-md-6">
-                  <label for="id_license_place_of_issue" class="form-label">Place of Issue</label>
-                  {{ form.license_place_of_issue|add_class:'form-control' }}
-                </div>
-                <div class="col-md-6">
-                  <label class="form-label">Front Copy</label>
-                  {{ form.license_front_file|add_class:'form-control' }}
-                </div>
-                <div class="col-md-6">
-                  <label class="form-label">Back Copy</label>
-                  {{ form.license_back_file|add_class:'form-control' }}
-                </div>
-              </div>
-              <div class="mt-3 text-end">
-                <button
-                  type="button"
-                  class="btn btn-outline-primary btn-sm attach-btn"
-                  data-section="license"
-                >Attach Files</button>
-                <span class="text-success ms-2 attach-notif d-none" data-for="license">✓ Uploaded!</span>
-              </div>
             </div>
-          </div>
         </div>
 
         <!-- Emirates ID -->
         <div class="accordion-item profile-card mb-3">
-          <h2 class="accordion-header" id="headingEID">
-            <button
-              class="accordion-button collapsed"
-              type="button"
-              data-bs-toggle="collapse"
-              data-bs-target="#collapseEID"
-              aria-expanded="false"
-            >
-              <i class="bi bi-credit-card-fill me-2"></i>
-              Emirates ID Details
-              {% if profile.eid_front_file_id and profile.eid_back_file_id %}
-                <i class="bi bi-check-circle-fill ms-auto text-success"></i>
-              {% endif %}
-            </button>
-          </h2>
-          <div
-            id="collapseEID"
-            class="accordion-collapse collapse"
-            aria-labelledby="headingEID"
-            data-bs-parent="#docAccordion"
-          >
-            <div class="accordion-body">
-              <div class="row g-3">
-                <div class="col-md-6">
-                  <label for="id_eid_no" class="form-label">EID Number</label>
-                  {{ form.eid_no|add_class:'form-control' }}
+            <h2 class="accordion-header" id="headingEID">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseEID" aria-expanded="false">
+                    <i class="bi bi-credit-card-fill me-2"></i> Emirates ID Details
+                    {% if profile.eid_front_file_id and profile.eid_back_file_id %}<i class="bi bi-check-circle-fill ms-auto text-success"></i>{% endif %}
+                </button>
+            </h2>
+            <div id="collapseEID" class="accordion-collapse collapse" aria-labelledby="headingEID" data-bs-parent="#docAccordion">
+                <div class="accordion-body">
+                    <div class="row g-3">
+                        <div class="col-md-6"><label for="id_eid_no" class="form-label">EID Number</label>{{ form.eid_no|add_class:'form-control' }}</div>
+                        <div class="col-md-6"><label for="id_eid_issue_date" class="form-label">Issue Date</label>{{ form.eid_issue_date|add_class:'form-control' }}</div>
+                        <div class="col-md-6"><label for="id_eid_expiry_date" class="form-label">Expiry Date</label>{{ form.eid_expiry_date|add_class:'form-control' }}</div>
+                        <div class="col-md-6"><label for="id_eid_nationality" class="form-label">Nationality</label>{{ form.eid_nationality|add_class:'form-control' }}</div>
+                        <div class="col-md-6"><label class="form-label">Front Copy</label>{{ form.eid_front_file|add_class:'form-control' }}</div>
+                        <div class="col-md-6"><label class="form-label">Back Copy</label>{{ form.eid_back_file|add_class:'form-control' }}</div>
+                    </div>
+                    <div class="mt-3 text-end">
+                        <button type="button" class="btn btn-outline-primary btn-sm attach-btn" data-section="eid">Attach Files</button>
+                        <span class="text-success ms-2 attach-notif d-none" data-for="eid">✓ Uploaded!</span>
+                    </div>
                 </div>
-                <div class="col-md-6">
-                  <label for="id_eid_issue_date" class="form-label">Issue Date</label>
-                  {{ form.eid_issue_date|add_class:'form-control' }}
-                </div>
-                <div class="col-md-6">
-                  <label for="id_eid_expiry_date" class="form-label">Expiry Date</label>
-                  {{ form.eid_expiry_date|add_class:'form-control' }}
-                </div>
-                <div class="col-md-6">
-                  <label for="id_eid_nationality" class="form-label">Nationality</label>
-                  {{ form.eid_nationality|add_class:'form-control' }}
-                </div>
-                <div class="col-md-6">
-                  <label class="form-label">Front Copy</label>
-                  {{ form.eid_front_file|add_class:'form-control' }}
-                </div>
-                <div class="col-md-6">
-                  <label class="form-label">Back Copy</label>
-                  {{ form.eid_back_file|add_class:'form-control' }}
-                </div>
-              </div>
-  <div class="mt-3 text-end">
-                <button
-                  type="button"
-                  class="btn btn-outline-primary btn-sm attach-btn"
-                  data-section="eid"
-                >Attach Files</button>
-                <span class="text-success ms-2 attach-notif d-none" data-for="eid">✓ Uploaded!</span>
-              </div>
             </div>
-          </div>
         </div>
 
         <!-- Passport -->
         <div class="accordion-item profile-card mb-3">
-          <h2 class="accordion-header" id="headingPassport">
-            <button
-              class="accordion-button collapsed"
-              type="button"
-              data-bs-toggle="collapse"
-              data-bs-target="#collapsePassport"
-              aria-expanded="false"
-            >
-              <i class="bi bi-passport-fill me-2"></i>
-              Passport Details
-              {% if profile.passport_front_file_id and profile.passport_back_file_id %}
-                <i class="bi bi-check-circle-fill ms-auto text-success"></i>
-              {% endif %}
-            </button>
-          </h2>
-          <div
-            id="collapsePassport"
-            class="accordion-collapse collapse"
-            aria-labelledby="headingPassport"
-            data-bs-parent="#docAccordion"
-          >
-            <div class="accordion-body">
-              <div class="row g-3">
-                <div class="col-md-6">
-                  <label for="id_passport_no" class="form-label">Passport Number</label>
-                  {{ form.passport_no|add_class:'form-control' }}
+            <h2 class="accordion-header" id="headingPassport">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapsePassport" aria-expanded="false">
+                    <i class="bi bi-passport-fill me-2"></i> Passport Details
+                    {% if profile.passport_front_file_id and profile.passport_back_file_id %}<i class="bi bi-check-circle-fill ms-auto text-success"></i>{% endif %}
+                </button>
+            </h2>
+            <div id="collapsePassport" class="accordion-collapse collapse" aria-labelledby="headingPassport" data-bs-parent="#docAccordion">
+                <div class="accordion-body">
+                    <div class="row g-3">
+                        <div class="col-md-6"><label for="id_passport_no" class="form-label">Passport Number</label>{{ form.passport_no|add_class:'form-control' }}</div>
+                        <div class="col-md-6"><label for="id_passport_issue_date" class="form-label">Issue Date</label>{{ form.passport_issue_date|add_class:'form-control' }}</div>
+                        <div class="col-md-6"><label for="id_passport_expiry_date" class="form-label">Expiry Date</label>{{ form.passport_expiry_date|add_class:'form-control' }}</div>
+                        <div class="col-md-6"><label class="form-label">Front Copy</label>{{ form.passport_front_file|add_class:'form-control' }}</div>
+                        <div class="col-md-6"><label class="form-label">Back Copy</label>{{ form.passport_back_file|add_class:'form-control' }}</div>
+                    </div>
+                    <div class="mt-3 text-end">
+                        <button type="button" class="btn btn-outline-primary btn-sm attach-btn" data-section="passport">Attach Files</button>
+                        <span class="text-success ms-2 attach-notif d-none" data-for="passport">✓ Uploaded!</span>
+                    </div>
                 </div>
-                <div class="col-md-6">
-                  <label for="id_passport_issue_date" class="form-label">Issue Date</label>
-                  {{ form.passport_issue_date|add_class:'form-control' }}
-                </div>
-                <div class="col-md-6">
-                  <label for="id_passport_expiry_date" class="form-label">Expiry Date</label>
-                  {{ form.passport_expiry_date|add_class:'form-control' }}
-                </div>
-                <div class="col-md-6">
-                  <label class="form-label">Front Copy</label>
-                  {{ form.passport_front_file|add_class:'form-control' }}
-                </div>
-                <div class="col-md-6">
-                  <label class="form-label">Back Copy</label>
-                  {{ form.passport_back_file|add_class:'form-control' }}
-                </div>
-              </div>
-              <div class="mt-3 text-end">
-                <button
-                  type="button"
-                  class="btn btn-outline-primary btn-sm attach-btn"
-                  data-section="passport"
-                >Attach Files</button>
-                <span class="text-success ms-2 attach-notif d-none" data-for="passport">✓ Uploaded!</span>
-              </div>
             </div>
-          </div>
         </div>
-      </div>
+    </div>
 
-      <!-- Save Button -->
-      <div class="text-end">
-        <button type="submit" class="btn btn-primary">Save Profile</button>
-      </div>
-    </form>
-  </div>
+    <!-- Save Button -->
+    <div class="text-end">
+        <button type="submit" class="btn btn-primary"><i class="bi bi-save me-1"></i> Save Profile</button>
+    </div>
+</form>
+{% endblock %}
 
-  <!-- Bootstrap JS -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  <!-- AJAX & Image-Proxy Script -->
-  <script>
+{% block extra_js %}
+<script>
     const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
     const oauthCode = new URLSearchParams(location.search).get('code');
 
     // Section-attach buttons
     document.querySelectorAll('.attach-btn').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const section = btn.dataset.section;
-        const fd = new FormData();
-        fd.append('csrfmiddlewaretoken', csrftoken);
-        fd.append('section', section);
-        if (oauthCode) fd.append('code', oauthCode);
-        ['front','back'].forEach(side => {
-          const name = `${section}_${side}_file`;
-          const inp = document.querySelector(`input[name="${name}"]`);
-          if (inp && inp.files[0]) fd.append(name, inp.files[0]);
+        btn.addEventListener('click', async () => {
+            const section = btn.dataset.section;
+            const fd = new FormData();
+            fd.append('csrfmiddlewaretoken', csrftoken);
+            fd.append('section', section);
+            if (oauthCode) fd.append('code', oauthCode);
+            ['front','back'].forEach(side => {
+                const name = `${section}_${side}_file`;
+                const inp = document.querySelector(`input[name="${name}"]`);
+                if (inp && inp.files[0]) fd.append(name, inp.files[0]);
+            });
+            const resp = await fetch("{% url 'user_profile' %}", {
+                method: 'POST',
+                headers: {'X-Requested-With':'XMLHttpRequest'},
+                body: fd
+            });
+            const result = await resp.json();
+            if (result.redirect) return location = result.redirect;
+            if (result.code) return location = `{% url 'user_profile' %}?code=${encodeURIComponent(result.code)}`;
+            if (result.success) {
+                document.querySelector(`.attach-notif[data-for="${section}"]`).classList.remove('d-none');
+            } else {
+                alert('Upload failed.');
+            }
         });
-        const resp = await fetch("{% url 'user_profile' %}", {
-          method: 'POST',
-          headers: {'X-Requested-With':'XMLHttpRequest'},
-          body: fd
-        });
-        const result = await resp.json();
-        if (result.redirect) return location = result.redirect;
-        if (result.code) return location = `{% url 'user_profile' %}?code=${encodeURIComponent(result.code)}`;
-        if (result.success) {
-          document.querySelector(`.attach-notif[data-for="${section}"]`)
-                  .classList.remove('d-none');
-        } else {
-          alert('Upload failed.');
-        }
-      });
     });
 
     // Profile-picture upload
-    document.getElementById('profile-picture-input')
-      .addEventListener('change', async () => {
+    document.getElementById('profile-picture-input').addEventListener('change', async () => {
         const inp = document.getElementById('profile-picture-input');
         if (!inp.files[0]) return;
 
@@ -526,36 +231,32 @@
         if (oauthCode) fd.append('code', oauthCode);
 
         const resp = await fetch("{% url 'user_profile' %}", {
-          method: 'POST',
-          headers: {'X-Requested-With':'XMLHttpRequest'},
-          body: fd
+            method: 'POST',
+            headers: {'X-Requested-With':'XMLHttpRequest'},
+            body: fd
         });
         const result = await resp.json();
         if (result.redirect) return location = result.redirect;
         if (result.code) return location = `{% url 'user_profile' %}?code=${encodeURIComponent(result.code)}`;
 
         if (result.success && result.file_id) {
-          const url = `{% url 'profile_picture_proxy' 'FILE_ID' %}`.replace('FILE_ID', result.file_id);
-          const img = document.getElementById('profile-picture');
-          const ph = document.getElementById('profile-picture-placeholder');
+            const url = `{% url 'profile_picture_proxy' 'FILE_ID' %}`.replace('FILE_ID', result.file_id);
+            const img = document.getElementById('profile-picture');
+            const ph = document.getElementById('profile-picture-placeholder');
+            img.src = url;
+            img.style.display = 'block';
+            ph.style.display = 'none';
 
-          img.src = url;
-          img.style.display = 'block';
-          ph.style.display = 'none';
-
-          const a = document.createElement('div');
-          a.className = 'alert alert-success alert-dismissible fade show';
-          a.role = 'alert';
-          a.innerHTML = `
-            Profile picture uploaded successfully!
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-          `;
-          document.querySelector('.container').prepend(a);
-          setTimeout(() => a.remove(), 3000);
+            const a = document.createElement('div');
+            a.className = 'alert alert-success alert-dismissible fade show';
+            a.role = 'alert';
+            a.innerHTML = `Profile picture uploaded successfully!
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+            document.querySelector('.container').prepend(a);
+            setTimeout(() => a.remove(), 3000);
         } else {
-          alert('Profile picture upload failed.');
+            alert('Profile picture upload failed.');
         }
-      });
-  </script>
-</body>
-</html>
+    });
+</script>
+{% endblock %}

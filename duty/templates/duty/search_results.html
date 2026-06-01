@@ -1,46 +1,42 @@
-<!-- templates/search_results.html -->
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Search Results</title>
-    <!-- Add your styles and Bootstrap links here if needed -->
-</head>
-<body>
-    <h1>Search Results</h1>
+{% extends "duty/base_generic.html" %}
 
+{% block title %}Search Results · OCC-EKG{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2><i class="bi bi-search me-2"></i>Search Results</h2>
+    <p class="subtitle">Matching STM routes for your search criteria</p>
+</div>
+
+<div class="content-surface">
     {% if routes %}
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Route Code</th>
-                    <th>Type</th>
-                    <th>Shift Time</th>
-                    <th>Pickup Points</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for route in routes %}
-                <tr>
-                    <td>{{ route.route_code }}</td>
-                    <td>{{ route.route_type }}</td>
-                    <td>
-                        {% for shift in route.shift_set.all %}
-                            {{ shift.shift_time }}<br>
-                        {% endfor %}
-                    </td>
-                    <td>
-                        {% for point in route.pickuppoint_set.all %}
-                            {{ point.pick_up_point }} ({{ point.work_hub }})<br>
-                        {% endfor %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>Route Code</th>
+                        <th>Type</th>
+                        <th>Shift Time</th>
+                        <th>Pickup Points</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for route in routes %}
+                    <tr>
+                        <td class="fw-semibold">{{ route.route_code }}</td>
+                        <td><span class="badge bg-primary">{{ route.route_type }}</span></td>
+                        <td>{% for shift in route.shift_set.all %}{{ shift.shift_time }}<br>{% endfor %}</td>
+                        <td>{% for point in route.pickuppoint_set.all %}{{ point.pick_up_point }} ({{ point.work_hub }})<br>{% endfor %}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     {% else %}
-        <p>No routes found for your search criteria.</p>
+        <div class="text-center text-muted py-4">
+            <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+            No routes found for your search criteria.
+        </div>
     {% endif %}
-</body>
-</html>
+</div>
+{% endblock %}

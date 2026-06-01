@@ -1,330 +1,219 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  {% load static %}
-  {% load widget_tweaks %}
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Submit Bus & Km Details</title>
-  <!-- Tailwind CSS CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- jQuery and jQuery UI for Autocomplete -->
-  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-  <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.1/themes/base/jquery-ui.css" />
-  <script src="https://code.jquery.com/ui/1.13.1/jquery-ui.min.js"></script>
-  <style>
-    /* Additional custom styling */
-    body {
-      background-color: #f3f4f6; /* Tailwind gray-100 */
-    }
+{% extends "duty/base_generic.html" %}
+{% load static %}
+{% load widget_tweaks %}
+
+{% block title %}Submit Bus &amp; KM Details · OCC-EKG{% endblock %}
+
+{% block nav_links %}
+    <a href="{% url 'home' %}"><i class="bi bi-house-door"></i> Home</a>
+    <a href="{% url 'submission_history' %}"><i class="bi bi-clock-history"></i> History</a>
+    <a href="{% url 'logout' %}"><i class="bi bi-box-arrow-right"></i> Logout</a>
+{% endblock %}
+
+{% block extra_head %}
+<!-- Tailwind (used for the existing form field classes) -->
+<script src="https://cdn.tailwindcss.com"></script>
+<!-- jQuery + jQuery UI for the autocompletes -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<link rel="stylesheet" href="https://code.jquery.com/ui/1.13.1/themes/base/jquery-ui.css" />
+<script src="https://code.jquery.com/ui/1.13.1/jquery-ui.min.js"></script>
+<style>
+    .ui-autocomplete { z-index: 2000; }
     .warning-message {
-      display: none;
-      background-color: #fee2e2; /* Tailwind red-100 */
-      color: #b91c1c; /* Tailwind red-700 */
-      padding: 1rem;
-      border-radius: 0.375rem;
-      margin-bottom: 1rem;
-      border: 1px solid #f87171; /* Tailwind red-400 */
+        display: none;
+        background-color: #fee2e2; color: #b91c1c;
+        padding: 1rem; border-radius: 0.375rem; margin-bottom: 1rem;
+        border: 1px solid #f87171;
     }
-    .error-field {
-      border-color: #ef4444; /* Tailwind red-500 */
-      box-shadow: 0 0 0 1px #ef4444;
-    }
-  </style>
-</head>
-<body class="bg-gray-100">
-  <div class="max-w-3xl mx-auto my-8 px-4">
-    <div class="bg-white shadow-lg rounded-lg overflow-hidden">
-      <div class="bg-blue-600 text-white text-center py-4">
-        <h2 class="text-2xl font-semibold">Submit Bus & Kilometer Details</h2>
-      </div>
-      <div class="p-6">
-        {% if success %}
-          <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
-            Data saved successfully!
-          </div>
-        {% endif %}
-        <!-- Warning message container -->
-        <div id="warning-message" class="warning-message">
-          <strong>Warning:</strong> Please select both Duty Card No and Bus Number from the suggestion lists.
-        </div>
-        <form method="POST" class="space-y-6" id="bus-km-form">
-          {% csrf_token %}
-          <!-- Submission Information Section -->
-          <div>
+    .error-field { border-color: #ef4444 !important; box-shadow: 0 0 0 1px #ef4444; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="content-surface" style="max-width: 820px; margin: 0 auto;">
+    <div class="page-header text-center">
+        <h2><i class="bi bi-bus-front me-2"></i>Submit Bus &amp; Kilometer Details</h2>
+    </div>
+
+    {% if success %}
+        <div class="alert alert-success" role="alert">Data saved successfully!</div>
+    {% endif %}
+
+    <div id="warning-message" class="warning-message">
+        <strong>Warning:</strong> Please select both Duty Card No and Bus Number from the suggestion lists.
+    </div>
+
+    <form method="POST" class="space-y-6" id="bus-km-form">
+        {% csrf_token %}
+        <!-- Submission Information -->
+        <div>
             <h5 class="text-xl font-medium mb-4">Submission Information</h5>
             <div class="mb-4">
-              <label for="{{ form.submission_date.id_for_label }}" class="block text-gray-700 font-medium mb-1">Submission Date</label>
-              <div>
+                <label for="{{ form.submission_date.id_for_label }}" class="block text-gray-700 font-medium mb-1">Submission Date</label>
                 {{ form.submission_date|add_class:"w-full border border-gray-300 rounded-md p-2" }}
-                {% if form.submission_date.errors %}
-                  <div class="text-red-600 text-sm mt-1">{{ form.submission_date.errors }}</div>
-                {% endif %}
-              </div>
+                {% if form.submission_date.errors %}<div class="text-red-600 text-sm mt-1">{{ form.submission_date.errors }}</div>{% endif %}
             </div>
             <div class="mb-4">
-              <label for="{{ form.duty_card_no.id_for_label }}" class="block text-gray-700 font-medium mb-1">Duty Card No</label>
-              <div>
-                <input
-                  type="text"
-                  name="{{ form.duty_card_no.html_name }}"
-                  class="w-full border border-gray-300 rounded-md p-2"
-                  maxlength="100"
-                  id="{{ form.duty_card_no.id_for_label }}"
-                  value="{{ form.duty_card_no.value|default_if_none:'' }}"
-                />
-                {% if form.duty_card_no.errors %}
-                  <div class="text-red-600 text-sm mt-1">{{ form.duty_card_no.errors }}</div>
-                {% endif %}
-              </div>
+                <label for="{{ form.duty_card_no.id_for_label }}" class="block text-gray-700 font-medium mb-1">Duty Card No</label>
+                <input type="text" name="{{ form.duty_card_no.html_name }}" class="w-full border border-gray-300 rounded-md p-2"
+                       maxlength="100" id="{{ form.duty_card_no.id_for_label }}" value="{{ form.duty_card_no.value|default_if_none:'' }}" />
+                {% if form.duty_card_no.errors %}<div class="text-red-600 text-sm mt-1">{{ form.duty_card_no.errors }}</div>{% endif %}
             </div>
-          </div>
-          <hr class="border-gray-300" />
-          <!-- Basic Bus Information Section -->
-          <div>
+        </div>
+        <hr class="border-gray-300" />
+        <!-- Basic Bus Information -->
+        <div>
             <h5 class="text-xl font-medium mb-4">Basic Bus Information</h5>
             <div class="mb-4">
-              <label for="{{ form.bus_no.id_for_label }}" class="block text-gray-700 font-medium mb-1">Bus Number</label>
-              <div>
+                <label for="{{ form.bus_no.id_for_label }}" class="block text-gray-700 font-medium mb-1">Bus Number</label>
                 {{ form.bus_no|add_class:"w-full border border-gray-300 rounded-md p-2" }}
-                {% if form.bus_no.errors %}
-                  <div class="text-red-600 text-sm mt-1">{{ form.bus_no.errors }}</div>
-                {% endif %}
-              </div>
+                {% if form.bus_no.errors %}<div class="text-red-600 text-sm mt-1">{{ form.bus_no.errors }}</div>{% endif %}
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <div>
-                <label for="{{ form.start_km.id_for_label }}" class="block text-gray-700 font-medium mb-1">Start Kilometer</label>
                 <div>
-                  {{ form.start_km|add_class:"w-full border border-gray-300 rounded-md p-2" }}
-                  {% if form.start_km.errors %}
-                    <div class="text-red-600 text-sm mt-1">{{ form.start_km.errors }}</div>
-                  {% endif %}
+                    <label for="{{ form.start_km.id_for_label }}" class="block text-gray-700 font-medium mb-1">Start Kilometer</label>
+                    {{ form.start_km|add_class:"w-full border border-gray-300 rounded-md p-2" }}
+                    {% if form.start_km.errors %}<div class="text-red-600 text-sm mt-1">{{ form.start_km.errors }}</div>{% endif %}
                 </div>
-              </div>
-              <div>
-                <label for="{{ form.end_km.id_for_label }}" class="block text-gray-700 font-medium mb-1">End Kilometer</label>
                 <div>
-                  {{ form.end_km|add_class:"w-full border border-gray-300 rounded-md p-2" }}
-                  {% if form.end_km.errors %}
-                    <div class="text-red-600 text-sm mt-1">{{ form.end_km.errors }}</div>
-                  {% endif %}
+                    <label for="{{ form.end_km.id_for_label }}" class="block text-gray-700 font-medium mb-1">End Kilometer</label>
+                    {{ form.end_km|add_class:"w-full border border-gray-300 rounded-md p-2" }}
+                    {% if form.end_km.errors %}<div class="text-red-600 text-sm mt-1">{{ form.end_km.errors }}</div>{% endif %}
                 </div>
-              </div>
             </div>
             <div class="mb-4">
-              <label for="{{ form.bus_start_time.id_for_label }}" class="block text-gray-700 font-medium mb-1">Bus Start Time</label>
-              <div>
+                <label for="{{ form.bus_start_time.id_for_label }}" class="block text-gray-700 font-medium mb-1">Bus Start Time</label>
                 {{ form.bus_start_time|add_class:"w-full border border-gray-300 rounded-md p-2" }}
-                {% if form.bus_start_time.errors %}
-                  <div class="text-red-600 text-sm mt-1">{{ form.bus_start_time.errors }}</div>
-                {% endif %}
-              </div>
+                {% if form.bus_start_time.errors %}<div class="text-red-600 text-sm mt-1">{{ form.bus_start_time.errors }}</div>{% endif %}
             </div>
             <div class="mb-4">
-              <label for="{{ form.bus_end_time.id_for_label }}" class="block text-gray-700 font-medium mb-1">Bus End Time</label>
-              <div>
+                <label for="{{ form.bus_end_time.id_for_label }}" class="block text-gray-700 font-medium mb-1">Bus End Time</label>
                 {{ form.bus_end_time|add_class:"w-full border border-gray-300 rounded-md p-2" }}
-                {% if form.bus_end_time.errors %}
-                  <div class="text-red-600 text-sm mt-1">{{ form.bus_end_time.errors }}</div>
-                {% endif %}
-              </div>
+                {% if form.bus_end_time.errors %}<div class="text-red-600 text-sm mt-1">{{ form.bus_end_time.errors }}</div>{% endif %}
             </div>
             <div class="mb-4">
-              <div class="flex items-center">
-                {{ form.bus_change }}
-                <label for="{{ form.bus_change.id_for_label }}" class="ml-2 text-gray-700 font-medium">Bus Changed?</label>
-              </div>
-              {% if form.bus_change.errors %}
-                <div class="text-red-600 text-sm mt-1">{{ form.bus_change.errors }}</div>
-              {% endif %}
+                <div class="flex items-center">
+                    {{ form.bus_change }}
+                    <label for="{{ form.bus_change.id_for_label }}" class="ml-2 text-gray-700 font-medium">Bus Changed?</label>
+                </div>
+                {% if form.bus_change.errors %}<div class="text-red-600 text-sm mt-1">{{ form.bus_change.errors }}</div>{% endif %}
             </div>
-          </div>
-          <!-- Bus Change Details Section (toggleable) -->
-          <div id="bus-change-section" class="mb-4" style="display: none;">
+        </div>
+        <!-- Bus Change Details (toggleable) -->
+        <div id="bus-change-section" class="mb-4" style="display: none;">
             <h5 class="text-xl font-medium mb-4">Bus Change Details</h5>
             <div class="mb-4">
-              <label for="{{ form.changed_bus_no.id_for_label }}" class="block text-gray-700 font-medium mb-1">Changed Bus No</label>
-              <div>
+                <label for="{{ form.changed_bus_no.id_for_label }}" class="block text-gray-700 font-medium mb-1">Changed Bus No</label>
                 {{ form.changed_bus_no|add_class:"w-full border border-gray-300 rounded-md p-2" }}
-                {% if form.changed_bus_no.errors %}
-                  <div class="text-red-600 text-sm mt-1">{{ form.changed_bus_no.errors }}</div>
-                {% endif %}
-              </div>
+                {% if form.changed_bus_no.errors %}<div class="text-red-600 text-sm mt-1">{{ form.changed_bus_no.errors }}</div>{% endif %}
             </div>
             <div class="mb-4">
-              <label for="{{ form.start_time.id_for_label }}" class="block text-gray-700 font-medium mb-1">Start Time Change</label>
-              <div>
+                <label for="{{ form.start_time.id_for_label }}" class="block text-gray-700 font-medium mb-1">Start Time Change</label>
                 {{ form.start_time|add_class:"w-full border border-gray-300 rounded-md p-2" }}
-                {% if form.start_time.errors %}
-                  <div class="text-red-600 text-sm mt-1">{{ form.start_time.errors }}</div>
-                {% endif %}
-              </div>
+                {% if form.start_time.errors %}<div class="text-red-600 text-sm mt-1">{{ form.start_time.errors }}</div>{% endif %}
             </div>
             <div class="mb-4">
-              <label for="{{ form.end_time.id_for_label }}" class="block text-gray-700 font-medium mb-1">End Time Change</label>
-              <div>
+                <label for="{{ form.end_time.id_for_label }}" class="block text-gray-700 font-medium mb-1">End Time Change</label>
                 {{ form.end_time|add_class:"w-full border border-gray-300 rounded-md p-2" }}
-                {% if form.end_time.errors %}
-                  <div class="text-red-600 text-sm mt-1">{{ form.end_time.errors }}</div>
-                {% endif %}
-              </div>
+                {% if form.end_time.errors %}<div class="text-red-600 text-sm mt-1">{{ form.end_time.errors }}</div>{% endif %}
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <div>
-                <label for="{{ form.start_km_change.id_for_label }}" class="block text-gray-700 font-medium mb-1">Start KM Change</label>
                 <div>
-                  {{ form.start_km_change|add_class:"w-full border border-gray-300 rounded-md p-2" }}
-                  {% if form.start_km_change.errors %}
-                    <div class="text-red-600 text-sm mt-1">{{ form.start_km_change.errors }}</div>
-                  {% endif %}
+                    <label for="{{ form.start_km_change.id_for_label }}" class="block text-gray-700 font-medium mb-1">Start KM Change</label>
+                    {{ form.start_km_change|add_class:"w-full border border-gray-300 rounded-md p-2" }}
+                    {% if form.start_km_change.errors %}<div class="text-red-600 text-sm mt-1">{{ form.start_km_change.errors }}</div>{% endif %}
                 </div>
-              </div>
-              <div>
-                <label for="{{ form.end_km_change.id_for_label }}" class="block text-gray-700 font-medium mb-1">End KM Change</label>
                 <div>
-                  {{ form.end_km_change|add_class:"w-full border border-gray-300 rounded-md p-2" }}
-                  {% if form.end_km_change.errors %}
-                    <div class="text-red-600 text-sm mt-1">{{ form.end_km_change.errors }}</div>
-                  {% endif %}
+                    <label for="{{ form.end_km_change.id_for_label }}" class="block text-gray-700 font-medium mb-1">End KM Change</label>
+                    {{ form.end_km_change|add_class:"w-full border border-gray-300 rounded-md p-2" }}
+                    {% if form.end_km_change.errors %}<div class="text-red-600 text-sm mt-1">{{ form.end_km_change.errors }}</div>{% endif %}
                 </div>
-              </div>
             </div>
-          </div>
-          <!-- Hidden fields for duty_card and driver -->
-          <div class="hidden">
+        </div>
+        <!-- Hidden fields -->
+        <div class="hidden">
             {{ form.duty_card }}
             {{ form.driver }}
-          </div>
-          <div>
-            <button type="submit" class="w-full py-3 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 transition-colors">
-              Submit
+        </div>
+        <div>
+            <button type="submit" class="btn btn-primary w-100">
+                <i class="bi bi-check2-circle me-1"></i> Submit
             </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
 
-  <script>
-    // Toggle Bus Change Details section based on the "Bus Changed?" checkbox.
+{% block extra_js %}
+<script>
     function toggleBusChangeSection() {
-      const checkbox = document.getElementById('id_bus_change');
-      const section = document.getElementById('bus-change-section');
-      section.style.display = checkbox.checked ? 'block' : 'none';
+        const checkbox = document.getElementById('id_bus_change');
+        const section = document.getElementById('bus-change-section');
+        section.style.display = checkbox.checked ? 'block' : 'none';
     }
 
     document.addEventListener('DOMContentLoaded', function() {
-      toggleBusChangeSection();
-      document.getElementById('id_bus_change').addEventListener('change', toggleBusChangeSection);
+        toggleBusChangeSection();
+        document.getElementById('id_bus_change').addEventListener('change', toggleBusChangeSection);
 
-      // Arrays to store valid suggestions
-      let dutyCardSuggestions = [];
-      let busNoSuggestions = [];
+        let dutyCardSuggestions = [];
+        let busNoSuggestions = [];
+        let isDutyCardSelected = false;
+        let isBusNoSelected = false;
 
-      // Track whether fields are selected from suggestions
-      let isDutyCardSelected = false;
-      let isBusNoSelected = false;
+        $("#id_duty_card_no").autocomplete({
+            source: function(request, response) {
+                $.ajax({
+                    url: "{% url 'duty_card_suggestions' %}",
+                    dataType: "json",
+                    data: { term: request.term },
+                    success: function(data) { dutyCardSuggestions = data; response(data); }
+                });
+            },
+            minLength: 0,
+            select: function(event, ui) { isDutyCardSelected = true; $("#id_duty_card_no").removeClass("error-field"); },
+            change: function(event, ui) { if (!ui.item) { isDutyCardSelected = false; } }
+        }).focus(function() { $(this).autocomplete("search", $(this).val()); });
 
-      // Attach autocomplete to duty card number field
-      $("#id_duty_card_no").autocomplete({
-        source: function(request, response) {
-          $.ajax({
-            url: "{% url 'duty_card_suggestions' %}",
-            dataType: "json",
-            data: { term: request.term },
-            success: function(data) {
-              dutyCardSuggestions = data; // Store suggestions
-              response(data);
+        $("#id_bus_no").autocomplete({
+            source: function(request, response) {
+                $.ajax({
+                    url: "{% url 'bus_no_suggestions' %}",
+                    dataType: "json",
+                    data: { term: request.term },
+                    success: function(data) { busNoSuggestions = data; response(data); }
+                });
+            },
+            minLength: 0,
+            select: function(event, ui) { isBusNoSelected = true; $("#id_bus_no").removeClass("error-field"); },
+            change: function(event, ui) { if (!ui.item) { isBusNoSelected = false; } }
+        }).focus(function() { $(this).autocomplete("search", $(this).val()); });
+
+        $("#id_changed_bus_no").autocomplete({
+            source: "{% url 'bus_no_suggestions' %}",
+            minLength: 0,
+        }).focus(function() { $(this).autocomplete("search", $(this).val()); });
+
+        $("#bus-km-form").on("submit", function(event) {
+            const dutyCardNo = $("#id_duty_card_no").val().trim();
+            const busNo = $("#id_bus_no").val().trim();
+            const warningMessage = $("#warning-message");
+
+            const isDutyCardValid = dutyCardNo && isDutyCardSelected && dutyCardSuggestions.includes(dutyCardNo);
+            const isBusNoValid = busNo && isBusNoSelected && busNoSuggestions.includes(busNo);
+
+            if (!isDutyCardValid || !isBusNoValid) {
+                event.preventDefault();
+                warningMessage.css("display", "block");
+                if (!isDutyCardValid) { $("#id_duty_card_no").addClass("error-field"); } else { $("#id_duty_card_no").removeClass("error-field"); }
+                if (!isBusNoValid) { $("#id_bus_no").addClass("error-field"); } else { $("#id_bus_no").removeClass("error-field"); }
+                setTimeout(() => { warningMessage.css("display", "none"); }, 5000);
+            } else {
+                warningMessage.css("display", "none");
+                $("#id_duty_card_no").removeClass("error-field");
+                $("#id_bus_no").removeClass("error-field");
             }
-          });
-        },
-        minLength: 0,
-        select: function(event, ui) {
-          isDutyCardSelected = true; // Mark as selected from suggestions
-          $("#id_duty_card_no").removeClass("error-field"); // Remove error highlight on selection
-        },
-        change: function(event, ui) {
-          if (!ui.item) {
-            isDutyCardSelected = false; // Reset if not selected from list
-          }
-        }
-      }).focus(function() {
-        $(this).autocomplete("search", $(this).val());
-      });
-
-      // Attach autocomplete to bus number field
-      $("#id_bus_no").autocomplete({
-        source: function(request, response) {
-          $.ajax({
-            url: "{% url 'bus_no_suggestions' %}",
-            dataType: "json",
-            data: { term: request.term },
-            success: function(data) {
-              busNoSuggestions = data; // Store suggestions
-              response(data);
-            }
-          });
-        },
-        minLength: 0,
-        select: function(event, ui) {
-          isBusNoSelected = true; // Mark as selected from suggestions
-          $("#id_bus_no").removeClass("error-field"); // Remove error highlight on selection
-        },
-        change: function(event, ui) {
-          if (!ui.item) {
-            isBusNoSelected = false; // Reset if not selected from list
-          }
-        }
-      }).focus(function() {
-        $(this).autocomplete("search", $(this).val());
-      });
-
-      // Attach autocomplete to changed bus number field (optional, not required for validation)
-      $("#id_changed_bus_no").autocomplete({
-        source: "{% url 'bus_no_suggestions' %}",
-        minLength: 0,
-      }).focus(function() {
-        $(this).autocomplete("search", $(this).val());
-      });
-
-      // Form submission validation with error highlighting
-      $("#bus-km-form").on("submit", function(event) {
-        const dutyCardNo = $("#id_duty_card_no").val().trim();
-        const busNo = $("#id_bus_no").val().trim();
-        const warningMessage = $("#warning-message");
-
-        // Check if fields are empty or not selected from suggestions
-        const isDutyCardValid = dutyCardNo && isDutyCardSelected && dutyCardSuggestions.includes(dutyCardNo);
-        const isBusNoValid = busNo && isBusNoSelected && busNoSuggestions.includes(busNo);
-
-        if (!isDutyCardValid || !isBusNoValid) {
-          event.preventDefault(); // Prevent form submission
-          warningMessage.css("display", "block"); // Show warning message
-
-          // Highlight invalid fields
-          if (!isDutyCardValid) {
-            $("#id_duty_card_no").addClass("error-field");
-          } else {
-            $("#id_duty_card_no").removeClass("error-field");
-          }
-
-          if (!isBusNoValid) {
-            $("#id_bus_no").addClass("error-field");
-          } else {
-            $("#id_bus_no").removeClass("error-field");
-          }
-
-          setTimeout(() => {
-            warningMessage.css("display", "none"); // Hide warning after 5 seconds
-          }, 5000);
-        } else {
-          warningMessage.css("display", "none"); // Hide warning if valid
-          $("#id_duty_card_no").removeClass("error-field"); // Clear highlights
-          $("#id_bus_no").removeClass("error-field");
-        }
-      });
+        });
     });
-  </script>
-</body>
-</html>
+</script>
+{% endblock %}

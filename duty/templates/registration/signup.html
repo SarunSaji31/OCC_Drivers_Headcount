@@ -1,23 +1,21 @@
 {% extends "duty/base_generic.html" %}
 
-{% block title %}Sign Up - OCC-EKG Project{% endblock %}
+{% block title %}Sign Up · OCC-EKG Staff Transport{% endblock %}
 
 {% block content %}
-<div class="col-md-6 col-lg-4">
-    <div class="card p-4">
-        <h3 class="text-center mb-4">Create Your Account</h3>
+<div class="auth-wrap">
+    <div class="auth-card content-surface">
+        <div class="auth-icon"><i class="bi bi-person-plus"></i></div>
+        <h3 class="auth-title">Create your account</h3>
+        <p class="auth-subtitle">Register with your Emirates Staff ID</p>
 
         {% if form.errors %}
-        <div class="alert alert-danger">
-            <ul>
+        <div class="alert alert-danger" role="alert">
+            <ul class="mb-0 ps-3">
                 {% for field in form %}
-                    {% for error in field.errors %}
-                        <li>{{ error }}</li>
-                    {% endfor %}
+                    {% for error in field.errors %}<li>{{ error }}</li>{% endfor %}
                 {% endfor %}
-                {% for error in form.non_field_errors %}
-                    <li>{{ error }}</li>
-                {% endfor %}
+                {% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
             </ul>
         </div>
         {% endif %}
@@ -28,7 +26,7 @@
                 <label for="staff_id" class="form-label">Staff ID</label>
                 <div class="input-group">
                     <span class="input-group-text"><i class="bi bi-person-badge"></i></span>
-                    <input type="text" id="staff_id" name="staff_id" class="form-control" value="{{ form.staff_id.value|default_if_none:'' }}" placeholder="Enter your Staff ID" required>
+                    <input type="text" id="staff_id" name="staff_id" class="form-control" value="{{ form.staff_id.value|default_if_none:'' }}" placeholder="Enter your Staff ID" required autofocus>
                 </div>
             </div>
             <div class="mb-3">
@@ -44,7 +42,7 @@
                     <span class="input-group-text"><i class="bi bi-key"></i></span>
                     <input type="password" id="password1" name="password1" class="form-control" placeholder="Create a password" required>
                 </div>
-                <small class="form-text">Your password must be at least 8 characters long.</small>
+                <small class="form-text text-muted">Your password must be at least 8 characters long.</small>
             </div>
             <div class="mb-3">
                 <label for="password2" class="form-label">Confirm Password</label>
@@ -53,10 +51,14 @@
                     <input type="password" id="password2" name="password2" class="form-control" placeholder="Confirm your password" required>
                 </div>
             </div>
-            <button type="submit" class="btn btn-primary w-100">Sign Up</button>
+            <button type="submit" class="btn btn-primary w-100">
+                <i class="bi bi-check2-circle me-1"></i> Create account
+            </button>
         </form>
 
-        <p class="text-center mt-3">Already have an account? <a href="{% url 'login' %}">Log in here</a>.</p>
+        <p class="text-center mt-4 mb-0 text-muted" style="font-size:.92rem;">
+            Already have an account? <a href="{% url 'login' %}">Sign in</a>
+        </p>
     </div>
 </div>
 {% endblock %}

@@ -1,222 +1,105 @@
+{% extends "duty/base_generic.html" %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Home - Driver Head Count</title>
 
-  <!-- Bootstrap CSS -->
-  <link
-    rel="stylesheet"
-    href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css"
-  >
-  <!-- Bootstrap Icons -->
-  <link
-    rel="stylesheet"
-    href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.9.1/font/bootstrap-icons.css"
-  >
+{% block title %}Home · OCC-EKG Staff Transport{% endblock %}
 
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f8f9fa;
-    }
-    .navbar {
-      background-color: #9eb2c9;
-    }
-    .nav-link {
-      color: white !important;
-    }
-    .header-section {
-      text-align: center;
-      padding: 50px 20px;
-      background: #9eb2c9;
-      color: white;
-    }
+{% block nav_links %}
+    <a href="{% url 'home' %}"><i class="bi bi-house-door"></i> Home</a>
+    <a href="{% url 'enter_head_count' %}"><i class="bi bi-clipboard-check"></i> Enter Details</a>
+    {% if user.is_staff %}
+        <a href="{% url 'report' %}"><i class="bi bi-file-earmark-text"></i> Reports</a>
+        <a href="{% url 'dashboard' %}"><i class="bi bi-speedometer2"></i> Dashboard</a>
+    {% endif %}
+    <a href="{% url 'user_profile' %}"><i class="bi bi-person-circle"></i> Profile</a>
+    <a href="{% url 'logout' %}"><i class="bi bi-box-arrow-right"></i> Logout</a>
+{% endblock %}
 
-    .avatar-container {
-      margin-bottom: 15px;
+{% block extra_head %}
+<style>
+    .hero {
+        background: linear-gradient(135deg, #1e293b 0%, #2563eb 100%);
+        color: #fff;
+        border-radius: var(--radius-lg);
+        padding: 2.5rem 1.5rem;
+        text-align: center;
+        box-shadow: var(--shadow);
+        margin-bottom: 2rem;
     }
-    .avatar-container img,
-    .avatar-container .placeholder {
-      display: block;
-      margin: 0 auto;
-      width: 120px;
-      height: 120px;
-      border: 4px solid #fff;
-      border-radius: 50%;
-      object-fit: cover;
-      position: relative;
+    .hero h1 { color: #fff; font-size: 1.9rem; margin: .5rem 0 .35rem; }
+    .hero p { color: rgba(255,255,255,.85); margin: 0; }
+    .hero .staff-name {
+        font-size: 1.05rem; font-weight: 500;
+        display: inline-block; padding: .25rem .9rem;
+        background: rgba(255,255,255,.15); border-radius: 999px; margin-bottom: .5rem;
     }
-    .avatar-container img {
-      /* shift image down so the face centers in the circle */
-      object-position: 50% 40%;
+    .hero-avatar img, .hero-avatar .placeholder {
+        width: 110px; height: 110px; border-radius: 50%;
+        border: 4px solid rgba(255,255,255,.85); object-fit: cover;
+        object-position: 50% 40%; margin: 0 auto 1rem; display: block;
     }
-    .avatar-container .placeholder {
-      background: #007bff;
-      color: white;
-      font-size: 1.75rem; /* Reduced from 2rem to zoom out */
-      display: flex; /* Use Flexbox for centering */
-      align-items: center; /* Center vertically */
-      justify-content: center; /* Center horizontally */
+    .hero-avatar .placeholder {
+        background: rgba(255,255,255,.2); color: #fff; font-size: 2.25rem;
+        display: flex; align-items: center; justify-content: center;
     }
+    .feature-card { height: 100%; overflow: hidden; transition: transform .15s ease, box-shadow .15s ease; }
+    .feature-card:hover { transform: translateY(-4px); }
+    .feature-card .feature-icon {
+        width: 48px; height: 48px; border-radius: 12px;
+        display: flex; align-items: center; justify-content: center;
+        background: var(--color-primary-soft); color: var(--color-primary);
+        font-size: 1.4rem; margin-bottom: 1rem;
+    }
+</style>
+{% endblock %}
 
-    .staff-name {
-      font-size: 1.4rem;
-      font-weight: bold;
-      text-shadow: 1px 1px 3px rgba(0,0,0,0.3);
-      margin-bottom: 10px;
-    }
-    .header-section h1 {
-      font-size: 2rem;
-      margin-bottom: 10px;
-    }
-    .header-section p {
-      margin: 0;
-    }
-
-    .card-container {
-      display: flex;
-      justify-content: center;
-      flex-wrap: wrap;
-      gap: 20px;
-      margin: 20px 0;
-    }
-    .card {
-      max-width: 18rem;
-      border: none;
-      border-radius: 10px;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    }
-    .card img {
-      width: 100%;
-      border-radius: 10px 10px 0 0;
-      object-fit: cover;
-    }
-    .card-body {
-      text-align: center;
-    }
-
-    .footer {
-      background: #9cb3cc;
-      color: #fff;
-      text-align: center;
-      padding: 10px 0;
-    }
-
-    @media (max-width: 768px) {
-      .header-section {
-        padding: 30px 15px;
-      }
-      .header-section h1 {
-        font-size: 1.75rem;
-      }
-      .staff-name {
-        font-size: 1.2rem;
-      }
-      .avatar-container img,
-      .avatar-container .placeholder {
-        width: 100px;
-        height: 100px;
-      }
-      .avatar-container .placeholder {
-        font-size: 1.5rem; /* Reduced from 1.75rem to zoom out */
-      }
-    }
-  </style>
-</head>
-<body>
-
-  <!-- Navbar -->
-  <nav class="navbar navbar-expand-lg navbar-dark">
-    <button
-      class="navbar-toggler"
-      type="button"
-      data-toggle="collapse"
-      data-target="#navbarNav"
-      aria-controls="navbarNav"
-      aria-expanded="false"
-      aria-label="Toggle navigation"
-    >
-      <span class="navbar-toggler-icon"></span>
-    </button>
-    <div class="collapse navbar-collapse" id="navbarNav">
-      <ul class="navbar-nav ml-auto">
-        <li class="nav-item"><a class="nav-link" href="{% url 'home' %}">Home</a></li>
-        <li class="nav-item"><a class="nav-link" href="{% url 'enter_head_count' %}">Enter Details</a></li>
-        <li class="nav-item"><a class="nav-link" href="{% url 'report' %}">Reports</a></li>
-        <li class="nav-item"><a class="nav-link" href="{% url 'dashboard' %}">Dashboard</a></li>
-        <li class="nav-item"><a class="nav-link" href="{% url 'user_profile' %}">Profile</a></li>
-        <li class="nav-item"><a class="nav-link" href="{% url 'logout' %}">Logout</a></li>
-      </ul>
+{% block content %}
+<div class="hero">
+    <div class="hero-avatar">
+        <img id="profile-picture"
+             src="{% if profile.picture %}{% url 'profile_picture_proxy' profile.picture %}{% endif %}"
+             alt="Profile Picture"
+             style="display: {% if profile.picture %}block{% else %}none{% endif %};"
+             onerror="this.style.display='none';document.getElementById('profile-picture-placeholder').style.display='flex';">
+        <div id="profile-picture-placeholder" class="placeholder"
+             style="display: {% if profile.picture %}none{% else %}flex{% endif %};">
+            <i class="bi bi-person-fill"></i>
+        </div>
     </div>
-  </nav>
-
-  <!-- Header Section -->
-  <div class="header-section">
-    <div class="avatar-container">
-      <img
-        id="profile-picture"
-        src="{% if profile.picture %}{% url 'profile_picture_proxy' profile.picture %}{% endif %}"
-        alt="Profile Picture"
-        style="display: {% if profile.picture %}block{% else %}none{% endif %};"
-        onerror="
-          this.style.display='none';
-          document.getElementById('profile-picture-placeholder').style.display='block';
-        "
-      >
-      <div
-        id="profile-picture-placeholder"
-        class="placeholder"
-        style="display: {% if profile.picture %}none{% else %}block{% endif %};"
-      >
-        <i class="bi bi-person-fill"></i>
-      </div>
-    </div>
-
-    <div class="staff-name">Welcome, {{ staff_name }}!</div>
-    <h1>OCC‑EKG Driver Head Count</h1>
+    <div class="staff-name">Welcome, {{ staff_name }}</div>
+    <h1>OCC-EKG Driver Head Count</h1>
     <p>Manage and track driver details and trip information efficiently.</p>
-  </div>
+</div>
 
-  <!-- Main Cards -->
-  <div class="container">
-    <div class="card-container">
-      <div class="card">
-        <img src="{% static 'OCC.jpg' %}" alt="OCC Headcount">
-        <div class="card-body">
-          <h5 class="card-title">Driver Headcount</h5>
-          <p class="card-text">Add your trip and head count details.</p>
-          <a href="{% url 'enter_head_count' %}" class="btn btn-primary">Go to Form</a>
+<div class="row g-4">
+    <div class="col-md-4">
+        <div class="card feature-card p-4">
+            <div class="feature-icon"><i class="bi bi-clipboard-check"></i></div>
+            <h5 class="card-title">Driver Headcount</h5>
+            <p class="card-text text-muted">Add your trip and head count details for the day.</p>
+            <a href="{% url 'enter_head_count' %}" class="btn btn-primary mt-2">
+                Go to Form <i class="bi bi-arrow-right ms-1"></i>
+            </a>
         </div>
-      </div>
-      <div class="card">
-        <img src="{% static 'occreport.jpg' %}" alt="Reports">
-        <div class="card-body">
-          <h5 class="card-title">Report Views</h5>
-          <p class="card-text">View and manage your driver reports.</p>
-          <a href="{% url 'report' %}" class="btn btn-primary">Go to Reports</a>
-        </div>
-      </div>
-      <div class="card">
-        <img src="{% static 'EK-STM.jpg' %}" alt="STM‑EKG">
-        <div class="card-body">
-          <h5 class="card-title">STM‑EKG</h5>
-          <p class="card-text">Manage daily STM‑EKG project activities.</p>
-          <a href="{% url 'subcategory_selection' %}" class="btn btn-primary">Go to Page</a>
-        </div>
-      </div>
     </div>
-  </div>
-
-  <!-- Footer -->
-  <footer class="footer">
-    <p>© Emirates Airline Staff Transport Project.</p>
-  </footer>
-
-  <!-- Scripts -->
-  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+    <div class="col-md-4">
+        <div class="card feature-card p-4">
+            <div class="feature-icon"><i class="bi bi-clock-history"></i></div>
+            <h5 class="card-title">Submission History</h5>
+            <p class="card-text text-muted">Review your previously submitted trip records.</p>
+            <a href="{% url 'submission_history' %}" class="btn btn-primary mt-2">
+                View History <i class="bi bi-arrow-right ms-1"></i>
+            </a>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card feature-card p-4">
+            <div class="feature-icon"><i class="bi bi-bus-front"></i></div>
+            <h5 class="card-title">STM-EKG</h5>
+            <p class="card-text text-muted">Manage daily STM-EKG project activities.</p>
+            <a href="{% url 'subcategory_selection' %}" class="btn btn-primary mt-2">
+                Go to Page <i class="bi bi-arrow-right ms-1"></i>
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

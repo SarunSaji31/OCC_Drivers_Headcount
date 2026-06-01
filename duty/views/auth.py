@@ -44,6 +44,10 @@ def password_reset_request(request):
             try:
                 user = User.objects.get(username=staff_id)
                 if user.email == email:
+                    # Mark this user as verified for the reset flow. Only a
+                    # request that passed the staff_id + email check above may
+                    # proceed to set_new_password.
+                    request.session['password_reset_user_id'] = user.id
                     return redirect(reverse('set_new_password', args=[user.id]))
                 else:
                     messages.error(request, 'The email address does not match our records.')
@@ -55,12 +59,20 @@ def password_reset_request(request):
 
 
 def set_new_password(request, user_id):
+    # Only allow if this user_id was verified in password_reset_request.
+    # Without this check any visitor could reset any account by guessing the id.
+    if request.session.get('password_reset_user_id') != user_id:
+        messages.error(request, 'Please verify your Staff ID and email before resetting your password.')
+        return redirect('password_reset')
+
     user = get_object_or_404(User, id=user_id)
     if request.method == 'POST':
         form = SetNewPasswordForm(request.POST)
         if form.is_valid():
             user.password = make_password(form.cleaned_data['new_password'])
             user.save()
+            # Consume the one-time verification so the link can't be reused.
+            request.session.pop('password_reset_user_id', None)
             messages.success(request, 'Your password has been reset successfully.')
             return redirect('login')
     else:

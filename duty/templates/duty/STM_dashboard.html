@@ -1,3 +1,16 @@
+{% extends "duty/base_generic.html" %}
+
+{% block title %}Fleet Delays & Breakdowns Dashboard · OCC-EKG{% endblock %}
+
+{% block nav_links %}
+    <a href="{% url 'home' %}"><i class="bi bi-house-door"></i> Home</a>
+    <a href="{% url 'subcategory_selection' %}"><i class="bi bi-grid"></i> STM-EKG</a>
+    <a href="{% url 'logout' %}"><i class="bi bi-box-arrow-right"></i> Logout</a>
+{% endblock %}
+
+{% block container_class %}container-fluid p-0{% endblock %}
+
+{% block extra_head %}
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-50625SGNXQ"></script>
 <script>
@@ -7,709 +20,453 @@
   gtag('config', 'G-50625SGNXQ');
 </script>
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Fleet Delays and Breakdowns Dashboard</title>
+<!-- Tailwind CSS CDN -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: { extend: { colors: { primary: '#1e3a8a', secondary: '#f3f4f6', accent: '#3b82f6' } } },
+  };
+</script>
+<!-- Font Awesome for Icons -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet" />
+<!-- Chart.js + Data Labels Plugin -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+<!-- jQuery -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<style>
+    canvas { width: 100% !important; height: auto !important; }
+    .delay-count-clickable { cursor: pointer; text-decoration: underline; }
+    .delay-count-clickable:hover { color: #2563eb; }
+    .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    th, td { white-space: nowrap; }
+</style>
+<script>Chart.register(ChartDataLabels);</script>
+{% endblock %}
 
-  <!-- Tailwind CSS CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            primary: '#1e3a8a',
-            secondary: '#f3f4f6',
-            accent: '#3b82f6',
-          },
-        },
-      },
-    };
-  </script>
-
-  <!-- Font Awesome for Icons -->
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet" />
-
-  <!-- Bootstrap 5 CSS for Modal -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
-
-  <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <!-- Chart.js Data Labels Plugin -->
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
-
-  <!-- jQuery CDN -->
-  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-
-  <!-- Custom CSS -->
-  <style>
-    body {
-      background: linear-gradient(135deg, #eff6ff, #ffffff);
-      min-height: 100vh;
-      overflow-x: hidden;
-    }
-    canvas {
-      width: 100% !important;
-      height: auto !important;
-    }
-    .delay-count-clickable {
-      cursor: pointer;
-      text-decoration: underline;
-    }
-    .delay-count-clickable:hover {
-      color: #2563eb;
-    }
-    .table-responsive {
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-    }
-    th, td {
-      white-space: nowrap;
-    }
-    @media (max-width: 640px) {
-      .modal-header h5 {
-        font-size: 1.1rem;
-      }
-      .modal-footer button {
-        width: 100%;
-      }
-    }
-  </style>
-
-  <!-- Register the ChartDataLabels plugin -->
-  <script>
-    Chart.register(ChartDataLabels);
-  </script>
-</head>
-<body class="text-gray-800 font-sans">
-  <div class="w-full mx-auto p-4 sm:p-6 lg:p-8">
+{% block content %}
+<div class="w-full mx-auto p-4 sm:p-6 lg:p-8 text-gray-800">
     <!-- Header Section -->
     <div class="flex flex-col sm:flex-row items-center justify-between mb-6">
-      <a href="/subcategory/" class="inline-block text-primary bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-lg shadow-sm transition-all duration-300 mb-4 sm:mb-0">
-        <i class="fas fa-arrow-left mr-2"></i> Back to Subcategory
-      </a>
-      <h1 class="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-primary text-center">Fleet Dashboard</h1>
+        <a href="{% url 'subcategory_selection' %}" class="inline-block text-primary bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-lg shadow-sm transition-all duration-300 mb-4 sm:mb-0">
+            <i class="fas fa-arrow-left mr-2"></i> Back to STM-EKG
+        </a>
+        <h1 class="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-primary text-center">Fleet Dashboard</h1>
     </div>
 
     <!-- Statistics Section -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-      <div class="bg-white rounded-lg shadow-lg p-4 sm:p-6 text-center">
-        <h3 id="daily-stats-title" class="text-base sm:text-lg font-semibold text-primary">
-          Daily Statistics ( <span id="current-date"></span> )
-        </h3>
-        <p class="text-xl sm:text-2xl font-bold text-blue-500 mt-2 delay-count-clickable" data-bs-toggle="modal" data-bs-target="#delayDetailsModal">
-          Delays: <span id="daily-delay-count">Loading...</span>
-        </p>
-        <p class="text-xl sm:text-2xl font-bold text-blue-500">
-          Breakdowns: <span id="daily-breakdown-count">Loading...</span>
-        </p>
-      </div>
-
-      <div class="bg-white rounded-lg shadow-lg p-4 sm:p-6 text-center">
-        <h3 id="monthly-stats-title" class="text-base sm:text-lg font-semibold text-primary">
-          Monthly Statistics (Month: <span id="current-month"></span>)
-        </h3>
-        <p class="text-xl sm:text-2xl font-bold text-green-500 mt-2">
-          Delays: <span id="monthly-delay-count">Loading...</span>
-        </p>
-        <p class="text-xl sm:text-2xl font-bold text-green-500">
-          Breakdowns: <span id="monthly-breakdown-count">Loading...</span>
-        </p>
-      </div>
-
-      <div class="bg-white rounded-lg shadow-lg p-4 sm:p-6 text-center">
-        <h3 class="text-base sm:text-lg font-semibold text-primary">Yearly Statistics</h3>
-        <p class="text-xl sm:text-2xl font-bold text-yellow-500 mt-2">
-          Delays: <span id="total-delay-count">Loading...</span>
-        </p>
-        <p class="text-xl sm:text-2xl font-bold text-yellow-500">
-          Breakdowns: <span id="total-breakdown-count">Loading...</span>
-        </p>
-      </div>
+        <div class="bg-white rounded-lg shadow-lg p-4 sm:p-6 text-center">
+            <h3 id="daily-stats-title" class="text-base sm:text-lg font-semibold text-primary">Daily Statistics ( <span id="current-date"></span> )</h3>
+            <p class="text-xl sm:text-2xl font-bold text-blue-500 mt-2 delay-count-clickable" data-bs-toggle="modal" data-bs-target="#delayDetailsModal">Delays: <span id="daily-delay-count">Loading...</span></p>
+            <p class="text-xl sm:text-2xl font-bold text-blue-500">Breakdowns: <span id="daily-breakdown-count">Loading...</span></p>
+        </div>
+        <div class="bg-white rounded-lg shadow-lg p-4 sm:p-6 text-center">
+            <h3 id="monthly-stats-title" class="text-base sm:text-lg font-semibold text-primary">Monthly Statistics (Month: <span id="current-month"></span>)</h3>
+            <p class="text-xl sm:text-2xl font-bold text-green-500 mt-2">Delays: <span id="monthly-delay-count">Loading...</span></p>
+            <p class="text-xl sm:text-2xl font-bold text-green-500">Breakdowns: <span id="monthly-breakdown-count">Loading...</span></p>
+        </div>
+        <div class="bg-white rounded-lg shadow-lg p-4 sm:p-6 text-center">
+            <h3 class="text-base sm:text-lg font-semibold text-primary">Yearly Statistics</h3>
+            <p class="text-xl sm:text-2xl font-bold text-yellow-500 mt-2">Delays: <span id="total-delay-count">Loading...</span></p>
+            <p class="text-xl sm:text-2xl font-bold text-yellow-500">Breakdowns: <span id="total-breakdown-count">Loading...</span></p>
+        </div>
     </div>
 
     <!-- Modal for Delay Details -->
     <div class="modal fade" id="delayDetailsModal" tabindex="-1" aria-labelledby="delayDetailsModalLabel" aria-hidden="true">
-      <div class="modal-dialog modal-lg modal-fullscreen-sm-down">
-        <div class="modal-content">
-          <div class="modal-header flex justify-between items-center bg-primary text-white px-4 py-2 sm:px-6 sm:py-3">
-            <h5 class="modal-title text-lg sm:text-xl font-bold" id="delayDetailsModalLabel">Daily NST Details</h5>
-            <button type="button" class="btn-close bg-white rounded-full p-1" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <div class="modal-body p-4 sm:p-6">
-            <div class="table-responsive">
-              <table class="table table-striped w-full text-sm sm:text-base">
-                <thead id="delay-details-table-head"></thead>
-                <tbody id="delay-details-table-body"></tbody>
-              </table>
+        <div class="modal-dialog modal-lg modal-fullscreen-sm-down">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title font-bold" id="delayDetailsModalLabel">Daily NST Details</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4 sm:p-6">
+                    <div class="table-responsive">
+                        <table class="table table-striped w-full text-sm sm:text-base">
+                            <thead id="delay-details-table-head"></thead>
+                            <tbody id="delay-details-table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
             </div>
-          </div>
-          <div class="modal-footer flex justify-end p-2 sm:p-4">
-            <button type="button" class="btn btn-secondary px-4 py-2 rounded-lg" data-bs-dismiss="modal">Close</button>
-          </div>
         </div>
-      </div>
     </div>
 
     <!-- Charts Section -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mt-6 sm:mt-8">
-      <div class="bg-white rounded-lg shadow-lg p-4 sm:p-6">
-        <h3 class="text-lg sm:text-xl font-bold text-primary text-center mb-4">Fleet Delay and Breakdown</h3>
-        <div class="relative h-[300px] sm:h-[400px] w-full">
-          <canvas id="fleet-delay-chart" class="w-full h-full"></canvas>
+        <div class="bg-white rounded-lg shadow-lg p-4 sm:p-6">
+            <h3 class="text-lg sm:text-xl font-bold text-primary text-center mb-4">Fleet Delay and Breakdown</h3>
+            <div class="relative h-[300px] sm:h-[400px] w-full"><canvas id="fleet-delay-chart" class="w-full h-full"></canvas></div>
         </div>
-      </div>
-
-      <div class="bg-white rounded-lg shadow-lg p-4 sm:p-6">
-        <h3 class="text-lg sm:text-xl font-bold text-primary text-center mb-4">Most Delayed Trips (Monthly)</h3>
-        <div class="relative h-[300px] sm:h-[400px] w-full">
-          <canvas id="mostDelayedTripsChart" class="w-full h-full"></canvas>
+        <div class="bg-white rounded-lg shadow-lg p-4 sm:p-6">
+            <h3 class="text-lg sm:text-xl font-bold text-primary text-center mb-4">Most Delayed Trips (Monthly)</h3>
+            <div class="relative h-[300px] sm:h-[400px] w-full"><canvas id="mostDelayedTripsChart" class="w-full h-full"></canvas></div>
         </div>
-      </div>
-
-      <div class="bg-white rounded-lg shadow-lg p-4 sm:p-6">
-        <h3 class="text-lg sm:text-xl font-bold text-primary text-center mb-4">Top 5 Delayed Trips with Highest Load (Monthly)</h3>
-        <div class="relative h-[300px] sm:h-[400px] w-full">
-          <canvas id="topDelayedLoadChart" class="w-full h-full"></canvas>
+        <div class="bg-white rounded-lg shadow-lg p-4 sm:p-6">
+            <h3 class="text-lg sm:text-xl font-bold text-primary text-center mb-4">Top 5 Delayed Trips with Highest Load (Monthly)</h3>
+            <div class="relative h-[300px] sm:h-[400px] w-full"><canvas id="topDelayedLoadChart" class="w-full h-full"></canvas></div>
         </div>
-      </div>
     </div>
 
     <!-- OTP Donut Chart Section -->
     <div class="bg-white rounded-lg shadow-lg p-4 sm:p-6 mt-6 sm:mt-8">
-      <h3 class="text-lg sm:text-xl font-bold text-primary text-center mb-4">On Time Performance (OTP)</h3>
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
-        <div class="flex flex-col items-center">
-          <h4 class="font-semibold mb-2 text-sm sm:text-base">Daily</h4>
-          <div class="relative h-[250px] sm:h-[300px] w-full">
-            <canvas id="otp-daily-chart" class="w-full h-full"></canvas>
-          </div>
+        <h3 class="text-lg sm:text-xl font-bold text-primary text-center mb-4">On Time Performance (OTP)</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+            <div class="flex flex-col items-center">
+                <h4 class="font-semibold mb-2 text-sm sm:text-base">Daily</h4>
+                <div class="relative h-[250px] sm:h-[300px] w-full"><canvas id="otp-daily-chart" class="w-full h-full"></canvas></div>
+            </div>
+            <div class="flex flex-col items-center">
+                <h4 class="font-semibold mb-2 text-sm sm:text-base">Monthly</h4>
+                <div class="relative h-[250px] sm:h-[300px] w-full"><canvas id="otp-monthly-chart" class="w-full h-full"></canvas></div>
+            </div>
+            <div class="flex flex-col items-center">
+                <h4 class="font-semibold mb-2 text-sm sm:text-base">Yearly</h4>
+                <div class="relative h-[250px] sm:h-[300px] w-full"><canvas id="otp-yearly-chart" class="w-full h-full"></canvas></div>
+            </div>
         </div>
-        <div class="flex flex-col items-center">
-          <h4 class="font-semibold mb-2 text-sm sm:text-base">Monthly</h4>
-          <div class="relative h-[250px] sm:h-[300px] w-full">
-            <canvas id="otp-monthly-chart" class="w-full h-full"></canvas>
-          </div>
+        <div class="mt-4 text-center text-xs sm:text-sm text-gray-600">
+            <p><strong>OT</strong> = On Time, <strong>NST</strong> = Not Started On Time</p>
         </div>
-        <div class="flex flex-col items-center">
-          <h4 class="font-semibold mb-2 text-sm sm:text-base">Yearly</h4>
-          <div class="relative h-[250px] sm:h-[300px] w-full">
-            <canvas id="otp-yearly-chart" class="w-full h-full"></canvas>
-          </div>
-        </div>
-      </div>
-      <div class="mt-4 text-center text-xs sm:text-sm text-gray-600">
-        <p><strong>OT</strong> = On Time, <strong>NST</strong> = Not Started On Time</p>
-      </div>
     </div>
 
     <!-- Filter Dashboard Section -->
     <div class="bg-white rounded-lg shadow-lg p-4 sm:p-6 mt-6 sm:mt-8">
-      <h3 class="text-base sm:text-lg font-bold text-center mb-4">Filter Dashboard</h3>
-      <div class="flex flex-col items-center">
-        <label for="filter-type" class="block font-semibold mb-2 text-sm sm:text-base">Select Filter Type:</label>
-        <select id="filter-type" class="w-full sm:w-1/2 lg:w-1/3 p-2 border rounded-lg mb-4 text-sm sm:text-base">
-          <option value="daily">Daily</option>
-          <option value="monthly">Monthly</option>
-        </select>
-
-        <label for="date-filter" class="block font-semibold mb-2 text-sm sm:text-base" id="date-filter-label">Select Date:</label>
-        <input type="date" id="date-filter" class="w-full sm:w-1/2 lg:w-1/3 p-2 border rounded-lg mb-4 text-sm sm:text-base" />
-
-        <input type="month" id="month-filter" class="w-full sm:w-1/2 lg:w-1/3 p-2 border rounded-lg mb-4 hidden text-sm sm:text-base" />
-
-        <p id="switch-daily-message" class="text-xs sm:text-sm text-blue-500 cursor-pointer hidden">
-          Want to see a particular date? Click here to switch to daily filter.
-        </p>
-
-        <button id="apply-filters" class="w-full sm:w-1/2 lg:w-1/3 bg-primary text-white py-2 rounded-lg hover:bg-blue-600 transition-all duration-300 mt-4 text-sm sm:text-base">
-          Apply Filters
-        </button>
-      </div>
+        <h3 class="text-base sm:text-lg font-bold text-center mb-4">Filter Dashboard</h3>
+        <div class="flex flex-col items-center">
+            <label for="filter-type" class="block font-semibold mb-2 text-sm sm:text-base">Select Filter Type:</label>
+            <select id="filter-type" class="w-full sm:w-1/2 lg:w-1/3 p-2 border rounded-lg mb-4 text-sm sm:text-base">
+                <option value="daily">Daily</option>
+                <option value="monthly">Monthly</option>
+            </select>
+            <label for="date-filter" class="block font-semibold mb-2 text-sm sm:text-base" id="date-filter-label">Select Date:</label>
+            <input type="date" id="date-filter" class="w-full sm:w-1/2 lg:w-1/3 p-2 border rounded-lg mb-4 text-sm sm:text-base" />
+            <input type="month" id="month-filter" class="w-full sm:w-1/2 lg:w-1/3 p-2 border rounded-lg mb-4 hidden text-sm sm:text-base" />
+            <p id="switch-daily-message" class="text-xs sm:text-sm text-blue-500 cursor-pointer hidden">Want to see a particular date? Click here to switch to daily filter.</p>
+            <button id="apply-filters" class="w-full sm:w-1/2 lg:w-1/3 bg-primary text-white py-2 rounded-lg hover:bg-blue-600 transition-all duration-300 mt-4 text-sm sm:text-base">Apply Filters</button>
+        </div>
     </div>
 
     <!-- Report Download Section -->
     <div class="bg-white rounded-lg shadow-lg p-4 sm:p-6 mt-6 sm:mt-8 text-center">
-      <h3 class="text-base sm:text-lg font-bold mb-4">Download Report</h3>
-      <form method="GET" action="{% url 'download_fleet_report' %}" class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
-        <div>
-          <label for="report-type" class="block font-semibold text-sm sm:text-base">Select Report Type:</label>
-          <select id="report-type" name="report_type" class="w-full p-2 border rounded-lg text-sm sm:text-base">
-            <option value="daily">Daily</option>
-            <option value="monthly">Monthly</option>
-            <option value="total">Yearly</option>
-          </select>
-        </div>
-        <div>
-          <label for="report-category" class="block font-semibold text-sm sm:text-base">Select Report Category:</label>
-          <select id="report-category" name="report_category" class="w-full p-2 border rounded-lg text-sm sm:text-base">
-            <option value="delay">Delays</option>
-            <option value="breakdown">Breakdowns</option>
-          </select>
-        </div>
-        <div class="col-span-1 sm:col-span-2">
-          <button type="submit" class="w-full bg-green-500 text-white py-2 rounded-lg hover:bg-green-600 transition-all duration-300 text-sm sm:text-base">
-            Download Report
-          </button>
-        </div>
-      </form>
+        <h3 class="text-base sm:text-lg font-bold mb-4">Download Report</h3>
+        <form method="GET" action="{% url 'download_fleet_report' %}" class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+            <div>
+                <label for="report-type" class="block font-semibold text-sm sm:text-base">Select Report Type:</label>
+                <select id="report-type" name="report_type" class="w-full p-2 border rounded-lg text-sm sm:text-base">
+                    <option value="daily">Daily</option>
+                    <option value="monthly">Monthly</option>
+                    <option value="total">Yearly</option>
+                </select>
+            </div>
+            <div>
+                <label for="report-category" class="block font-semibold text-sm sm:text-base">Select Report Category:</label>
+                <select id="report-category" name="report_category" class="w-full p-2 border rounded-lg text-sm sm:text-base">
+                    <option value="delay">Delays</option>
+                    <option value="breakdown">Breakdowns</option>
+                </select>
+            </div>
+            <div class="col-span-1 sm:col-span-2">
+                <button type="submit" class="w-full bg-green-500 text-white py-2 rounded-lg hover:bg-green-600 transition-all duration-300 text-sm sm:text-base">Download Report</button>
+            </div>
+        </form>
     </div>
-  </div>
+</div>
+{% endblock %}
 
-  <!-- Bootstrap 5 JS for Modal -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
-
-  <script>
+{% block extra_js %}
+<script>
     $(document).ready(function () {
-      var dateFilter = $("#date-filter");
-      var monthFilter = $("#month-filter");
-      var switchMessage = $("#switch-daily-message");
-      var currentDateElement = $("#current-date");
-      var currentMonthElement = $("#current-month");
+        var dateFilter = $("#date-filter");
+        var monthFilter = $("#month-filter");
+        var switchMessage = $("#switch-daily-message");
+        var currentDateElement = $("#current-date");
+        var currentMonthElement = $("#current-month");
 
-      // Function to get URL parameter
-      function getUrlParameter(name) {
-        name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
-        var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
-        var results = regex.exec(location.search);
-        return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
-      }
-
-      function formatDate(date) {
-        var options = { day: "2-digit", month: "2-digit", weekday: "short" };
-        return new Date(date).toLocaleDateString("en-US", options).replace(",", "");
-      }
-
-      function formatMonth(date) {
-        var options = { month: "long", year: "numeric" };
-        return new Date(date).toLocaleDateString("en-US", options);
-      }
-
-      function updateDisplay(selectedValue, filterType) {
-        if (filterType === "daily") {
-          var todayStr = new Date().toISOString().split("T")[0];
-          var isToday = selectedValue === todayStr;
-          currentDateElement.text(isToday ? "Today" : formatDate(selectedValue));
-          currentMonthElement.text(formatMonth(selectedValue));
-        } else if (filterType === "monthly") {
-          currentMonthElement.text(formatMonth(selectedValue + '-01'));
+        function getUrlParameter(name) {
+            name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+            var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
+            var results = regex.exec(location.search);
+            return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
         }
-      }
 
-      $("#filter-type").change(function () {
-        var selectedFilterType = $(this).val();
-        if (selectedFilterType === "daily") {
-          dateFilter.removeClass("hidden");
-          monthFilter.addClass("hidden");
-          $("#date-filter-label").text("Select Date:");
-          switchMessage.addClass("hidden");
-        } else if (selectedFilterType === "monthly") {
-          monthFilter.removeClass("hidden");
-          dateFilter.addClass("hidden");
-          $("#date-filter-label").text("Select Month:");
-          switchMessage.removeClass("hidden");
+        function formatDate(date) {
+            var options = { day: "2-digit", month: "2-digit", weekday: "short" };
+            return new Date(date).toLocaleDateString("en-US", options).replace(",", "");
         }
-      });
 
-      switchMessage.click(function () {
-        var selectedMonth = monthFilter.val();
-        if (!selectedMonth) {
-          alert("Please select a valid month first.");
-          return;
+        function formatMonth(date) {
+            var options = { month: "long", year: "numeric" };
+            return new Date(date).toLocaleDateString("en-US", options);
         }
-        dateFilter.val(selectedMonth + "-01");
-        $("#filter-type").val("daily").trigger("change");
-        updateDisplay(dateFilter.val(), "daily");
-      });
 
-      var fleetChartInstance = null;
-      window.updateDashboard = function (filterType, filterValue) {
-        $.ajax({
-          url: "/filter-dashboard/",
-          data: { filter_type: filterType, filter_value: filterValue },
-          success: function (response) {
-            $("#daily-delay-count").text(response.daily_delays || 0);
-            $("#daily-breakdown-count").text(response.daily_breakdowns || 0);
-            $("#monthly-delay-count").text(response.monthly_delays || 0);
-            $("#monthly-breakdown-count").text(response.monthly_breakdowns || 0);
-            $("#total-delay-count").text(response.yearly_delays || 0);
-            $("#total-breakdown-count").text(response.yearly_breakdowns || 0);
-
-            var ctx = document.getElementById("fleet-delay-chart").getContext("2d");
-            if (fleetChartInstance) {
-              fleetChartInstance.destroy();
+        function updateDisplay(selectedValue, filterType) {
+            if (filterType === "daily") {
+                var todayStr = new Date().toISOString().split("T")[0];
+                var isToday = selectedValue === todayStr;
+                currentDateElement.text(isToday ? "Today" : formatDate(selectedValue));
+                currentMonthElement.text(formatMonth(selectedValue));
+            } else if (filterType === "monthly") {
+                currentMonthElement.text(formatMonth(selectedValue + '-01'));
             }
-            fleetChartInstance = new Chart(ctx, {
-              type: "bar",
-              data: {
-                labels: response.chart_data.labels,
-                datasets: response.chart_data.datasets,
-              },
-              options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                  legend: { display: true, position: "top" },
-                  title: {
-                    display: true,
-                    text: "Fleet Delays and Breakdowns (Daily)",
-                    font: { size: 16 },
-                  },
-                },
-                scales: { y: { beginAtZero: true } },
-              },
-            });
-          },
-          error: function (xhr) {
-            console.error("Error fetching dashboard data:", xhr.responseText);
-          },
-        });
-      };
-
-      function calculateTimeDifference(startTime, endTime) {
-        if (!startTime || !endTime) return 'N/A';
-        var start = new Date(`1970-01-01T${startTime}Z`);
-        var end = new Date(`1970-01-01T${endTime}Z`);
-        var diffMs = end - start;
-        if (diffMs < 0) return 'N/A';
-        var diffMins = Math.floor(diffMs / 60000);
-        var hours = Math.floor(diffMins / 60);
-        var minutes = diffMins % 60;
-        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-      }
-
-      function fetchDailyDelayDetails(date) {
-        $.getJSON("/get-daily-delay-details/", { date: date }, function (data) {
-          var thead = $("#delay-details-table-head");
-          var tbody = $("#delay-details-table-body");
-          thead.empty();
-          tbody.empty();
-
-          thead.append(`
-            <tr class="bg-gray-100">
-              <th class="p-2 sm:p-3">Date</th>
-              <th class="p-2 sm:p-3">Route</th>
-              <th class="p-2 sm:p-3">In/Out</th>
-              <th class="p-2 sm:p-3">STA</th>
-              <th class="p-2 sm:p-3">ATA</th>
-              <th class="p-2 sm:p-3">STD</th>
-              <th class="p-2 sm:p-3">ATD</th>
-              <th class="p-2 sm:p-3">Delay</th>
-              <th class="p-2 sm:p-3">Staff Count</th>
-              <th class="p-2 sm:p-3">Remarks</th>
-            </tr>
-          `);
-
-          if (data.length === 0) {
-            tbody.append('<tr><td colspan="10" class="text-center">No delay details available.</td></tr>');
-          } else {
-            data.forEach(function (delay) {
-              var calculatedDelay = calculateTimeDifference(delay.sta, delay.ata);
-              tbody.append(`
-                <tr>
-                  <td>${delay.date}</td>
-                  <td>${delay.route}</td>
-                  <td>${delay.in_out}</td>
-                  <td>${delay.sta || 'N/A'}</td>
-                  <td>${delay.ata || 'N/A'}</td>
-                  <td>${delay.std || 'N/A'}</td>
-                  <td>${delay.atd || 'N/A'}</td>
-                  <td>${calculatedDelay}</td>
-                  <td>${delay.staff_count}</td>
-                  <td>${delay.remarks || 'N/A'}</td>
-                </tr>
-              `);
-            });
-          }
-          $("#delayDetailsModalLabel").text("Daily NST Details");
-        }).fail(function () {
-          $("#delay-details-table-body").html('<tr><td colspan="10" class="text-center">Error loading delay details.</td></tr>');
-        });
-      }
-
-      $(".delay-count-clickable").on("click", function () {
-        var selectedDate = dateFilter.val() || new Date().toISOString().split("T")[0];
-        fetchDailyDelayDetails(selectedDate);
-      });
-
-      window.fetchMostDelayedTrips = function (filterValue) {
-        var isMonthly = filterValue && filterValue.length === 7;
-        var params = isMonthly ? { selected_month: filterValue } : { selected_date: filterValue };
-        $.getJSON("/get-most-delayed-trips-api", params, function (data) {
-          if (!data || data.length === 0) {
-            $("#mostDelayedTripsChart").html("No data available");
-            return;
-          }
-          var ctx = document.getElementById("mostDelayedTripsChart").getContext("2d");
-          var labels = data.map(function (item) { return item.route + " (" + item.sta + ")"; });
-          var delayCounts = data.map(function (item) { return item.delay_count; });
-          if (window.mostDelayedTripsChart instanceof Chart) {
-            window.mostDelayedTripsChart.destroy();
-          }
-          window.mostDelayedTripsChart = new Chart(ctx, {
-            type: "bar",
-            data: {
-              labels: labels,
-              datasets: [{
-                label: "Delay Count",
-                data: delayCounts,
-                backgroundColor: "rgba(54, 162, 235, 0.7)",
-                borderColor: "rgba(54, 162, 235, 1)",
-                borderWidth: 1,
-              }],
-            },
-            options: {
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: {
-                legend: { display: true, position: "top" },
-                title: { display: true, text: "Top 5 Most Delayed Trips (Monthly)", font: { size: 16 } },
-              },
-              scales: {
-                x: { title: { display: true, text: "Routes", font: { size: 14 } }, ticks: { autoSkip: false, maxRotation: 45, minRotation: 0 } },
-                y: { beginAtZero: true, ticks: { precision: 0, font: { size: 12 } }, title: { display: true, text: "Delay Count", font: { size: 14 } } },
-              },
-            },
-          });
-        }).fail(function () {
-          $("#mostDelayedTripsChart").html("Error loading chart data.");
-        });
-      };
-
-      window.fetchTopDelayedLoadTrips = function (filterValue) {
-        var isMonthly = filterValue && filterValue.length === 7;
-        var params = isMonthly ? { selected_month: filterValue } : { selected_date: filterValue };
-        $.getJSON("/get-top-delayed-load-trips-api", params, function (data) {
-          if (!data || data.length === 0) {
-            $("#topDelayedLoadChart").html("No data available");
-            return;
-          }
-          var ctx = document.getElementById("topDelayedLoadChart").getContext("2d");
-          var labels = data.map(function (item) { return item.route + " (" + item.sta + ")"; });
-          var staffCounts = data.map(function (item) { return item.staff_count; });
-          var delayCounts = data.map(function (item) { return item.delay_count; });
-          if (window.topDelayedLoadChart instanceof Chart) {
-            window.topDelayedLoadChart.destroy();
-          }
-          window.topDelayedLoadChart = new Chart(ctx, {
-            type: "bar",
-            data: {
-              labels: labels,
-              datasets: [
-                { label: "Staff Count", data: staffCounts, backgroundColor: "rgba(255, 159, 64, 0.7)", borderColor: "rgba(255, 159, 64, 1)", borderWidth: 1 },
-                { label: "Delay Count", data: delayCounts, backgroundColor: "rgba(75, 192, 192, 0.7)", borderColor: "rgba(75, 192, 192, 1)", borderWidth: 1 },
-              ],
-            },
-            options: {
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: {
-                legend: { display: true, position: "top" },
-                title: { display: true, text: "Top 5 Delayed Trips with Highest Load (Monthly)", font: { size: 16 } },
-              },
-              scales: {
-                x: { title: { display: true, text: "Routes", font: { size: 14 } }, ticks: { autoSkip: false, maxRotation: 45, minRotation: 0 } },
-                y: { beginAtZero: true, ticks: { precision: 0, font: { size: 12 } }, title: { display: true, text: "Count", font: { size: 14 } } },
-              },
-            },
-          });
-        }).fail(function () {
-          $("#topDelayedLoadChart").html("Error loading chart data.");
-        });
-      };
-
-      function fetchOtpChart(period, canvasId) {
-        var filterType = $("#filter-type").val();
-        var selectedValue = (filterType === "monthly") ? monthFilter.val() : dateFilter.val();
-        var params = { period: period };
-        if (filterType === "monthly") {
-          params.selected_month = selectedValue;
-        } else {
-          params.selected_date = selectedValue;
         }
-        $.getJSON("/get-otp-chart-data", params, function (data) {
-          var ctx = document.getElementById(canvasId).getContext("2d");
-          if (window[canvasId + "Chart"] instanceof Chart) {
-            window[canvasId + "Chart"].destroy();
-          }
-          window[canvasId + "Chart"] = new Chart(ctx, {
-            type: "doughnut",
-            data: {
-              labels: ["OT", "NST"],
-              datasets: [{
-                data: data.data,
-                backgroundColor: ["#4CAF50", "#F44336"],
-                borderWidth: 1,
-              }],
-            },
-            options: {
-              responsive: true,
-              maintainAspectRatio: false,
-              cutout: "50%",
-              plugins: {
-                datalabels: {
-                  anchor: 'center',
-                  align: 'center',
-                  color: "#fff",
-                  font: { weight: "bold", size: 14 },
-                  formatter: function(value, context) {
-                    return context.chart.data.labels[context.dataIndex] + ": " + value;
-                  }
+
+        $("#filter-type").change(function () {
+            var selectedFilterType = $(this).val();
+            if (selectedFilterType === "daily") {
+                dateFilter.removeClass("hidden");
+                monthFilter.addClass("hidden");
+                $("#date-filter-label").text("Select Date:");
+                switchMessage.addClass("hidden");
+            } else if (selectedFilterType === "monthly") {
+                monthFilter.removeClass("hidden");
+                dateFilter.addClass("hidden");
+                $("#date-filter-label").text("Select Month:");
+                switchMessage.removeClass("hidden");
+            }
+        });
+
+        switchMessage.click(function () {
+            var selectedMonth = monthFilter.val();
+            if (!selectedMonth) { alert("Please select a valid month first."); return; }
+            dateFilter.val(selectedMonth + "-01");
+            $("#filter-type").val("daily").trigger("change");
+            updateDisplay(dateFilter.val(), "daily");
+        });
+
+        var fleetChartInstance = null;
+        window.updateDashboard = function (filterType, filterValue) {
+            $.ajax({
+                url: "/filter-dashboard/",
+                data: { filter_type: filterType, filter_value: filterValue },
+                success: function (response) {
+                    $("#daily-delay-count").text(response.daily_delays || 0);
+                    $("#daily-breakdown-count").text(response.daily_breakdowns || 0);
+                    $("#monthly-delay-count").text(response.monthly_delays || 0);
+                    $("#monthly-breakdown-count").text(response.monthly_breakdowns || 0);
+                    $("#total-delay-count").text(response.yearly_delays || 0);
+                    $("#total-breakdown-count").text(response.yearly_breakdowns || 0);
+
+                    var ctx = document.getElementById("fleet-delay-chart").getContext("2d");
+                    if (fleetChartInstance) { fleetChartInstance.destroy(); }
+                    fleetChartInstance = new Chart(ctx, {
+                        type: "bar",
+                        data: { labels: response.chart_data.labels, datasets: response.chart_data.datasets },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: true, position: "top" },
+                                title: { display: true, text: "Fleet Delays and Breakdowns (Daily)", font: { size: 16 } },
+                            },
+                            scales: { y: { beginAtZero: true } },
+                        },
+                    });
                 },
-                legend: { position: "top" },
-                title: { display: true, text: period.charAt(0).toUpperCase() + period.slice(1) + " OTP", font: { size: 16 } },
-              },
-              onClick: function(event, elements) {
-                if (elements.length > 0) {
-                  var index = elements[0].index;
-                  var label = this.data.labels[index];
-                  fetchOtpDetails(period, label, selectedValue, filterType);
-                  $('#delayDetailsModal').modal('show');
+                error: function (xhr) { console.error("Error fetching dashboard data:", xhr.responseText); },
+            });
+        };
+
+        function calculateTimeDifference(startTime, endTime) {
+            if (!startTime || !endTime) return 'N/A';
+            var start = new Date(`1970-01-01T${startTime}Z`);
+            var end = new Date(`1970-01-01T${endTime}Z`);
+            var diffMs = end - start;
+            if (diffMs < 0) return 'N/A';
+            var diffMins = Math.floor(diffMs / 60000);
+            var hours = Math.floor(diffMins / 60);
+            var minutes = diffMins % 60;
+            return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+        }
+
+        function fetchDailyDelayDetails(date) {
+            $.getJSON("/get-daily-delay-details/", { date: date }, function (data) {
+                var thead = $("#delay-details-table-head");
+                var tbody = $("#delay-details-table-body");
+                thead.empty(); tbody.empty();
+                thead.append(`
+                    <tr class="bg-gray-100">
+                        <th class="p-2 sm:p-3">Date</th><th class="p-2 sm:p-3">Route</th><th class="p-2 sm:p-3">In/Out</th>
+                        <th class="p-2 sm:p-3">STA</th><th class="p-2 sm:p-3">ATA</th><th class="p-2 sm:p-3">STD</th>
+                        <th class="p-2 sm:p-3">ATD</th><th class="p-2 sm:p-3">Delay</th><th class="p-2 sm:p-3">Staff Count</th><th class="p-2 sm:p-3">Remarks</th>
+                    </tr>
+                `);
+                if (data.length === 0) {
+                    tbody.append('<tr><td colspan="10" class="text-center">No delay details available.</td></tr>');
+                } else {
+                    data.forEach(function (delay) {
+                        var calculatedDelay = calculateTimeDifference(delay.sta, delay.ata);
+                        tbody.append(`
+                            <tr>
+                                <td>${delay.date}</td><td>${delay.route}</td><td>${delay.in_out}</td>
+                                <td>${delay.sta || 'N/A'}</td><td>${delay.ata || 'N/A'}</td><td>${delay.std || 'N/A'}</td>
+                                <td>${delay.atd || 'N/A'}</td><td>${calculatedDelay}</td><td>${delay.staff_count}</td><td>${delay.remarks || 'N/A'}</td>
+                            </tr>
+                        `);
+                    });
                 }
-              }
-            },
-          });
-        }).fail(function () {
-          $("#" + canvasId).parent().html("Error loading OTP data.");
-        });
-      }
-
-      function fetchOtpDetails(period, status, selectedValue, filterType) {
-        var params = { period: period, status: status };
-        if (filterType === "monthly") {
-          params.selected_month = selectedValue;
-        } else {
-          params.selected_date = selectedValue;
-        }
-        if (status === "OT") {
-          params.exclude_early = true;
-        }
-        $.getJSON("/get-otp-details/", params, function (data) {
-          var thead = $("#delay-details-table-head");
-          var tbody = $("#delay-details-table-body");
-          thead.empty();
-          tbody.empty();
-
-          if (status === "OT") {
-            thead.append(`
-              <tr class="bg-gray-100">
-                <th class="p-2 sm:p-3">Date</th>
-                <th class="p-2 sm:p-3">Route</th>
-                <th class="p-2 sm:p-3">In/Out</th>
-                <th class="p-2 sm:p-3">STA</th>
-                <th class="p-2 sm:p-3">ATA</th>
-                <th class="p-2 sm:p-3">Delay</th>
-                <th class="p-2 sm:p-3">Staff Count</th>
-                <th class="p-2 sm:p-3">Remarks</th>
-              </tr>
-            `);
-          } else if (status === "NST") {
-            thead.append(`
-              <tr class="bg-gray-100">
-                <th class="p-2 sm:p-3">Date</th>
-                <th class="p-2 sm:p-3">Route</th>
-                <th class="p-2 sm:p-3">In/Out</th>
-                <th class="p-2 sm:p-3">STD</th>
-                <th class="p-2 sm:p-3">ATD</th>
-                <th class="p-2 sm:p-3">Delay</th>
-                <th class="p-2 sm:p-3">Staff Count</th>
-                <th class="p-2 sm:p-3">Remarks</th>
-              </tr>
-            `);
-          }
-
-          if (data.length === 0) {
-            tbody.append('<tr><td colspan="8" class="text-center">No details available.</td></tr>');
-          } else {
-            data.forEach(function (delay) {
-              if (status === "OT") {
-                var calculatedDelay = calculateTimeDifference(delay.sta, delay.ata);
-                tbody.append(`
-                  <tr>
-                    <td>${delay.date}</td>
-                    <td>${delay.route}</td>
-                    <td>${delay.in_out}</td>
-                    <td>${delay.sta || 'N/A'}</td>
-                    <td>${delay.ata || 'N/A'}</td>
-                    <td>${calculatedDelay}</td>
-                    <td>${delay.staff_count}</td>
-                    <td>${delay.remarks || 'N/A'}</td>
-                  </tr>
-                `);
-              } else if (status === "NST") {
-                var calculatedDelay = calculateTimeDifference(delay.std, delay.atd);
-                tbody.append(`
-                  <tr>
-                    <td>${delay.date}</td>
-                    <td>${delay.route}</td>
-                    <td>${delay.in_out}</td>
-                    <td>${delay.std || 'N/A'}</td>
-                    <td>${delay.atd || 'N/A'}</td>
-                    <td>${calculatedDelay}</td>
-                    <td>${delay.staff_count}</td>
-                    <td>${delay.remarks || 'N/A'}</td>
-                  </tr>
-                `);
-              }
+                $("#delayDetailsModalLabel").text("Daily NST Details");
+            }).fail(function () {
+                $("#delay-details-table-body").html('<tr><td colspan="10" class="text-center">Error loading delay details.</td></tr>');
             });
-          }
-          $("#delayDetailsModalLabel").text(`${period.charAt(0).toUpperCase() + period.slice(1)} ${status} Details`);
-        }).fail(function () {
-          $("#delay-details-table-body").html('<tr><td colspan="8" class="text-center">Error loading details.</td></tr>');
-        });
-      }
-
-      // Check for date parameter in URL on page load
-      var urlDate = getUrlParameter('date');
-      var initialDate = urlDate || new Date().toISOString().split("T")[0]; // Default to today if no date in URL
-      dateFilter.val(initialDate);
-      $("#filter-type").val("daily");
-      updateDisplay(initialDate, "daily");
-      updateDashboard("until_date", initialDate);
-      fetchMostDelayedTrips(initialDate);
-      fetchTopDelayedLoadTrips(initialDate);
-      fetchOtpChart("daily", "otp-daily-chart");
-      fetchOtpChart("monthly", "otp-monthly-chart");
-      fetchOtpChart("yearly", "otp-yearly-chart");
-
-      $("#apply-filters").click(function () {
-        var filterType = $("#filter-type").val();
-        if (filterType === "daily") {
-          var selectedDate = dateFilter.val();
-          if (selectedDate) {
-            updateDisplay(selectedDate, "daily");
-            updateDashboard("until_date", selectedDate);
-            fetchMostDelayedTrips(selectedDate);
-            fetchTopDelayedLoadTrips(selectedDate);
-            fetchOtpChart("daily", "otp-daily-chart");
-            fetchOtpChart("monthly", "otp-monthly-chart");
-            fetchOtpChart("yearly", "otp-yearly-chart");
-            // Update URL without reloading page
-            window.history.pushState({}, document.title, "/stm-dashboard/?date=" + selectedDate);
-          } else {
-            alert("Please select a valid date!");
-          }
-        } else if (filterType === "monthly") {
-          var selectedMonth = monthFilter.val();
-          if (selectedMonth) {
-            updateDisplay(selectedMonth, "monthly");
-            updateDashboard("month", selectedMonth);
-            fetchMostDelayedTrips(selectedMonth);
-            fetchTopDelayedLoadTrips(selectedMonth);
-            fetchOtpChart("daily", "otp-daily-chart");
-            fetchOtpChart("monthly", "otp-monthly-chart");
-            fetchOtpChart("yearly", "otp-yearly-chart");
-            // Update URL without reloading page
-            window.history.pushState({}, document.title, "/stm-dashboard/?date=" + selectedMonth + "-01");
-          } else {
-            alert("Please select a valid month!");
-          }
         }
-      });
+
+        $(".delay-count-clickable").on("click", function () {
+            var selectedDate = dateFilter.val() || new Date().toISOString().split("T")[0];
+            fetchDailyDelayDetails(selectedDate);
+        });
+
+        window.fetchMostDelayedTrips = function (filterValue) {
+            var isMonthly = filterValue && filterValue.length === 7;
+            var params = isMonthly ? { selected_month: filterValue } : { selected_date: filterValue };
+            $.getJSON("/get-most-delayed-trips-api", params, function (data) {
+                if (!data || data.length === 0) { $("#mostDelayedTripsChart").html("No data available"); return; }
+                var ctx = document.getElementById("mostDelayedTripsChart").getContext("2d");
+                var labels = data.map(function (item) { return item.route + " (" + item.sta + ")"; });
+                var delayCounts = data.map(function (item) { return item.delay_count; });
+                if (window.mostDelayedTripsChart instanceof Chart) { window.mostDelayedTripsChart.destroy(); }
+                window.mostDelayedTripsChart = new Chart(ctx, {
+                    type: "bar",
+                    data: { labels: labels, datasets: [{ label: "Delay Count", data: delayCounts, backgroundColor: "rgba(54, 162, 235, 0.7)", borderColor: "rgba(54, 162, 235, 1)", borderWidth: 1 }] },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        plugins: { legend: { display: true, position: "top" }, title: { display: true, text: "Top 5 Most Delayed Trips (Monthly)", font: { size: 16 } } },
+                        scales: { x: { title: { display: true, text: "Routes", font: { size: 14 } }, ticks: { autoSkip: false, maxRotation: 45, minRotation: 0 } }, y: { beginAtZero: true, ticks: { precision: 0, font: { size: 12 } }, title: { display: true, text: "Delay Count", font: { size: 14 } } } },
+                    },
+                });
+            }).fail(function () { $("#mostDelayedTripsChart").html("Error loading chart data."); });
+        };
+
+        window.fetchTopDelayedLoadTrips = function (filterValue) {
+            var isMonthly = filterValue && filterValue.length === 7;
+            var params = isMonthly ? { selected_month: filterValue } : { selected_date: filterValue };
+            $.getJSON("/get-top-delayed-load-trips-api", params, function (data) {
+                if (!data || data.length === 0) { $("#topDelayedLoadChart").html("No data available"); return; }
+                var ctx = document.getElementById("topDelayedLoadChart").getContext("2d");
+                var labels = data.map(function (item) { return item.route + " (" + item.sta + ")"; });
+                var staffCounts = data.map(function (item) { return item.staff_count; });
+                var delayCounts = data.map(function (item) { return item.delay_count; });
+                if (window.topDelayedLoadChart instanceof Chart) { window.topDelayedLoadChart.destroy(); }
+                window.topDelayedLoadChart = new Chart(ctx, {
+                    type: "bar",
+                    data: { labels: labels, datasets: [
+                        { label: "Staff Count", data: staffCounts, backgroundColor: "rgba(255, 159, 64, 0.7)", borderColor: "rgba(255, 159, 64, 1)", borderWidth: 1 },
+                        { label: "Delay Count", data: delayCounts, backgroundColor: "rgba(75, 192, 192, 0.7)", borderColor: "rgba(75, 192, 192, 1)", borderWidth: 1 },
+                    ] },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        plugins: { legend: { display: true, position: "top" }, title: { display: true, text: "Top 5 Delayed Trips with Highest Load (Monthly)", font: { size: 16 } } },
+                        scales: { x: { title: { display: true, text: "Routes", font: { size: 14 } }, ticks: { autoSkip: false, maxRotation: 45, minRotation: 0 } }, y: { beginAtZero: true, ticks: { precision: 0, font: { size: 12 } }, title: { display: true, text: "Count", font: { size: 14 } } } },
+                    },
+                });
+            }).fail(function () { $("#topDelayedLoadChart").html("Error loading chart data."); });
+        };
+
+        function fetchOtpChart(period, canvasId) {
+            var filterType = $("#filter-type").val();
+            var selectedValue = (filterType === "monthly") ? monthFilter.val() : dateFilter.val();
+            var params = { period: period };
+            if (filterType === "monthly") { params.selected_month = selectedValue; } else { params.selected_date = selectedValue; }
+            $.getJSON("/get-otp-chart-data", params, function (data) {
+                var ctx = document.getElementById(canvasId).getContext("2d");
+                if (window[canvasId + "Chart"] instanceof Chart) { window[canvasId + "Chart"].destroy(); }
+                window[canvasId + "Chart"] = new Chart(ctx, {
+                    type: "doughnut",
+                    data: { labels: ["OT", "NST"], datasets: [{ data: data.data, backgroundColor: ["#4CAF50", "#F44336"], borderWidth: 1 }] },
+                    options: {
+                        responsive: true, maintainAspectRatio: false, cutout: "50%",
+                        plugins: {
+                            datalabels: { anchor: 'center', align: 'center', color: "#fff", font: { weight: "bold", size: 14 }, formatter: function(value, context) { return context.chart.data.labels[context.dataIndex] + ": " + value; } },
+                            legend: { position: "top" },
+                            title: { display: true, text: period.charAt(0).toUpperCase() + period.slice(1) + " OTP", font: { size: 16 } },
+                        },
+                        onClick: function(event, elements) {
+                            if (elements.length > 0) {
+                                var index = elements[0].index;
+                                var label = this.data.labels[index];
+                                fetchOtpDetails(period, label, selectedValue, filterType);
+                                $('#delayDetailsModal').modal('show');
+                            }
+                        }
+                    },
+                });
+            }).fail(function () { $("#" + canvasId).parent().html("Error loading OTP data."); });
+        }
+
+        function fetchOtpDetails(period, status, selectedValue, filterType) {
+            var params = { period: period, status: status };
+            if (filterType === "monthly") { params.selected_month = selectedValue; } else { params.selected_date = selectedValue; }
+            if (status === "OT") { params.exclude_early = true; }
+            $.getJSON("/get-otp-details/", params, function (data) {
+                var thead = $("#delay-details-table-head");
+                var tbody = $("#delay-details-table-body");
+                thead.empty(); tbody.empty();
+                if (status === "OT") {
+                    thead.append(`<tr class="bg-gray-100"><th class="p-2 sm:p-3">Date</th><th class="p-2 sm:p-3">Route</th><th class="p-2 sm:p-3">In/Out</th><th class="p-2 sm:p-3">STA</th><th class="p-2 sm:p-3">ATA</th><th class="p-2 sm:p-3">Delay</th><th class="p-2 sm:p-3">Staff Count</th><th class="p-2 sm:p-3">Remarks</th></tr>`);
+                } else if (status === "NST") {
+                    thead.append(`<tr class="bg-gray-100"><th class="p-2 sm:p-3">Date</th><th class="p-2 sm:p-3">Route</th><th class="p-2 sm:p-3">In/Out</th><th class="p-2 sm:p-3">STD</th><th class="p-2 sm:p-3">ATD</th><th class="p-2 sm:p-3">Delay</th><th class="p-2 sm:p-3">Staff Count</th><th class="p-2 sm:p-3">Remarks</th></tr>`);
+                }
+                if (data.length === 0) {
+                    tbody.append('<tr><td colspan="8" class="text-center">No details available.</td></tr>');
+                } else {
+                    data.forEach(function (delay) {
+                        if (status === "OT") {
+                            var calculatedDelay = calculateTimeDifference(delay.sta, delay.ata);
+                            tbody.append(`<tr><td>${delay.date}</td><td>${delay.route}</td><td>${delay.in_out}</td><td>${delay.sta || 'N/A'}</td><td>${delay.ata || 'N/A'}</td><td>${calculatedDelay}</td><td>${delay.staff_count}</td><td>${delay.remarks || 'N/A'}</td></tr>`);
+                        } else if (status === "NST") {
+                            var calculatedDelay = calculateTimeDifference(delay.std, delay.atd);
+                            tbody.append(`<tr><td>${delay.date}</td><td>${delay.route}</td><td>${delay.in_out}</td><td>${delay.std || 'N/A'}</td><td>${delay.atd || 'N/A'}</td><td>${calculatedDelay}</td><td>${delay.staff_count}</td><td>${delay.remarks || 'N/A'}</td></tr>`);
+                        }
+                    });
+                }
+                $("#delayDetailsModalLabel").text(`${period.charAt(0).toUpperCase() + period.slice(1)} ${status} Details`);
+            }).fail(function () { $("#delay-details-table-body").html('<tr><td colspan="8" class="text-center">Error loading details.</td></tr>'); });
+        }
+
+        var urlDate = getUrlParameter('date');
+        var initialDate = urlDate || new Date().toISOString().split("T")[0];
+        dateFilter.val(initialDate);
+        $("#filter-type").val("daily");
+        updateDisplay(initialDate, "daily");
+        updateDashboard("until_date", initialDate);
+        fetchMostDelayedTrips(initialDate);
+        fetchTopDelayedLoadTrips(initialDate);
+        fetchOtpChart("daily", "otp-daily-chart");
+        fetchOtpChart("monthly", "otp-monthly-chart");
+        fetchOtpChart("yearly", "otp-yearly-chart");
+
+        $("#apply-filters").click(function () {
+            var filterType = $("#filter-type").val();
+            if (filterType === "daily") {
+                var selectedDate = dateFilter.val();
+                if (selectedDate) {
+                    updateDisplay(selectedDate, "daily");
+                    updateDashboard("until_date", selectedDate);
+                    fetchMostDelayedTrips(selectedDate);
+                    fetchTopDelayedLoadTrips(selectedDate);
+                    fetchOtpChart("daily", "otp-daily-chart");
+                    fetchOtpChart("monthly", "otp-monthly-chart");
+                    fetchOtpChart("yearly", "otp-yearly-chart");
+                    window.history.pushState({}, document.title, "/stm-dashboard/?date=" + selectedDate);
+                } else { alert("Please select a valid date!"); }
+            } else if (filterType === "monthly") {
+                var selectedMonth = monthFilter.val();
+                if (selectedMonth) {
+                    updateDisplay(selectedMonth, "monthly");
+                    updateDashboard("month", selectedMonth);
+                    fetchMostDelayedTrips(selectedMonth);
+                    fetchTopDelayedLoadTrips(selectedMonth);
+                    fetchOtpChart("daily", "otp-daily-chart");
+                    fetchOtpChart("monthly", "otp-monthly-chart");
+                    fetchOtpChart("yearly", "otp-yearly-chart");
+                    window.history.pushState({}, document.title, "/stm-dashboard/?date=" + selectedMonth + "-01");
+                } else { alert("Please select a valid month!"); }
+            }
+        });
     });
-  </script>
-</body>
-</html>
+</script>
+{% endblock %}

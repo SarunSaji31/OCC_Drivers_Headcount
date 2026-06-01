@@ -1,129 +1,54 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    {% load static %}
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Enter Head Count - OCC-EKG Project</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Font Awesome 5.15.3 -->
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"
-    />
-    <!-- jQuery UI CSS -->
-    <link
-      rel="stylesheet"
-      href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css"
-    />
-    <style>
-      /* Custom styles that are not Tailwind-based */
-      body {
-        font-family: "Arial", sans-serif;
-        background: url("{% static 'occ_background_img.png' %}") no-repeat center center fixed;
-        background-size: cover;
-        color: #333;
-      }
-    </style>
-  </head>
-  <body class="bg-cover bg-center">
-    <!-- Navbar -->
-    <nav class="bg-gray-200 bg-opacity-80 border-b-2 border-gray-300 shadow-sm">
-      <div class="container mx-auto px-4 flex items-center justify-between">
-        <div class="flex items-center space-x-4">
-          <a href="/" class="text-black font-bold text-xl">Home</a>
-          <a href="/report/" class="text-black">Reports</a>
-          <a href="/dashboard/" class="text-black">Dashboard</a>
-        </div>
-        <div class="hidden md:flex items-center space-x-4">
-          <span class="text-black font-bold">Welcome, {{ staff_name }}!</span>
-          <a href="/user_submission_history/" class="text-black">Submission History</a>
-          <a href="/logout/" class="text-black">Logout</a>
-        </div>
-        <!-- Mobile nav toggle button -->
-        <div class="md:hidden">
-          <button id="nav-toggle" class="block md:hidden focus:outline-none">
-            <svg class="h-8 w-8 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
-            </svg>
-          </button>
-        </div>
-      </div>
-      <!-- Mobile Menu -->
-      <div class="md:hidden hidden" id="mobile-menu">
-        <div class="px-4 pt-2 pb-3 space-y-1">
-          <a href="/" class="block text-black">Home</a>
-          <a href="/report/" class="block text-black">Reports</a>
-          <a href="/dashboard/" class="block text-black">Dashboard</a>
-          <span class="block text-black font-bold">Welcome, {{ staff_name }}!</span>
-          <a href="/user_submission_history/" class="block text-black">Submission History</a>
-          <a href="/logout/" class="block text-black">Logout</a>
-        </div>
-      </div>
-    </nav>
+{% extends "duty/base_generic.html" %}
+{% load static %}
 
-    <!-- Header Section -->
-    <div class="relative text-center py-10 px-5 bg-gray-100 bg-opacity-90 text-gray-800 mb-8 border-b border-gray-300">
-      <img
-        src="https://et.ae/wp-content/uploads/2024/12/logo-1.svg"
-        alt="Logo"
-        class="absolute top-4 left-6 w-24 md:w-28"
-      />
-      <h1 class="text-3xl md:text-4xl font-bold mb-2">Enter Head Count Details</h1>
-      <p class="text-base mb-5">
-        Manage and track driver details and trip information efficiently.
-      </p>
-    </div>
+{% block title %}Enter Head Count · OCC-EKG Staff Transport{% endblock %}
 
-    <!-- Form Container -->
-    <div class="container mx-auto max-w-3xl bg-white bg-opacity-90 p-10 rounded-lg shadow-md border border-gray-300">
-      {% if error_message %}
-      <div class="mb-4 p-4 bg-red-100 text-red-700 rounded">
-        <strong>Error:</strong> {{ error_message }}
-      </div>
-      {% endif %}
+{% block nav_links %}
+    <a href="{% url 'home' %}"><i class="bi bi-house-door"></i> Home</a>
+    <a href="{% url 'submission_history' %}"><i class="bi bi-clock-history"></i> History</a>
+    {% if user.is_staff %}
+        <a href="{% url 'report' %}"><i class="bi bi-file-earmark-text"></i> Reports</a>
+        <a href="{% url 'dashboard' %}"><i class="bi bi-speedometer2"></i> Dashboard</a>
+    {% endif %}
+    <a href="{% url 'logout' %}"><i class="bi bi-box-arrow-right"></i> Logout</a>
+{% endblock %}
 
-      {# Since a successful submission now redirects, you can remove or comment out this block #}
-      {% if success_message %}
-      <div class="mb-4 p-4 bg-green-100 text-green-700 rounded">
-        <strong>Success:</strong> {{ success_message }}
-      </div>
-      {% endif %}
+{% block extra_head %}
+<!-- Tailwind (used by the dynamically generated trip rows) -->
+<script src="https://cdn.tailwindcss.com"></script>
+<!-- jQuery UI CSS for the duty-card autocomplete -->
+<link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+<style>
+    .ui-autocomplete { z-index: 2000; }
+</style>
+{% endblock %}
 
-      <!-- This form will be processed by the view that now redirects to the Bus/Km page -->
-      <form id="driver-trip-form" method="post">
+{% block content %}
+<div class="page-header">
+    <h2><i class="bi bi-clipboard-check me-2"></i>Enter Head Count Details</h2>
+    <p class="subtitle">Welcome, {{ staff_name }} — manage and track driver trip information.</p>
+</div>
+
+<div class="content-surface" style="max-width: 820px; margin: 0 auto;">
+    {% if error_message %}
+    <div class="alert alert-danger" role="alert"><strong>Error:</strong> {{ error_message }}</div>
+    {% endif %}
+    {% if success_message %}
+    <div class="alert alert-success" role="alert"><strong>Success:</strong> {{ success_message }}</div>
+    {% endif %}
+
+    <form id="driver-trip-form" method="post">
         {% csrf_token %}
-        <div class="mb-6">
-          <input
-            type="hidden"
-            id="id_staff_id"
-            name="staff_id"
-            value="{{ user.username }}"
-          />
-          <input
-            type="hidden"
-            id="id_driver_name"
-            name="driver_name"
-            value="{{ staff_name }}"
-          />
-          <div class="mb-4">
-            <label for="id_duty_card_no" class="block text-gray-700 font-medium mb-2">
-              Duty Card No
-            </label>
-            <input
-              type="text"
-              id="id_duty_card_no"
-              name="duty_card_no"
-              class="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-blue-500"
-              placeholder="e.g., A012"
-              required
-            />
-          </div>
+        <input type="hidden" id="id_staff_id" name="staff_id" value="{{ user.username }}" />
+        <input type="hidden" id="id_driver_name" name="driver_name" value="{{ staff_name }}" />
+
+        <div class="mb-3">
+            <label for="id_duty_card_no" class="form-label">Duty Card No</label>
+            <input type="text" id="id_duty_card_no" name="duty_card_no" class="form-control" placeholder="e.g., A012" required />
         </div>
 
         <div id="trip-entries" class="space-y-6">
-          <!-- Trip form entries will be dynamically added here -->
+            <!-- Trip form entries will be dynamically added here -->
         </div>
 
         <!-- Django formset management fields -->
@@ -132,199 +57,182 @@
         <input type="hidden" name="drivertrip_set-MIN_NUM_FORMS" value="0" />
         <input type="hidden" name="drivertrip_set-MAX_NUM_FORMS" value="1000" />
 
-        <div id="button-container" class="mt-6 flex items-center space-x-4 justify-center">
-          <div id="add-row" class="cursor-pointer text-green-600 text-2xl font-bold">+</div>
-          <!-- The submit button now clearly indicates that after submission the user will continue to the Bus/Km page -->
-          <button
-            type="submit"
-            class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded"
-            id="submit-button"
-          >
-            Submit Head Count & Continue
-          </button>
+        <div id="button-container" class="mt-4 d-flex align-items-center justify-content-center gap-3">
+            <button type="button" id="add-row" class="btn btn-outline-primary">
+                <i class="bi bi-plus-lg"></i> Add Trip
+            </button>
+            <button type="submit" class="btn btn-primary" id="submit-button">
+                <i class="bi bi-check2-circle me-1"></i> Submit Head Count &amp; Continue
+            </button>
         </div>
-      </form>
-    </div>
+    </form>
+</div>
+{% endblock %}
 
-    <!-- Footer -->
-    <footer class="bg-gray-200 text-gray-800 text-center py-4 mt-8 border-t border-gray-300">
-      <p>© Emirates Airline Staff Transport Project.</p>
-    </footer>
+{% block extra_js %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+<script>
+  $(document).ready(function () {
+    var tripCount = 0;
 
-    <!-- Scripts -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
-    <script>
-      // Mobile Navbar Toggle
-      document.getElementById("nav-toggle").addEventListener("click", function () {
-        var mobileMenu = document.getElementById("mobile-menu");
-        mobileMenu.classList.toggle("hidden");
-      });
-
-      $(document).ready(function () {
-        var tripCount = 0;
-
-        function addTripRow(tripData = {}, index) {
-          var newRow = `
-              <div class="trip-form-container border-b border-gray-300 pb-5 mb-5" data-index="${index}">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                  <div>
-                    <label class="block text-gray-700 font-medium mb-1">Route Name</label>
-                    ${
-                      tripData.route_name
-                        ? `
-                      <div class="flex items-center">
-                        <a href="/route-details/?route=${encodeURIComponent(tripData.route_name)}&shift_time=${encodeURIComponent(tripData.shift_time || "")}&type=${encodeURIComponent(tripData.trip_type || "")}" 
-                           class="underline text-blue-600" target="_blank">
-                          Routes
-                        </a>
-                        <input 
-                          type="text" 
-                          name="drivertrip_set-${index}-route_name" 
-                          class="ml-4 w-full border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-blue-500" 
-                          value="${tripData.route_name}" 
-                          required
-                        />
-                      </div>
-                    `
-                        : `
-                      <input type="text" name="drivertrip_set-${index}-route_name" class="w-full border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-blue-500" placeholder="Enter Route Name" required>
-                    `
-                    }
+    function addTripRow(tripData = {}, index) {
+      var newRow = `
+          <div class="trip-form-container border-b border-gray-300 pb-5 mb-5" data-index="${index}">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <div>
+                <label class="block text-gray-700 font-medium mb-1">Route Name</label>
+                ${
+                  tripData.route_name
+                    ? `
+                  <div class="flex items-center">
+                    <a href="/route-details/?route=${encodeURIComponent(tripData.route_name)}&shift_time=${encodeURIComponent(tripData.shift_time || "")}&type=${encodeURIComponent(tripData.trip_type || "")}"
+                       class="underline text-blue-600" target="_blank">
+                      Routes
+                    </a>
+                    <input
+                      type="text"
+                      name="drivertrip_set-${index}-route_name"
+                      class="ml-4 w-full border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-blue-500"
+                      value="${tripData.route_name}"
+                      required
+                    />
                   </div>
-                  <div>
-                    <label class="block text-gray-700 font-medium mb-1">Type</label>
-                    <select name="drivertrip_set-${index}-trip_type" class="w-full border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-blue-500" required>
-                      <option value="inbound" ${tripData.trip_type === "inbound" ? "selected" : ""}>Inbound</option>
-                      <option value="outbound" ${tripData.trip_type === "outbound" || !tripData.trip_type ? "selected" : ""}>Outbound</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label class="block text-gray-700 font-medium mb-1">Pick Up Time</label>
-                    <input type="time" name="drivertrip_set-${index}-pick_up_time" class="w-full border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-blue-500 time-24hr" value="${tripData.pick_up_time || ""}" required>
-                  </div>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                  <div>
-                    <label class="block text-gray-700 font-medium mb-1">Drop Off Time</label>
-                    <input type="time" name="drivertrip_set-${index}-drop_off_time" class="w-full border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-blue-500 time-24hr" value="${tripData.drop_off_time || ""}" required>
-                  </div>
-                  <div>
-                    <label class="block text-gray-700 font-medium mb-1">Shift Time</label>
-                    <input type="time" name="drivertrip_set-${index}-shift_time" class="w-full border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-blue-500 time-24hr" value="${tripData.shift_time || ""}" required>
-                  </div>
-                  <div>
-                    <label class="block text-gray-700 font-medium mb-1">Date</label>
-                    <input type="date" name="drivertrip_set-${index}-date" class="w-full border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-blue-500" value="${tripData.date || ""}" required>
-                  </div>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
-                  <div>
-                    <label class="block text-gray-700 font-medium mb-1">Head Count</label>
-                    <input type="number" name="drivertrip_set-${index}-head_count" class="w-full border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-blue-500" placeholder="Enter Head Count" value="${tripData.head_count || ""}" min="0" max="47" required>
-                  </div>
-                  <div class="text-right">
-                    <span class="remove-trip cursor-pointer text-red-600 font-bold">Remove</span>
-                  </div>
-                </div>
+                `
+                    : `
+                  <input type="text" name="drivertrip_set-${index}-route_name" class="w-full border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-blue-500" placeholder="Enter Route Name" required>
+                `
+                }
               </div>
-          `;
-          $("#trip-entries").append(newRow);
-          tripCount++;
-          updateFormIndices();
-          enforce24HourFormat(); // Call this after adding a new row
-        }
+              <div>
+                <label class="block text-gray-700 font-medium mb-1">Type</label>
+                <select name="drivertrip_set-${index}-trip_type" class="w-full border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-blue-500" required>
+                  <option value="inbound" ${tripData.trip_type === "inbound" ? "selected" : ""}>Inbound</option>
+                  <option value="outbound" ${tripData.trip_type === "outbound" || !tripData.trip_type ? "selected" : ""}>Outbound</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-gray-700 font-medium mb-1">Pick Up Time</label>
+                <input type="time" name="drivertrip_set-${index}-pick_up_time" class="w-full border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-blue-500 time-24hr" value="${tripData.pick_up_time || ""}" required>
+              </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <div>
+                <label class="block text-gray-700 font-medium mb-1">Drop Off Time</label>
+                <input type="time" name="drivertrip_set-${index}-drop_off_time" class="w-full border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-blue-500 time-24hr" value="${tripData.drop_off_time || ""}" required>
+              </div>
+              <div>
+                <label class="block text-gray-700 font-medium mb-1">Shift Time</label>
+                <input type="time" name="drivertrip_set-${index}-shift_time" class="w-full border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-blue-500 time-24hr" value="${tripData.shift_time || ""}" required>
+              </div>
+              <div>
+                <label class="block text-gray-700 font-medium mb-1">Date</label>
+                <input type="date" name="drivertrip_set-${index}-date" class="w-full border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-blue-500" value="${tripData.date || ""}" required>
+              </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+              <div>
+                <label class="block text-gray-700 font-medium mb-1">Head Count</label>
+                <input type="number" name="drivertrip_set-${index}-head_count" class="w-full border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-blue-500" placeholder="Enter Head Count" value="${tripData.head_count || ""}" min="0" max="47" required>
+              </div>
+              <div class="text-right">
+                <span class="remove-trip cursor-pointer text-red-600 font-bold">Remove</span>
+              </div>
+            </div>
+          </div>
+      `;
+      $("#trip-entries").append(newRow);
+      tripCount++;
+      updateFormIndices();
+      enforce24HourFormat();
+    }
 
-        function updateFormIndices() {
-          $(".trip-form-container").each(function (index) {
-            $(this).attr("data-index", index);
-            $(this).find("input, select").each(function () {
-              const name = $(this).attr("name");
-              const newName = name.replace(/\d+/, index);
-              $(this).attr("name", newName);
-            });
-          });
-          $("#id_drivertrip_set-TOTAL_FORMS").val(tripCount);
-        }
-
-        // Function to enforce 24-hour format
-        function enforce24HourFormat() {
-          $(".time-24hr").each(function () {
-            $(this).on("change input", function () {
-              let value = $(this).val();
-              if (value) {
-                // Convert to 24-hour format if needed
-                const time = new Date(`1970-01-01T${value}`);
-                const hours = time.getHours().toString().padStart(2, "0");
-                const minutes = time.getMinutes().toString().padStart(2, "0");
-                $(this).val(`${hours}:${minutes}`);
-              }
-            });
-          });
-        }
-
-        $("#add-row").on("click", function () {
-          addTripRow({}, tripCount);
-          $("#submit-button").show();
+    function updateFormIndices() {
+      $(".trip-form-container").each(function (index) {
+        $(this).attr("data-index", index);
+        $(this).find("input, select").each(function () {
+          const name = $(this).attr("name");
+          const newName = name.replace(/\d+/, index);
+          $(this).attr("name", newName);
         });
+      });
+      $("#id_drivertrip_set-TOTAL_FORMS").val(tripCount);
+    }
 
-        $(document).on("click", ".remove-trip", function () {
-          $(this).closest(".trip-form-container").remove();
-          tripCount--;
-          updateFormIndices();
-          if (tripCount === 0) {
-            $("#submit-button").hide();
+    function enforce24HourFormat() {
+      $(".time-24hr").each(function () {
+        $(this).on("change input", function () {
+          let value = $(this).val();
+          if (value) {
+            const time = new Date(`1970-01-01T${value}`);
+            const hours = time.getHours().toString().padStart(2, "0");
+            const minutes = time.getMinutes().toString().padStart(2, "0");
+            $(this).val(`${hours}:${minutes}`);
           }
         });
+      });
+    }
 
+    $("#add-row").on("click", function () {
+      addTripRow({}, tripCount);
+      $("#submit-button").show();
+    });
+
+    $(document).on("click", ".remove-trip", function () {
+      $(this).closest(".trip-form-container").remove();
+      tripCount--;
+      updateFormIndices();
+      if (tripCount === 0) {
         $("#submit-button").hide();
+      }
+    });
 
-        $("#id_duty_card_no").autocomplete({
-          source: function (request, response) {
-            $.ajax({
-              url: "{% url 'duty-card-no-autocomplete' %}",
-              dataType: "json",
-              data: { term: request.term },
-              success: function (data) {
-                response($.map(data, function (item) {
-                    return { label: item, value: item };
-                }));
-              },
-              error: function (xhr, status, error) {
-                console.log("Error fetching autocomplete data:", error);
-              },
-            });
+    $("#submit-button").hide();
+
+    $("#id_duty_card_no").autocomplete({
+      source: function (request, response) {
+        $.ajax({
+          url: "{% url 'duty-card-no-autocomplete' %}",
+          dataType: "json",
+          data: { term: request.term },
+          success: function (data) {
+            response($.map(data, function (item) {
+                return { label: item, value: item };
+            }));
           },
-          minLength: 2,
-          select: function (event, ui) {
-            $.ajax({
-              url: "{% url 'get-duty-card-details' %}",
-              dataType: "json",
-              data: { duty_card_no: ui.item.value },
-              success: function (data) {
-                $("#trip-entries").empty();
-                tripCount = 0;
-                data.trips.forEach(function (trip, index) {
-                  addTripRow(trip, index);
-                });
-                if (tripCount > 0) {
-                  $("#submit-button").show();
-                }
-              },
-              error: function (xhr, status, error) {
-                console.log("Error fetching duty card details:", error);
-              },
-            });
-          },
-          focus: function (event, ui) {
-            event.preventDefault();
-            $(this).val(ui.item.label);
+          error: function (xhr, status, error) {
+            console.log("Error fetching autocomplete data:", error);
           },
         });
+      },
+      minLength: 2,
+      select: function (event, ui) {
+        $.ajax({
+          url: "{% url 'get-duty-card-details' %}",
+          dataType: "json",
+          data: { duty_card_no: ui.item.value },
+          success: function (data) {
+            $("#trip-entries").empty();
+            tripCount = 0;
+            data.trips.forEach(function (trip, index) {
+              addTripRow(trip, index);
+            });
+            if (tripCount > 0) {
+              $("#submit-button").show();
+            }
+          },
+          error: function (xhr, status, error) {
+            console.log("Error fetching duty card details:", error);
+          },
+        });
+      },
+      focus: function (event, ui) {
+        event.preventDefault();
+        $(this).val(ui.item.label);
+      },
+    });
 
-        // Initial call to enforce 24-hour format on page load
-        enforce24HourFormat();
-      });
-    </script>
-  </body>
-</html>
+    enforce24HourFormat();
+  });
+</script>
+{% endblock %}

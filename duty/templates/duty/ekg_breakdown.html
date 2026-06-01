@@ -1,285 +1,63 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EKG Breakdown Report</title>
+{% extends "duty/base_generic.html" %}
 
-    <!-- Bootstrap 5 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+{% block title %}Breakdown Report · OCC-EKG{% endblock %}
 
-    <!-- Google Font -->
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+{% block nav_links %}
+    <a href="{% url 'home' %}"><i class="bi bi-house-door"></i> Home</a>
+    <a href="{% url 'subcategory_selection' %}"><i class="bi bi-grid"></i> STM-EKG</a>
+    <a href="{% url 'logout' %}"><i class="bi bi-box-arrow-right"></i> Logout</a>
+{% endblock %}
 
-    <!-- Custom CSS -->
-    <style>
-        body {
-            font-family: 'Roboto', sans-serif;
-            background-color: #f7f9fc;
-            padding: 0;
-            margin: 0;
-        }
+{% block content %}
+<div style="max-width: 860px; margin: 0 auto;">
+    <a href="{% url 'subcategory_selection' %}" class="btn btn-outline-secondary mb-3"><i class="bi bi-arrow-left me-1"></i>Back to STM-EKG</a>
 
-        .container {
-            background-color: #ffffff;
-            padding: 40px;
-            border-radius: 10px;
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
-            max-width: 800px;
-            margin: 80px auto;
-        }
+    <div class="content-surface">
+        <div class="page-header text-center"><h2>Breakdown Report Form</h2></div>
 
-        h1 {
-            font-size: 28px;
-            font-weight: 700;
-            color: #343a40;
-            margin-bottom: 30px;
-            text-align: center;
-        }
+        <form id="BreakdownReportForm" method="post" action="{% url 'ekg_breakdown' %}">
+            {% csrf_token %}
+            <div class="row mb-3"><label class="form-label col-md-4">Date and Time of Report</label><div class="col-md-8"><input type="datetime-local" class="form-control" name="reported_datetime" required></div></div>
+            <div class="row mb-3"><label class="form-label col-md-4">Breakdown Date and Time</label><div class="col-md-8"><input type="datetime-local" class="form-control" name="breakdown_datetime" required></div></div>
+            <div class="row mb-3"><label class="form-label col-md-4">Breakdown Location</label><div class="col-md-8"><input type="text" class="form-control" name="location" placeholder="Enter location" required></div></div>
+            <div class="row mb-3"><label class="form-label col-md-4">Route #</label><div class="col-md-8"><input type="text" class="form-control" name="route_number" placeholder="Enter Route #" required></div></div>
+            <div class="row mb-3"><label class="form-label col-md-4">Trip Work Order #</label><div class="col-md-8"><input type="text" class="form-control" name="trip_work_order" placeholder="Enter Work Order #" required></div></div>
+            <div class="row mb-3"><label class="form-label col-md-4">No. of passengers involved</label><div class="col-md-8"><input type="number" class="form-control" name="passengers_involved" required></div></div>
+            <div class="row mb-3"><label class="form-label col-md-4">Non-EK Passenger Details</label><div class="col-md-8"><textarea class="form-control" name="non_ek_passenger_details" placeholder="Enter details"></textarea></div></div>
+            <div class="row mb-3"><label class="form-label col-md-4">No. of injured passengers</label><div class="col-md-8"><input type="number" class="form-control" name="injured_passengers" required></div></div>
+            <div class="row mb-3"><label class="form-label col-md-4">Action taken for injured passenger</label><div class="col-md-8"><textarea class="form-control" name="action_taken_for_injured" placeholder="Describe action taken"></textarea></div></div>
+            <div class="row mb-3"><label class="form-label col-md-4">Damage to the vehicle(s)</label><div class="col-md-8"><select class="form-select" name="vehicle_damage" required><option value="yes">Yes</option><option value="no">No</option></select></div></div>
+            <div class="row mb-3"><label class="form-label col-md-4">Driver Name</label><div class="col-md-8"><input type="text" class="form-control" name="driver_name" placeholder="Enter Driver Name" required></div></div>
+            <div class="row mb-3"><label class="form-label col-md-4">Driver ID</label><div class="col-md-8"><input type="text" class="form-control" name="driver_id" placeholder="Enter Driver ID" required></div></div>
+            <div class="row mb-3"><label class="form-label col-md-4">Driver Shift</label><div class="col-md-8"><input type="text" class="form-control" name="driver_shift" placeholder="Enter Driver Shift" required></div></div>
+            <div class="row mb-3"><label class="form-label col-md-4">Description of the Breakdown</label><div class="col-md-8"><textarea class="form-control" name="breakdown_description" placeholder="Describe the breakdown" required></textarea></div></div>
+            <div class="row mb-3"><label class="form-label col-md-4">No. of EK vehicles involved</label><div class="col-md-8"><input type="number" class="form-control" name="ek_vehicles_involved" required></div></div>
+            <div class="row mb-3"><label class="form-label col-md-4">Vehicle Make and Plate #</label><div class="col-md-8"><input type="text" class="form-control" name="vehicle_make_plate" placeholder="Enter Vehicle Make and Plate #" required></div></div>
+            <div class="row mb-3"><label class="form-label col-md-4">Replacement vehicle #</label><div class="col-md-8"><input type="text" class="form-control" name="replacement_vehicle" placeholder="Enter Replacement Vehicle #"></div></div>
+            <div class="row mb-3"><label class="form-label col-md-4">Reported to person at EK</label><div class="col-md-8"><input type="text" class="form-control" name="reported_to_person" placeholder="Enter name of EK contact"></div></div>
 
-        .form-label {
-            font-weight: 500;
-            font-size: 16px;
-        }
-
-        .form-control {
-            border-radius: 8px;
-            padding: 10px;
-        }
-
-        .submit-btn {
-            background-color: #007bff;
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            font-size: 16px;
-            font-weight: 600;
-            border-radius: 8px;
-            transition: background-color 0.3s ease;
-        }
-
-        .submit-btn:hover {
-            background-color: #0056b3;
-        }
-
-        /* Back link style */
-        .back-link {
-            display: inline-block;
-            color: #007bff;
-            font-weight: 500;
-            text-decoration: none;
-            padding: 10px 20px;
-            background-color: #f1f1f1;
-            border-radius: 5px;
-            transition: background-color 0.3s ease, box-shadow 0.3s ease;
-            margin-bottom: 20px;
-        }
-
-        .back-link:hover {
-            background-color: #e0e0e0;
-            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
-            text-decoration: none;
-        }
-
-        .back-link i {
-            margin-right: 8px;
-        }
-
-        @media (max-width: 768px) {
-            .container {
-                padding: 20px;
-            }
-
-            h1 {
-                font-size: 24px;
-            }
-
-            .submit-btn {
-                font-size: 14px;
-            }
-
-            .back-link {
-                font-size: 16px;
-                padding: 8px 15px;
-            }
-        }
-    </style>
-</head>
-<body>
-
-<div class="container">
-    <!-- Link to go back to Subcategory Page -->
-    <a href="/subcategory/" class="back-link">
-        <i class="fas fa-arrow-left"></i> Back to Subcategory
-    </a>
-
-    <h1>Breakdown Report Form</h1>
-
-    <form id="BreakdownReportForm" method="post" action="{% url 'ekg_breakdown' %}">
-        {% csrf_token %}
-        <div class="row mb-3">
-            <label class="form-label col-md-4" for="reported_datetime">Date and Time of Report</label>
-            <div class="col-md-8">
-                <input type="datetime-local" class="form-control" name="reported_datetime" required>
-            </div>
-        </div>
-
-        <div class="row mb-3">
-            <label class="form-label col-md-4" for="breakdown_datetime">Breakdown Date and Time</label>
-            <div class="col-md-8">
-                <input type="datetime-local" class="form-control" name="breakdown_datetime" required>
-            </div>
-        </div>
-
-        <div class="row mb-3">
-            <label class="form-label col-md-4" for="location">Breakdown Location</label>
-            <div class="col-md-8">
-                <input type="text" class="form-control" name="location" placeholder="Enter location" required>
-            </div>
-        </div>
-
-        <div class="row mb-3">
-            <label class="form-label col-md-4" for="route_number">Route #</label>
-            <div class="col-md-8">
-                <input type="text" class="form-control" name="route_number" placeholder="Enter Route #" required>
-            </div>
-        </div>
-
-        <div class="row mb-3">
-            <label class="form-label col-md-4" for="trip_work_order">Trip Work Order #</label>
-            <div class="col-md-8">
-                <input type="text" class="form-control" name="trip_work_order" placeholder="Enter Work Order #" required>
-            </div>
-        </div>
-
-        <div class="row mb-3">
-            <label class="form-label col-md-4" for="passengers_involved">No. of passengers involved</label>
-            <div class="col-md-8">
-                <input type="number" class="form-control" name="passengers_involved" required>
-            </div>
-        </div>
-
-        <div class="row mb-3">
-            <label class="form-label col-md-4" for="non_ek_passenger_details">Non-EK Passenger Details</label>
-            <div class="col-md-8">
-                <textarea class="form-control" name="non_ek_passenger_details" placeholder="Enter details"></textarea>
-            </div>
-        </div>
-
-        <div class="row mb-3">
-            <label class="form-label col-md-4" for="injured_passengers">No. of injured passengers</label>
-            <div class="col-md-8">
-                <input type="number" class="form-control" name="injured_passengers" required>
-            </div>
-        </div>
-
-        <div class="row mb-3">
-            <label class="form-label col-md-4" for="action_taken_for_injured">Action taken for injured passenger</label>
-            <div class="col-md-8">
-                <textarea class="form-control" name="action_taken_for_injured" placeholder="Describe action taken"></textarea>
-            </div>
-        </div>
-
-        <div class="row mb-3">
-            <label class="form-label col-md-4" for="vehicle_damage">Damage to the vehicle(s)</label>
-            <div class="col-md-8">
-                <select class="form-control" name="vehicle_damage" required>
-                    <option value="yes">Yes</option>
-                    <option value="no">No</option>
-                </select>
-            </div>
-        </div>
-
-        <div class="row mb-3">
-            <label class="form-label col-md-4" for="driver_name">Driver Name</label>
-            <div class="col-md-8">
-                <input type="text" class="form-control" name="driver_name" placeholder="Enter Driver Name" required>
-            </div>
-        </div>
-
-        <div class="row mb-3">
-            <label class="form-label col-md-4" for="driver_id">Driver ID</label>
-            <div class="col-md-8">
-                <input type="text" class="form-control" name="driver_id" placeholder="Enter Driver ID" required>
-            </div>
-        </div>
-
-        <div class="row mb-3">
-            <label class="form-label col-md-4" for="driver_shift">Driver Shift</label>
-            <div class="col-md-8">
-                <input type="text" class="form-control" name="driver_shift" placeholder="Enter Driver Shift" required>
-            </div>
-        </div>
-
-        <div class="row mb-3">
-            <label class="form-label col-md-4" for="breakdown_description">Description of the Breakdown</label>
-            <div class="col-md-8">
-                <textarea class="form-control" name="breakdown_description" placeholder="Describe the breakdown" required></textarea>
-            </div>
-        </div>
-
-        <div class="row mb-3">
-            <label class="form-label col-md-4" for="ek_vehicles_involved">No. of EK vehicles involved</label>
-            <div class="col-md-8">
-                <input type="number" class="form-control" name="ek_vehicles_involved" required>
-            </div>
-        </div>
-
-        <div class="row mb-3">
-            <label class="form-label col-md-4" for="vehicle_make_plate">Vehicle Make and Plate #</label>
-            <div class="col-md-8">
-                <input type="text" class="form-control" name="vehicle_make_plate" placeholder="Enter Vehicle Make and Plate #" required>
-            </div>
-        </div>
-
-        <div class="row mb-3">
-            <label class="form-label col-md-4" for="replacement_vehicle">Replacement vehicle #</label>
-            <div class="col-md-8">
-                <input type="text" class="form-control" name="replacement_vehicle" placeholder="Enter Replacement Vehicle #">
-            </div>
-        </div>
-
-        <div class="row mb-3">
-            <label class="form-label col-md-4" for="reported_to_person">Reported to person at EK</label>
-            <div class="col-md-8">
-                <input type="text" class="form-control" name="reported_to_person" placeholder="Enter name of EK contact">
-            </div>
-        </div>
-
-        <div class="row mb-3">
-            <label class="form-label col-md-4" for="reported_datetime">Reported Date and Time</label>
-            <div class="col-md-8">
-                <input type="datetime-local" class="form-control" name="reported_datetime" required>
-            </div>
-        </div>
-
-        <button type="submit" class="submit-btn w-100">Submit Report</button>
-    </form>
+            <button type="submit" class="btn btn-primary w-100"><i class="bi bi-send me-1"></i>Submit Report</button>
+        </form>
+    </div>
 </div>
+{% endblock %}
 
-<!-- Bootstrap 5 JS -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-
+{% block extra_js %}
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         const form = document.querySelector('#BreakdownReportForm');
-
         form.addEventListener('submit', function (event) {
-            event.preventDefault(); // Prevent default form submission
-
+            event.preventDefault();
             const formData = new FormData(form);
-
             fetch("{% url 'ekg_breakdown' %}", {
                 method: 'POST',
                 body: formData,
-                headers: {
-                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                }
+                headers: { 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value }
             })
             .then(response => response.json())
             .then(data => {
                 if (data.status === 'success') {
-                    window.location.href = "/success/"; // Redirect to success page
+                    window.location.href = "/success/";
                 } else {
                     alert('An error occurred: ' + (data.message || 'Unknown error'));
                 }
@@ -291,6 +69,4 @@
         });
     });
 </script>
-
-</body>
-</html>
+{% endblock %}

@@ -1,234 +1,117 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  {% load static %}
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Submission History - {{ staff_name }}</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <style>
-    /* Mobile-First Base Styles */
-    body {
-      background: #f4f7fa;
-      font-family: 'Roboto', sans-serif;
-      color: #2d3748;
-      margin: 0;
-      padding: 0;
-      font-size: 14px;
-    }
-    .container-mobile {
-      padding: 15px;
-      margin: 10px auto;
-      max-width: 100%;
-    }
-    h1 {
-      font-size: 1.5rem;
-      color: #c53030;
-      font-weight: 600;
-      text-align: center;
-      margin: 0 0 15px;
-    }
-    h2 {
-      font-size: 1.2rem;
-      color: #4a5568;
-      font-weight: 500;
-      margin: 20px 0 10px;
-    }
-    .filter-form {
-      background: #fff;
-      padding: 15px;
-      border-radius: 8px;
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-      margin-bottom: 20px;
-    }
-    .filter-form select, .filter-form button {
-      width: 100%;
-      margin-bottom: 10px;
-      font-size: 0.9rem;
-      border-radius: 5px;
-    }
-    .filter-form button {
-      background: #c53030;
-      border: none;
-      padding: 10px;
-      color: #fff;
-      font-weight: 500;
-    }
-    .card {
-      background: #fff;
-      border-radius: 8px;
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-      margin-bottom: 15px;
-      overflow: hidden;
-    }
-    .card-header {
-      background: #c53030;
-      color: #fff;
-      padding: 10px;
-      font-size: 0.9rem;
-      font-weight: 500;
-      cursor: pointer;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .card-body {
-      padding: 10px;
-      font-size: 0.85rem;
-    }
-    .list-group-item {
-      padding: 8px;
-      border: none;
-      border-bottom: 1px solid #edf2f7;
-      word-wrap: break-word;
-    }
-    .no-data {
-      text-align: center;
-      color: #dd6b20;
-      font-size: 0.9rem;
-      padding: 15px;
-      background: #fefcbf;
-      border-radius: 8px;
-      margin-bottom: 15px;
-    }
-    .btn-home {
-      display: block;
-      width: 100%;
-      background: #c53030;
-      color: #fff;
-      padding: 12px;
-      border: none;
-      border-radius: 5px;
-      text-align: center;
-      font-size: 0.9rem;
-      text-decoration: none;
-      margin-top: 20px;
-      transition: background 0.3s ease;
-    }
-    .btn-home:hover {
-      background: #9c2c2c;
-      color: #fff;
-    }
+{% extends "duty/base_generic.html" %}
+{% load static %}
 
-    /* Tablet and Desktop Adjustments */
-    @media (min-width: 768px) {
-      .container-mobile {
-        padding: 20px;
-        max-width: 720px;
-      }
-      h1 { font-size: 2rem; }
-      h2 { font-size: 1.5rem; }
-      .filter-form {
-        padding: 20px;
+{% block title %}Submission History · {{ staff_name }}{% endblock %}
+
+{% block extra_head %}
+<style>
+    .history-card .card-header {
+        background: var(--color-surface-alt);
+        color: var(--color-text);
+        font-weight: 600;
+        cursor: pointer;
         display: flex;
-        gap: 15px;
-        align-items: flex-end;
-      }
-      .filter-form select, .filter-form button {
-        width: auto;
-        margin-bottom: 0;
-      }
-      .card-header { font-size: 1rem; padding: 12px; }
-      .card-body { font-size: 0.9rem; padding: 15px; }
-      .list-group-item { padding: 10px; }
-      .btn-home { width: 200px; margin: 20px auto; }
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid var(--color-border);
     }
-    @media (min-width: 992px) {
-      .container-mobile { max-width: 960px; }
+    .history-card .card-header[aria-expanded="true"] .bi-chevron-down { transform: rotate(180deg); }
+    .history-card .card-header .bi-chevron-down { transition: transform .2s ease; }
+    .history-card .list-group-item { border: none; border-bottom: 1px solid var(--color-border); }
+    .no-data {
+        text-align: center; color: var(--color-warning);
+        padding: 1rem; background: #fffbeb; border: 1px solid #fde68a;
+        border-radius: var(--radius-sm); margin-bottom: 1rem;
     }
-  </style>
-</head>
-<body>
-  <div class="container-mobile">
-    <!-- Header -->
-    <h1><i class="fas fa-history me-2"></i> {{ staff_name }}'s History</h1>
+</style>
+{% endblock %}
 
-    <!-- Filter Form -->
-    <div class="filter-form">
-      <form method="get">
-        <select name="month" id="month" class="form-select">
-          {% for m in months %}
-            <option value="{{ m }}" {% if m == filter_month %}selected{% endif %}>
-              {{ m|date:"F" }}
-            </option>
-          {% endfor %}
-        </select>
-        <select name="year" id="year" class="form-select">
-          {% for y in years %}
-            <option value="{{ y }}" {% if y == filter_year %}selected{% endif %}>{{ y }}</option>
-          {% endfor %}
-        </select>
-        <button type="submit" class="btn">Filter <i class="fas fa-filter ms-1"></i></button>
-      </form>
+{% block content %}
+<div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <div>
+        <h2><i class="bi bi-clock-history me-2"></i>{{ staff_name }}'s History</h2>
+        <p class="subtitle">Your submitted head count and bus &amp; KM records</p>
     </div>
+    <a href="{% url 'home' %}" class="btn btn-outline-primary"><i class="bi bi-house-door me-1"></i>Back to Home</a>
+</div>
 
-    <!-- Head Count Submissions -->
-    <h2><i class="fas fa-users me-2"></i> Head Count</h2>
-    {% if head_count_entries %}
-      {% regroup head_count_entries by date|date:"F j, Y" as head_count_by_day %}
-      {% for group in head_count_by_day %}
-        <div class="card">
-          <div class="card-header" data-bs-toggle="collapse" data-bs-target="#head-{{ forloop.counter }}">
-            {{ group.grouper }} ({{ group.list|length }})
-            <i class="fas fa-chevron-down"></i>
-          </div>
-          <div id="head-{{ forloop.counter }}" class="collapse card-body">
+<!-- Filter Form -->
+<div class="content-surface mb-4">
+    <form method="get" class="row g-2 align-items-end">
+        <div class="col-sm-5">
+            <label for="month" class="form-label">Month</label>
+            <select name="month" id="month" class="form-select">
+                {% for m in months %}
+                    <option value="{{ m }}" {% if m == filter_month %}selected{% endif %}>{{ m|date:"F" }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-sm-4">
+            <label for="year" class="form-label">Year</label>
+            <select name="year" id="year" class="form-select">
+                {% for y in years %}
+                    <option value="{{ y }}" {% if y == filter_year %}selected{% endif %}>{{ y }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-sm-3">
+            <button type="submit" class="btn btn-primary w-100"><i class="bi bi-funnel me-1"></i>Filter</button>
+        </div>
+    </form>
+</div>
+
+<!-- Head Count Submissions -->
+<h4 class="mb-3"><i class="bi bi-people me-2"></i>Head Count</h4>
+{% if head_count_entries %}
+    {% regroup head_count_entries by date|date:"F j, Y" as head_count_by_day %}
+    {% for group in head_count_by_day %}
+        <div class="card history-card mb-3">
+            <div class="card-header" data-bs-toggle="collapse" data-bs-target="#head-{{ forloop.counter }}" aria-expanded="false">
+                <span>{{ group.grouper }} <span class="badge bg-primary ms-1">{{ group.list|length }}</span></span>
+                <i class="bi bi-chevron-down"></i>
+            </div>
+            <div id="head-{{ forloop.counter }}" class="collapse">
+                <ul class="list-group list-group-flush">
+                    {% for trip in group.list %}
+                        <li class="list-group-item">
+                            <strong>#{{ forloop.counter }}</strong> &middot;
+                            Duty: {% if trip.duty_card %}{{ trip.duty_card.duty_card_no }}{% else %}N/A{% endif %}<br>
+                            Route: {{ trip.route_name }} &middot; Pickup: {{ trip.pick_up_time|time:"H:i" }} &middot; Drop: {{ trip.drop_off_time|time:"H:i" }}<br>
+                            Shift: {{ trip.shift_time|time:"H:i" }} &middot; Count: {{ trip.head_count }} &middot; Type: {{ trip.trip_type }}
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    {% endfor %}
+{% else %}
+    <p class="no-data"><i class="bi bi-exclamation-triangle me-2"></i>No head count submissions found.</p>
+{% endif %}
+
+<!-- Bus & KM Submissions -->
+<h4 class="mb-3 mt-4"><i class="bi bi-bus-front me-2"></i>Bus &amp; KM</h4>
+{% if bus_km_entries %}
+    <div class="card history-card mb-3">
+        <div class="card-header" data-bs-toggle="collapse" data-bs-target="#bus-km" aria-expanded="false">
+            <span>All Entries <span class="badge bg-primary ms-1">{{ bus_km_entries|length }}</span></span>
+            <i class="bi bi-chevron-down"></i>
+        </div>
+        <div id="bus-km" class="collapse">
             <ul class="list-group list-group-flush">
-              {% for trip in group.list %}
-                <li class="list-group-item">
-                  <strong>#{{ forloop.counter }}</strong> | 
-                  Duty: {% if trip.duty_card %}{{ trip.duty_card.duty_card_no }}{% else %}N/A{% endif %}<br>
-                  Route: {{ trip.route_name }} | 
-                  Pickup: {{ trip.pick_up_time|time:"H:i" }} | 
-                  Drop: {{ trip.drop_off_time|time:"H:i" }}<br>
-                  Shift: {{ trip.shift_time|time:"H:i" }} | 
-                  Count: {{ trip.head_count }} | 
-                  Type: {{ trip.trip_type }}
-                </li>
-              {% endfor %}
+                {% for entry in bus_km_entries %}
+                    <li class="list-group-item">
+                        <strong>#{{ forloop.counter }}</strong> &middot;
+                        Date: {{ entry.submission_date|date:"Y-m-d"|default:"N/A" }}<br>
+                        Duty: {{ entry.duty_card_no|default:"N/A" }} &middot; Bus: {{ entry.bus_no }} &middot;
+                        Start: {{ entry.bus_start_time|time:"H:i"|default:"N/A" }} &middot; End: {{ entry.bus_end_time|time:"H:i"|default:"N/A" }}<br>
+                        KM: {{ entry.start_km }} - {{ entry.end_km }} &middot;
+                        Changed: {{ entry.bus_change|yesno:"Yes,No" }} &middot; New Bus: {{ entry.changed_bus_no|default:"N/A" }}
+                    </li>
+                {% endfor %}
             </ul>
-          </div>
         </div>
-      {% endfor %}
-    {% else %}
-      <p class="no-data"><i class="fas fa-exclamation-triangle me-2"></i> No head count submissions found.</p>
-    {% endif %}
-
-    <!-- Bus & KM Submissions -->
-    <h2><i class="fas fa-bus me-2"></i> Bus & KM</h2>
-    {% if bus_km_entries %}
-      <div class="card">
-        <div class="card-header" data-bs-toggle="collapse" data-bs-target="#bus-km">
-          All Entries ({{ bus_km_entries|length }})
-          <i class="fas fa-chevron-down"></i>
-        </div>
-        <div id="bus-km" class="collapse card-body">
-          <ul class="list-group list-group-flush">
-            {% for entry in bus_km_entries %}
-              <li class="list-group-item">
-                <strong>#{{ forloop.counter }}</strong> | 
-                Date: {{ entry.submission_date|date:"Y-m-d"|default:"N/A" }}<br>
-                Duty: {{ entry.duty_card_no|default:"N/A" }} | 
-                Bus: {{ entry.bus_no }} | 
-                Start Time: {{ entry.bus_start_time|time:"H:i"|default:"N/A" }} | 
-                End Time: {{ entry.bus_end_time|time:"H:i"|default:"N/A" }}<br>
-                KM: {{ entry.start_km }} - {{ entry.end_km }} | 
-                Changed: {{ entry.bus_change|yesno:"Yes,No" }} | 
-                New Bus: {{ entry.changed_bus_no|default:"N/A" }}
-              </li>
-            {% endfor %}
-          </ul>
-        </div>
-      </div>
-    {% else %}
-      <p class="no-data"><i class="fas fa-exclamation-triangle me-2"></i> No bus & KM submissions found.</p>
-    {% endif %}
-
-    <!-- Back to Home -->
-    <a href="{% url 'home' %}" class="btn-home"><i class="fas fa-home me-2"></i> Back to Home</a>
-  </div>
-
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+    </div>
+{% else %}
+    <p class="no-data"><i class="bi bi-exclamation-triangle me-2"></i>No bus &amp; KM submissions found.</p>
+{% endif %}
+{% endblock %}

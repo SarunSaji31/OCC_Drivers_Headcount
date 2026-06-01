@@ -1,135 +1,39 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Route Details - Emirates Airline</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
-    <style>
-        /* General Styling */
-        body {
-            background-color: #f5f5f5; /* Subtle grey for better readability */
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            color: #333;
-        }
-        .container {
-            max-width: 1100px;
-            background-color: #fff;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.15);
-            margin-top: 30px;
-        }
-        .display-6 {
-            color: #d71920; /* Emirates red */
-            font-weight: 700;
-            text-align: center;
-        }
-        .card {
-            border: none;
-            border-radius: 10px;
-            background-color: #f7f7f7; /* Light background for sections */
-        }
-        .card-body {
-            padding: 20px;
-        }
-        .fw-light {
-            color: #6c757d;
-        }
+{% extends "duty/base_generic.html" %}
 
-        /* Table Styling */
-        .table {
-            margin-top: 20px;
-            border: 1px solid #dee2e6;
-        }
-        .table thead {
-            background-color: #d71920; /* Emirates red */
-            color: #fff;
-        }
-        .table th, .table td {
-            font-size: 0.9rem;
-            color: #333;
-            padding: 10px;
-            vertical-align: middle;
-        }
-        .table th {
-            text-transform: uppercase;
-            font-weight: 600;
-        }
+{% block title %}Route Details · OCC-EKG{% endblock %}
 
-        /* Button Styling */
-        .btn-download, .btn-home {
-            background-color: #d71920; /* Emirates red */
-            color: #fff;
-            border: none;
-            border-radius: 6px;
-            padding: 10px 25px;
-            font-size: 0.9rem;
-            font-weight: 600;
-            margin-top: 15px;
-            display: block;
-            margin-left: auto;
-            margin-right: auto;
-            transition: background-color 0.3s ease;
-        }
-        .btn-download:hover, .btn-home:hover {
-            background-color: #b5161c;
-        }
+{% block nav_links %}
+    <a href="{% url 'home' %}"><i class="bi bi-house-door"></i> Home</a>
+    <a href="{% url 'subcategory_selection' %}"><i class="bi bi-grid"></i> STM-EKG</a>
+{% endblock %}
 
-        /* Responsive Design */
-        @media (max-width: 768px) {
-            .container {
-                padding: 15px;
-            }
-            .display-6 {
-                font-size: 1.5rem;
-            }
-            .btn-download, .btn-home {
-                font-size: 0.85rem;
-            }
-            .table th, .table td {
-                font-size: 0.85rem;
-                padding: 8px;
-            }
-        }
-    </style>
-</head>
-<body>
+{% block extra_head %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
+<style>
+    #pdf-content .table thead { background-color: var(--color-primary); color: #fff; }
+    #pdf-content .route-section { background: var(--color-surface-alt); border-radius: var(--radius); }
+</style>
+{% endblock %}
 
-<div class="container" id="pdf-content">
+{% block content %}
+<div id="pdf-content">
     <div class="text-center mb-4">
-        <h1 class="display-6">Emirates Airline - Route Details</h1>
-        <button id="pdf-button" onclick="downloadPDF()" class="btn btn-download">Download as PDF</button>
-        <a href="/" class="btn btn-home mt-2">Back to Home</a>
+        <h2 class="text-primary fw-bold">Emirates Airline — Route Details</h2>
+        <button id="pdf-button" onclick="downloadPDF()" class="btn btn-primary mt-2"><i class="bi bi-file-earmark-pdf me-1"></i>Download as PDF</button>
+        <a href="{% url 'home' %}" class="btn btn-outline-secondary mt-2"><i class="bi bi-house-door me-1"></i>Back to Home</a>
     </div>
 
     {% for route_data in route_data_list %}
-    <div class="card mb-4">
+    <div class="card route-section mb-4">
         <div class="card-body">
-            <h2 class="card-title">{{ route_data.route_name }} <span class="fw-light">({{ route_data.route_type }})</span></h2>
+            <h4 class="card-title">{{ route_data.route_name }} <span class="text-muted fw-light">({{ route_data.route_type }})</span></h4>
             <hr>
             <div class="row mb-3">
-                <div class="col-md-6 col-sm-12 mb-2">
-                    <p class="fw-semibold">Operating Days 1:</p>
-                    <p>{{ route_data.operating_days_1 }}</p>
-                </div>
-                {% if route_data.operating_days_2 %}
-                <div class="col-md-6 col-sm-12 mb-2">
-                    <p class="fw-semibold">Operating Days 2:</p>
-                    <p>{{ route_data.operating_days_2 }}</p>
-                </div>
-                {% endif %}
-                <div class="col-md-6 col-sm-12 mb-2">
-                    <p class="fw-semibold">Work Hub:</p>
-                    <p>{{ route_data.work_hub }}</p>
-                </div>
-                <div class="col-md-6 col-sm-12 mb-2">
-                    <p class="fw-semibold">Shift Time:</p>
-                    <p>{{ route_data.shift_time }}</p>
-                </div>
+                <div class="col-md-6 mb-2"><p class="fw-semibold mb-0">Operating Days 1:</p><p>{{ route_data.operating_days_1 }}</p></div>
+                {% if route_data.operating_days_2 %}<div class="col-md-6 mb-2"><p class="fw-semibold mb-0">Operating Days 2:</p><p>{{ route_data.operating_days_2 }}</p></div>{% endif %}
+                <div class="col-md-6 mb-2"><p class="fw-semibold mb-0">Work Hub:</p><p>{{ route_data.work_hub }}</p></div>
+                <div class="col-md-6 mb-2"><p class="fw-semibold mb-0">Shift Time:</p><p>{{ route_data.shift_time }}</p></div>
             </div>
-
             <div class="table-responsive">
                 <table class="table table-bordered table-hover">
                     <thead>
@@ -156,8 +60,9 @@
     </div>
     {% endfor %}
 </div>
+{% endblock %}
 
-<!-- JavaScript for PDF Download -->
+{% block extra_js %}
 <script>
     function downloadPDF() {
         const element = document.getElementById('pdf-content');
@@ -177,7 +82,4 @@
         });
     }
 </script>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+{% endblock %}
