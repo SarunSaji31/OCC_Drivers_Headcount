@@ -63,6 +63,8 @@ TIME_ZONE=Asia/Dubai
 
 Database is **MySQL**. `staff_transport/__init__.py` pins PyMySQL as the MySQL adapter. Google Drive OAuth credentials go in `credentials.json` (gitignored); the token is stored in `token.json` (also gitignored).
 
+> ⚠️ `.env` is gitignored but was historically **committed** (see Security & Repo Hygiene below) — never re-add it to git.
+
 ## Architecture
 
 Single Django app: **`duty/`** — all models, views, forms, URLs, and templates live here.
@@ -167,6 +169,22 @@ All URLs are rooted at `/` (included in `staff_transport/urls.py`). Django admin
 
 - **Cabin crew** — inbound/outbound Excel files uploaded via `/upload/`, processed by `_process_files()` in `upload.py` which groups by building clusters and calculates unit counts.
 - **GPS reports / Salik / Mileage** — CSV files uploaded via `/upload_gpsreports/`, `/upload_salik/`, `/upload_mileage/` using `update_or_create` to avoid duplicates.
+
+## Security & Repo Hygiene
+
+### 2026-06-27 — `.gitignore` fix + secret exposure found
+- **Root cause:** `.gitignore` was saved as **UTF-16**, which git cannot parse — so *every* rule (`.env`, `*.log`, `venv/`, `staticfiles/`, etc.) was silently ignored. Converted it to **UTF-8**; all rules now work. Also added a `.DS_Store` rule.
+- **`debug.log`** (was 89 MB, committed) — untracked (`git rm --cached`) and truncated to 0 bytes. App will write fresh logs.
+- **`.env`** — was **committed** to git and is present on the **public** GitHub remote `SarunSaji31/OCC_Drivers_Headcount` across **15 branches / 28 commits**. Untracked locally (`git rm --cached .env`, file kept on disk). Exposed keys: `SECRET_KEY`, `DB_PASSWORD`, `DB_USER`, `DB_NAME`, `DB_HOST` (=localhost, so DB not internet-reachable), `DB_PORT`.
+
+### 🚨 OPEN — credential rotation & history scrub (not yet done)
+The local untrack does **not** remove secrets from GitHub or git history. Still required:
+- [ ] **Rotate `SECRET_KEY`** (Django signing key — public = session/cookie forgery risk on any deployed instance)
+- [ ] **Rotate `DB_PASSWORD`** (public; lower urgency since `DB_HOST=localhost`, but still leaked)
+- [ ] **Purge `.env` from history** across all 15 branches (`git filter-repo`) and **force-push**
+- [ ] Consider making the repo **private** (stopgap only — anything already scraped stays leaked, so rotation is the real fix)
+- [ ] **Commit** the staged untracking + UTF-8 `.gitignore`
+- [ ] `staticfiles/` — **72,313 generated files are tracked** (collectstatic output); should be untracked (`git rm -r --cached staticfiles/`) — major repo bloat, separate from the secret issue.
 
 ## Known Issues to Be Aware Of
 
