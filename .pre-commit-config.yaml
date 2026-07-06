@@ -1,0 +1,15 @@
+# Shared secret-scanning hook. Install once per clone:  pip install pre-commit && pre-commit install
+# Blocks commits that contain secrets (belt-and-suspenders with the CI scan in .github/workflows).
+repos:
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.4
+    hooks:
+      - id: gitleaks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: detect-private-key
+      - id: check-added-large-files
+        args: ["--maxkb=1024"]
+      - id: end-of-file-fixer
+      - id: check-merge-conflict

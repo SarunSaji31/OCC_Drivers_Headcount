@@ -1,0 +1,9 @@
+# Force text/UTF-8 handling so config files can't be silently saved as UTF-16
+# (root cause of the 2026-06-27 .gitignore-was-UTF-16 incident, which disabled every ignore rule).
+.gitignore   text eol=lf working-tree-encoding=UTF-8
+.gitattributes text eol=lf
+.env.example text eol=lf
+*.py         text eol=lf
+*.html       text eol=lf
+*.css        text eol=lf
+*.js         text eol=lf

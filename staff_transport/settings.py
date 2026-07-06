@@ -112,9 +112,9 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'occekg@gmail.com' 
-EMAIL_HOST_PASSWORD = '***REMOVED-APP-PASSWORD***' 
-DEFAULT_FROM_EMAIL = 'occekg@gmail.com'
+EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default=EMAIL_HOST_USER)
 EMAIL_USE_LOCALTIME = True  # Optional, if necessary
 
 # Enable debugging for emails
